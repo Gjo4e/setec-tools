@@ -302,6 +302,12 @@ public final class MainActivity extends ComponentActivity {
                 productUrl != null || moreSearchPending) return;
         final int serial = searchSerial;
         moreSearchPending = true;
+        handler.postDelayed(() -> {
+            if (serial == searchSerial && moreSearchPending) {
+                moreSearchPending = false;
+                js("window.showMoreResults('[]');");
+            }
+        }, 16000);
         String baseline = "(function(){return JSON.stringify([...document.querySelectorAll('a[href*=\\\"/products/\\\"]')].map(a=>{try{return new URL(a.getAttribute('href'),location.href).href}catch(e){return ''}}));})()";
         merchant.evaluateJavascript(baseline, value -> {
             if (serial != searchSerial || !moreSearchPending) return;
