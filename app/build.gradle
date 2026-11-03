@@ -7,7 +7,7 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.app'
+        applicationId 'mk.setecsifri.logo'
         minSdk 26
         targetSdk 35
         versionCode 23
