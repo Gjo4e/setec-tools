@@ -319,18 +319,29 @@ public final class MainActivity extends ComponentActivity {
                 JSONArray old = new JSONArray(decodeJsString(value));
                 for (int i=0;i<old.length();i++) moreSeenUrls.add(old.optString(i));
             } catch (Exception ignored) {}
-            String navigate = "(function(){\n  const desired=" + nextPage + ";\n  const vis=e=>{let r=e.getBoundingClientRect(),st=getComputedStyle(e);return r.width>0&&r.height>0&&st.display!=='none'&&st.visibility!=='hidden'};\n  const label=e=>(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();\n  const nums=e=>{let x=[...e.querySelectorAll('button,a,[role=\"button\"],li,span')].filter(vis).map(label).filter(t=>/^\\d{1,3}$/.test(t)).map(Number);return [...new Set(x)]};\n  const candidates=[...document.querySelectorAll('button,a,[role=\"button\"],[tabindex],li,span')].filter(e=>vis(e)&&label(e)===String(desired));\n  let best=null,score=-1;\n  for(const e of candidates){\n    let p=e.parentElement;\n    for(let i=0;p&&i<4;i++,p=p.parentElement){\n      const n=nums(p);\n      if(n.length<2||!n.includes(desired)||(!n.includes(desired-1)&&!n.includes(1)))continue;\n      const cls=String(p.className||'')+' '+(p.getAttribute('aria-label')||'');\n      let v=n.length+(/pagin|page|страниц/i.test(cls)?20:0)+(e.closest('nav')?7:0);\n      if(v>score){best=e;score=v;}\n    }\n  }\n  if(best){best.click();return 'number-'+desired;}\n  const nexts=[...document.querySelectorAll('a[rel=\"next\"],button,a,[role=\"button\"]')].filter(vis);\n  const n=nexts.find(e=>/^(next|следна|следно|›|»|>)$/i.test(label(e))||/next|следна|десно/i.test(e.getAttribute('aria-label')||''));\n  if(n&&!n.disabled){n.click();return 'arrow';}\n  return 'no-pagination';\n})()";
-            // Schedule BEFORE clicking. If Setec navigates, WebView may drop
-            // the evaluateJavascript callback entirely.
-            for (long delay : new long[]{1500, 3000, 5000, 8000, 12000}) {
-                handler.postDelayed(() -> readMoreResults(serial, delay==12000), delay);
+            // Direct URL verified from Setec page 2.
+            String pageUrl = Uri.parse("https://www.setec.mk/search-result").buildUpon()
+                    .appendQueryParameter("q", activeQuery)
+                    .appendQueryParameter("page", String.valueOf(nextPage))
+                    .build().toString();
+            for (long delay : new long[]{1800, 3500, 6000, 9000, 13500}) {
+                handler.postDelayed(() -> readMoreResults(serial, delay == 13500), delay);
             }
-            merchant.evaluateJavascript(navigate, response -> {});
-
+            merchant.loadUrl(pageUrl);
         });
     }
     private void readMoreResults(int serial, boolean finalAttempt) {
         if (merchant == null || serial != searchSerial || !moreSearchPending || productUrl != null) return;
+        // Never accept stale results from page one.
+        int expectedPage = morePageIndex + 1;
+        String location = merchant.getUrl();
+        if (!merchantLoaded || location == null || !location.contains("page=" + expectedPage)) {
+            if (finalAttempt) {
+                moreSearchPending = false;
+                js("window.showMoreResults('[]');");
+            }
+            return;
+        }
         String script = collectMoreResultScript(activeQuery);
         merchant.evaluateJavascript(script, encoded -> {
             if (serial != searchSerial || !moreSearchPending || productUrl != null) return;
