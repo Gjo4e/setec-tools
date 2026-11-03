@@ -13,7 +13,8 @@
 
     <application
         android:allowBackup="false"
-        android:label="Setec Залиха"
+        android:label="Setec Шифри"
+        android:icon="@drawable/ic_setec_sifri"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false">
         <provider
