@@ -19,6 +19,29 @@ public final class SkuExtractor {
     private static final Pattern NUMBER = Pattern.compile("(?<![0-9])[0-9]{4,6}(?![0-9])");
     private static final Pattern PRICES = Pattern.compile("(?iu)(?:цена|ден\\.?|мкд|price|\\b12x\\b|\\b24x\\b)");
 
+    /**
+     * Only use this fallback for OCR inside the orange scan guide, NEVER for an
+     * entire shop label. Latin OCR can recognize 84558 but miss "шифра/код".
+     * Require an unambiguous 4-6 digit SKU, excluding lines containing prices.
+     */
+    public static String extractFramed(String raw) {
+        String anchored = extract(raw);
+        if (anchored != null) return anchored;
+        if (raw == null) return null;
+        String best = null;
+        for (String line : raw.split("[\\r\\n]+")) {
+            String lower = line.toLowerCase(Locale.ROOT);
+            if (PRICES.matcher(lower).find() || lower.contains("125.999")) continue;
+            Matcher numbers = NUMBER.matcher(line);
+            while (numbers.find()) {
+                String candidate = numbers.group();
+                if (best == null) best = candidate;
+                else if (!best.equals(candidate)) return null;
+            }
+        }
+        return best;
+    }
+
     public static String extract(String raw) {
         if (raw == null || raw.trim().isEmpty()) return null;
         String text = raw.replace('\u00a0', ' ');
