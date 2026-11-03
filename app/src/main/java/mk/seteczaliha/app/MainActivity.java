@@ -43,6 +43,7 @@ public final class MainActivity extends ComponentActivity {
     private boolean merchantLoaded = false;
     private int searchSerial = 0;
     private boolean moreSearchPending = false;
+    private int morePageIndex = 1;
     private final java.util.HashSet<String> moreSeenUrls = new java.util.HashSet<>();
     private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
@@ -235,6 +236,7 @@ public final class MainActivity extends ComponentActivity {
         activeQuery = (query == null ? "" : query.trim()).replaceAll("[\\r\\n]", " ").substring(0, Math.min(90,(query == null ? "" : query.trim()).length()));
         productUrl = null;
         moreSearchPending = false;
+        morePageIndex = 1;
         int serial = ++searchSerial;
         if (activeQuery.isEmpty()) {
             js("window.showResults('[]',true);");
@@ -302,6 +304,7 @@ public final class MainActivity extends ComponentActivity {
                 productUrl != null || moreSearchPending) return;
         final int serial = searchSerial;
         moreSearchPending = true;
+        final int nextPage = morePageIndex + 1;
         handler.postDelayed(() -> {
             if (serial == searchSerial && moreSearchPending) {
                 moreSearchPending = false;
@@ -316,18 +319,7 @@ public final class MainActivity extends ComponentActivity {
                 JSONArray old = new JSONArray(decodeJsString(value));
                 for (int i=0;i<old.length();i++) moreSeenUrls.add(old.optString(i));
             } catch (Exception ignored) {}
-            String navigate = "(function(){"+
-                "const visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
-                "let scopes=[...document.querySelectorAll('[class*=\\\"pagination\\\" i],nav[aria-label*=\\\"page\\\" i],[aria-label*=\\\"pagination\\\" i]')].filter(visible);"+
-                "let target=null;for(let n of scopes){let buttons=[...n.querySelectorAll('a,button,[role=button]')].filter(visible);"+
-                "target=buttons.find(e=>/^(?:next|следна|следно|›|»|>)$/i.test((e.innerText||e.textContent||'').trim())||/next|следна/i.test(e.getAttribute('aria-label')||''));"+
-                "if(!target){let current=buttons.findIndex(e=>e.getAttribute('aria-current')==='page'||/active|selected/.test(e.className||''));if(current>=0&&current+1<buttons.length)target=buttons[current+1]}if(target)break}"+
-                "if(!target)target=document.querySelector('a[rel=next]');"+
-                "if(!target)target=[...document.querySelectorAll('button')].find(e=>visible(e)&&/^(?:прикажи повеќе|вчитај повеќе|load more|show more)$/i.test((e.innerText||'').trim()));"+
-                "if(target&&!target.disabled){target.click();return 'clicked'}"+
-                "let links=[...document.querySelectorAll('a[href*=\\\"/products/\\\"]')];if(links.length)links[links.length-1].scrollIntoView({block:'end'});"+
-                "for(let e of document.querySelectorAll('*')){if(e.scrollHeight>e.clientHeight+150&&e.clientHeight>150)e.scrollTop=e.scrollHeight}"+
-                "window.scrollTo(0,document.body.scrollHeight);return 'scrolled'})()";
+            String navigate = "(function(){\n  const desired=" + nextPage + ";\n  const vis=e=>{let r=e.getBoundingClientRect(),st=getComputedStyle(e);return r.width>0&&r.height>0&&st.display!=='none'&&st.visibility!=='hidden'};\n  const label=e=>(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();\n  const nums=e=>{let x=[...e.querySelectorAll('button,a,[role=\"button\"],li,span')].filter(vis).map(label).filter(t=>/^\\d{1,3}$/.test(t)).map(Number);return [...new Set(x)]};\n  const candidates=[...document.querySelectorAll('button,a,[role=\"button\"],[tabindex],li,span')].filter(e=>vis(e)&&label(e)===String(desired));\n  let best=null,score=-1;\n  for(const e of candidates){\n    let p=e.parentElement;\n    for(let i=0;p&&i<4;i++,p=p.parentElement){\n      const n=nums(p);\n      if(n.length<2||!n.includes(desired)||(!n.includes(desired-1)&&!n.includes(1)))continue;\n      const cls=String(p.className||'')+' '+(p.getAttribute('aria-label')||'');\n      let v=n.length+(/pagin|page|страниц/i.test(cls)?20:0)+(e.closest('nav')?7:0);\n      if(v>score){best=e;score=v;}\n    }\n  }\n  if(best){best.click();return 'number-'+desired;}\n  const nexts=[...document.querySelectorAll('a[rel=\"next\"],button,a,[role=\"button\"]')].filter(vis);\n  const n=nexts.find(e=>/^(next|следна|следно|›|»|>)$/i.test(label(e))||/next|следна|десно/i.test(e.getAttribute('aria-label')||''));\n  if(n&&!n.disabled){n.click();return 'arrow';}\n  return 'no-pagination';\n})()";
             // Schedule BEFORE clicking. If Setec navigates, WebView may drop
             // the evaluateJavascript callback entirely.
             for (long delay : new long[]{1500, 3000, 5000, 8000, 12000}) {
@@ -353,6 +345,7 @@ public final class MainActivity extends ComponentActivity {
                 }
             }catch(Exception ignored){}
             if(additions.length()>0 || finalAttempt){
+                if(additions.length()>0) morePageIndex++;
                 moreSearchPending=false;
                 js("window.showMoreResults(" + JSONObject.quote(additions.toString()) + ");");
             }
