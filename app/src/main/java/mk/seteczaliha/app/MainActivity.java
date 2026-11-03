@@ -408,6 +408,7 @@ public final class MainActivity extends ComponentActivity {
             "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);let sku=m?m[1]:'';"+
+            "if(sku!==q && !txt.includes(q))continue;"+
             "let img=p.querySelector('img');let src=img?.currentSrc||img?.src||'';"+
             "found.set(u.href,{name:name,sku:sku,img:src,url:u.href});if(found.size>=30)break}"+
             "return JSON.stringify([...found.values()]);})()";
