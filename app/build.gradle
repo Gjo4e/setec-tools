@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.more'
+        applicationId 'mk.setecsifri.morefix'
         minSdk 26
         targetSdk 35
-        versionCode 24
-        versionName '2.2'
+        versionCode 25
+        versionName '2.3'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
