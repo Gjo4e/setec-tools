@@ -42,6 +42,8 @@ public final class MainActivity extends ComponentActivity {
     private String productUrl = null;
     private boolean merchantLoaded = false;
     private int searchSerial = 0;
+    private boolean moreSearchPending = false;
+    private final java.util.HashSet<String> moreSeenUrls = new java.util.HashSet<>();
     private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
 
@@ -153,6 +155,9 @@ public final class MainActivity extends ComponentActivity {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
     private final class UiBridge {
+        @JavascriptInterface public void moreResults() {
+            runOnUiThread(MainActivity.this::startMoreResults);
+        }
         @JavascriptInterface public void search(String query) {
             runOnUiThread(() -> startSearch(query));
         }
@@ -226,6 +231,7 @@ public final class MainActivity extends ComponentActivity {
         if (merchant == null) return;
         activeQuery = (query == null ? "" : query.trim()).replaceAll("[\\r\\n]", " ").substring(0, Math.min(90,(query == null ? "" : query.trim()).length()));
         productUrl = null;
+        moreSearchPending = false;
         int serial = ++searchSerial;
         if (activeQuery.isEmpty()) {
             js("window.showResults('[]',true);");
@@ -263,7 +269,7 @@ public final class MainActivity extends ComponentActivity {
         }
     }
     private void readResults(int serial) {
-        if (merchant == null) return;
+        if (merchant == null || moreSearchPending) return;
         String query = activeQuery;
         String script = "(function(){let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
@@ -285,6 +291,78 @@ public final class MainActivity extends ComponentActivity {
             if (json == null) json = "[]";
             js("window.showResults(" + JSONObject.quote(json) + ",false);");
         });
+    }
+
+    /** Only invoked from the new "Прикажи повеќе" control. Original search is unchanged. */
+    private void startMoreResults() {
+        if (merchant == null || activeQuery.isEmpty() || activeQuery.matches("[0-9]+") ||
+                productUrl != null || moreSearchPending) return;
+        final int serial = searchSerial;
+        moreSearchPending = true;
+        String baseline = "(function(){return JSON.stringify([...document.querySelectorAll('a[href*=\\\"/products/\\\"]')].map(a=>{try{return new URL(a.getAttribute('href'),location.href).href}catch(e){return ''}}));})()";
+        merchant.evaluateJavascript(baseline, value -> {
+            if (serial != searchSerial || !moreSearchPending) return;
+            moreSeenUrls.clear();
+            try {
+                JSONArray old = new JSONArray(decodeJsString(value));
+                for (int i=0;i<old.length();i++) moreSeenUrls.add(old.optString(i));
+            } catch (Exception ignored) {}
+            String navigate = "(function(){"+
+                "const visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
+                "let scopes=[...document.querySelectorAll('[class*=\\\"pagination\\\" i],nav[aria-label*=\\\"page\\\" i],[aria-label*=\\\"pagination\\\" i]')].filter(visible);"+
+                "let target=null;for(let n of scopes){let buttons=[...n.querySelectorAll('a,button,[role=button]')].filter(visible);"+
+                "target=buttons.find(e=>/^(?:next|следна|следно|›|»|>)$/i.test((e.innerText||e.textContent||'').trim())||/next|следна/i.test(e.getAttribute('aria-label')||''));"+
+                "if(!target){let current=buttons.findIndex(e=>e.getAttribute('aria-current')==='page'||/active|selected/.test(e.className||''));if(current>=0&&current+1<buttons.length)target=buttons[current+1]}if(target)break}"+
+                "if(!target)target=document.querySelector('a[rel=next]');"+
+                "if(!target)target=[...document.querySelectorAll('button')].find(e=>visible(e)&&/^(?:прикажи повеќе|вчитај повеќе|load more|show more)$/i.test((e.innerText||'').trim()));"+
+                "if(target&&!target.disabled){target.click();return 'clicked'}"+
+                "let links=[...document.querySelectorAll('a[href*=\\\"/products/\\\"]')];if(links.length)links[links.length-1].scrollIntoView({block:'end'});"+
+                "for(let e of document.querySelectorAll('*')){if(e.scrollHeight>e.clientHeight+150&&e.clientHeight>150)e.scrollTop=e.scrollHeight}"+
+                "window.scrollTo(0,document.body.scrollHeight);return 'scrolled'})()";
+            merchant.evaluateJavascript(navigate, response -> {
+                if (serial != searchSerial || !moreSearchPending) return;
+                for (long delay : new long[]{1800, 3700, 6200, 9000}) {
+                    handler.postDelayed(() -> readMoreResults(serial, delay==9000), delay);
+                }
+            });
+        });
+    }
+    private void readMoreResults(int serial, boolean finalAttempt) {
+        if (merchant == null || serial != searchSerial || !moreSearchPending || productUrl != null) return;
+        String script = collectMoreResultScript(activeQuery);
+        merchant.evaluateJavascript(script, encoded -> {
+            if (serial != searchSerial || !moreSearchPending || productUrl != null) return;
+            JSONArray additions = new JSONArray();
+            try {
+                JSONArray all = new JSONArray(decodeJsString(encoded));
+                for (int i=0;i<all.length();i++) {
+                    JSONObject p = all.optJSONObject(i);
+                    if(p == null)continue;
+                    String url = p.optString("url","");
+                    if(!url.isEmpty()&&!moreSeenUrls.contains(url)){moreSeenUrls.add(url);additions.put(p);}
+                }
+            }catch(Exception ignored){}
+            if(additions.length()>0 || finalAttempt){
+                moreSearchPending=false;
+                js("window.showMoreResults(" + JSONObject.quote(additions.toString()) + ");");
+            }
+        });
+    }
+    private String collectMoreResultScript(String query) {
+        return "(function(){let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
+            "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
+            "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
+            "if(!['setec.mk','www.setec.mk'].includes(u.hostname)||found.has(u.href))continue;"+
+            "let p=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;"+
+            "let t=p.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');"+
+            "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
+            "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
+            "let sku=m?m[1]:'';"+
+            "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
+            "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
+            "found.set(u.href,{url:u.href,name:name,sku:sku,img:src});if(found.size>=150)break}"+
+            "return JSON.stringify([...found.values()]);})()";
     }
     private static String decodeJsString(String encoded) {
         if (encoded == null || "null".equals(encoded)) return null;
