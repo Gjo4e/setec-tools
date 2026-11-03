@@ -26,7 +26,7 @@
 </main>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);let tab='scan',currentProduct={url:'',name:'',sku:'',img:''},lastList=[],lastQuery='',pendingSku='';
+const $=id=>document.getElementById(id);let tab='scan',currentProduct={url:'',name:'',sku:'',img:''},lastList=[],lastQuery='',pendingSku='',lastScannedSku='';
 const validUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['setec.mk','www.setec.mk'].includes(u.hostname)&&u.pathname.startsWith('/products/')}catch(e){return false}};
 const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'&&(['setec.mk','www.setec.mk'].includes(u.hostname)||u.hostname.endsWith('.digitaloceanspaces.com'))?u.href:''}catch(e){return ''}};
 function elem(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
@@ -39,10 +39,10 @@ setStatus('Резултати: '+lastList.length+'.');if(pendingSku){const exact
 }catch(e){setStatus('Проблем со пребарувањето.')}};
 function search(q,fromScan=false){q=(q||'').trim();lastQuery=q;lastList=[];if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
 $('form').addEventListener('submit',ev=>{ev.preventDefault();search($('query').value)});
-function openProduct(p){currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:'Ја вчитувам шифрата…';$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
+function openProduct(p){currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
-window.showProductLoading=()=>{$('psku').textContent='Ја вчитувам шифрата…'};
-window.showProduct=function(json){try{const p=JSON.parse(json);if(!validUrl(p.url))return;currentProduct={...currentProduct,...p};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=currentProduct.sku?'Шифра: '+currentProduct.sku:'Шифрата не е пронајдена';setHero(currentProduct.img)}catch(e){}};
+window.showProductLoading=()=>{if(!currentProduct.sku&&!lastScannedSku)$('psku').textContent='Ја вчитувам шифрата…'};
+window.showProduct=function(json){try{const p=JSON.parse(json);if(!validUrl(p.url))return;const code=(p.sku||currentProduct.sku||'').trim();currentProduct={...currentProduct,...p,sku:code};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=code?'Шифра: '+code:(lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена од Setec':'Шифрата не е наведена на страницата');setHero(currentProduct.img)}catch(e){}};
 window.showGodiStatus=function(status){
   const el=$('godiStatus'); if(!el)return;
   el.className='stockState';
@@ -52,6 +52,6 @@ window.showGodiStatus=function(status){
   else{el.textContent='Непотврдено'}
 };
 window.backToResults=()=>{$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
-window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('scanCode').textContent=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
+window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('scanCode').textContent=sku;lastScannedSku=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
 function refresh(){if(!$('detail').classList.contains('hidden'))backToResults();const q=lastQuery||$('query').value;setStatus('Освежувам од Setec.mk…');SetecApp.refresh(q)}
 </script></body></html>
