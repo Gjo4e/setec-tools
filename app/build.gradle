@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.pages'
+        applicationId 'mk.setecsifri.pagesurl'
         minSdk 26
         targetSdk 35
-        versionCode 26
-        versionName '2.4'
+        versionCode 27
+        versionName '2.5'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
