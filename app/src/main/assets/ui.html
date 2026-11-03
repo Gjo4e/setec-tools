@@ -13,12 +13,13 @@
 <nav class="tabs" aria-label="Режим"><button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>▣</span>Скенирај</button><button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button></nav>
 <main class="wrap">
 <section id="scanPanel"><div class="frame"><div class="capture"><div class="corners"></div><div><div class="glyph">▣</div><strong>Читање на шифра од етикета</strong><p>Насочи ја камерата кон „Шифра:“ или „шифра/код:“ на ценовникот.</p></div></div></div><div class="scanBtns"><button class="cta" onclick="SetecApp.scan()">▣ Скенирај со камера</button><button class="secondary" onclick="refresh()" aria-label="Освежи">⟳</button></div>
+<button id="resetScanBtn" class="back hidden" onclick="resetScan()">‹ Назад · Нова шифра</button>
 <div id="recognized" class="recognition hidden"><span class="symbol">✓</span><div>Препознаена шифра: <strong id="scanCode"></strong></div></div>
 <div class="note">Се поддржуваат двата формати на етикета:<div class="chips"><span class="chip">Шифра: 12959</span><span class="chip">шифра/код: 84558</span></div></div></section>
 <section id="searchPanel" class="hidden"><form id="form" class="form"><input id="query" placeholder="Пребарај име или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
 <div id="status" class="state">Скенирај шифра или пребарај производ.</div>
 <section id="resultsPanel"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div></section>
-<section id="detail" class="hidden"><button class="back" onclick="backToResults()">‹ Назад кон резултати</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div></div></div>
+<section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div></div></div>
 <div class="stock"><div class="stockLabel"><span class="stockIcon">⬡</span>Достапност во Годи</div><div id="godiStatus" class="stockState">Непотврдено</div></div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">„Годи“ на официјалната листа значи дека има залиха. Оваа апликација не прикажува непроверено „ИМА“ или „НЕМА“.</p>
 <button class="cta" onclick="SetecApp.scan()">▣ Скенирај повторно</button></section>
@@ -51,7 +52,8 @@ window.showGodiStatus=function(status){
   else if(status==='checking'){el.textContent='Проверувам…'}
   else{el.textContent='Непотврдено'}
 };
+window.resetScan=function(){pendingSku='';lastScannedSku='';lastQuery='';lastList=[];currentProduct={url:'',name:'',sku:'',img:''};$('query').value='';$('scanCode').textContent='';$('recognized').classList.add('hidden');$('resetScanBtn').classList.add('hidden');$('ptitle').textContent='Производ';$('psku').textContent='';$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');$('list').replaceChildren(elem('div','empty','Скенирај нова шифра од ценовникот.'));switchTab('scan');setStatus('Подготвено за ново скенирање.');window.scrollTo(0,0);SetecApp.search('');};
 window.backToResults=()=>{$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
-window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('scanCode').textContent=sku;lastScannedSku=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
+window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('resetScanBtn').classList.remove('hidden');$('scanCode').textContent=sku;lastScannedSku=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
 function refresh(){if(!$('detail').classList.contains('hidden'))backToResults();const q=lastQuery||$('query').value;setStatus('Освежувам од Setec.mk…');SetecApp.refresh(q)}
 </script></body></html>
