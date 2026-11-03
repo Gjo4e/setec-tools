@@ -43,6 +43,14 @@ function openProduct(p){currentProduct=p;$('detail').classList.remove('hidden');
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
 window.showProductLoading=()=>{$('psku').textContent='Ја вчитувам шифрата…'};
 window.showProduct=function(json){try{const p=JSON.parse(json);if(!validUrl(p.url))return;currentProduct={...currentProduct,...p};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=currentProduct.sku?'Шифра: '+currentProduct.sku:'Шифрата не е пронајдена';setHero(currentProduct.img)}catch(e){}};
+window.showGodiStatus=function(status){
+  const el=$('godiStatus'); if(!el)return;
+  el.className='stockState';
+  if(status==='yes'){el.textContent='✓ ИМА';el.classList.add('yes')}
+  else if(status==='no'){el.textContent='НЕМА';el.classList.add('no')}
+  else if(status==='checking'){el.textContent='Проверувам…'}
+  else{el.textContent='Непотврдено'}
+};
 window.backToResults=()=>{$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
 window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('scanCode').textContent=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
 function refresh(){if(!$('detail').classList.contains('hidden'))backToResults();const q=lastQuery||$('query').value;setStatus('Освежувам од Setec.mk…');SetecApp.refresh(q)}
