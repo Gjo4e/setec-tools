@@ -79,7 +79,10 @@ public final class MainActivity extends ComponentActivity {
                     handler.postDelayed(() -> attemptGodi(serial, url), 1300);
                 } else if (queuedQuery != null && isHome(url)) {
                     String q = queuedQuery; queuedQuery = null;
-                    runSearch(q);
+                    final int serial = searchSerial;
+                    handler.postDelayed(() -> {
+                        if (serial == searchSerial && productUrl == null && q.equals(activeQuery)) runSearch(q);
+                    }, 500);
                 } else if (productUrl == null && !activeQuery.isEmpty() && !isHome(url)) {
                     scheduleResults(searchSerial);
                 }
@@ -137,8 +140,10 @@ public final class MainActivity extends ComponentActivity {
             runOnUiThread(() -> {
                 activeQuery = query == null ? "" : query.trim();
                 productUrl = null;
-                queuedQuery = activeQuery;
+                queuedQuery = activeQuery.isEmpty() ? null : activeQuery;
                 searchSerial++;
+                availabilitySerial++;
+                merchantLoaded = false;
                 js("window.showLoading('Освежувам податоци од Setec...');");
                 merchant.loadUrl(HOME);
             });
@@ -162,37 +167,72 @@ public final class MainActivity extends ComponentActivity {
         if (merchant == null) return;
         activeQuery = (query == null ? "" : query.trim()).replaceAll("[\\r\\n]", " ").substring(0, Math.min(90,(query == null ? "" : query.trim()).length()));
         productUrl = null;
+        queuedQuery = null;
+        availabilitySerial++;
         int serial = ++searchSerial;
         if (activeQuery.isEmpty()) {
+            merchantLoaded = false;
+            merchant.stopLoading();
+            merchant.loadUrl(HOME);
             js("window.showResults('[]',true);");
             return;
         }
         js("window.showLoading('Пребарувам на Setec.mk...');");
         if (!merchantLoaded || !isHome(merchant.getUrl())) {
             queuedQuery = activeQuery;
+            merchantLoaded = false;
+            merchant.stopLoading();
             merchant.loadUrl(HOME);
             return;
         }
-        runSearch(activeQuery);
+        handler.postDelayed(() -> {
+            if (serial == searchSerial && productUrl == null) runSearch(activeQuery);
+        }, 250);
     }
     private void runSearch(String query) {
-        if (merchant == null || productUrl != null) return;
-        final int serial = searchSerial;
+        if (merchant == null || productUrl != null || !query.equals(activeQuery)) return;
+        trySubmitSearch(query, searchSerial, 0);
+    }
+
+    /**
+     * Setec's homepage is React-rendered. A WebView onPageFinished event does
+     * not guarantee that its search input has mounted yet. Retry readiness,
+     * but never submit the same query twice within one search generation.
+     */
+    private void trySubmitSearch(String query, int serial, int retry) {
+        if (merchant == null || serial != searchSerial || productUrl != null ||
+                !query.equals(activeQuery)) return;
+        if (!merchantLoaded || !isHome(merchant.getUrl())) {
+            if (retry < 18) handler.postDelayed(
+                () -> trySubmitSearch(query, serial, retry + 1), 400);
+            return;
+        }
         String q = JSONObject.quote(query);
         String code = "(function(){"+
-            "let input=[...document.querySelectorAll('input')].find(x=>/пребарај|search/i.test(x.placeholder||'')||x.type==='search');"+
+            "let input=[...document.querySelectorAll('input')].find(x=>"+
+            "(/пребарај|search/i.test(x.placeholder||'')||x.type==='search')&&"+
+            "x.getBoundingClientRect().width>0);"+
             "if(!input)return 'no-input';"+
-            "let setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,"+q+");"+
+            "let setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;"+
+            "setter.call(input,"+q+");"+
             "input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:"+q+"}));"+
             "input.dispatchEvent(new Event('change',{bubbles:true}));"+
             "let f=input.closest('form');"+
-            "if(f){try{f.requestSubmit()}catch(e){}}else{let b=input.parentElement&&input.parentElement.querySelector('button');if(b)b.click();else input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}"+
+            "if(f){try{f.requestSubmit()}catch(e){return 'retry'}}else{"+
+            "let b=input.parentElement&&input.parentElement.querySelector('button');"+
+            "if(b)b.click();else input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}"+
             "return 'submitted';})()";
-        merchant.evaluateJavascript(code, v -> {});
-        scheduleResults(serial);
+        merchant.evaluateJavascript(code, outcome -> {
+            if (serial != searchSerial || productUrl != null || !query.equals(activeQuery)) return;
+            String status = decodeJsString(outcome);
+            if ("submitted".equals(status)) scheduleResults(serial);
+            else if (retry < 18) handler.postDelayed(
+                () -> trySubmitSearch(query, serial, retry + 1), 400);
+            else js("window.showLoading('Пребарувањето не се вчита. Притисни Барај повторно.');");
+        });
     }
     private void scheduleResults(int serial) {
-        for (long delay : new long[]{600, 1500, 3000, 5200}) {
+        for (long delay : new long[]{900, 1800, 3000, 4800, 7000, 9500}) {
             handler.postDelayed(() -> {
                 if (serial == searchSerial && productUrl == null) readResults(serial);
             }, delay);
