@@ -91,6 +91,9 @@ public final class MainActivity extends ComponentActivity {
                 } else if (queuedQuery != null && isHome(url)) {
                     String q = queuedQuery; queuedQuery = null;
                     runSearch(q);
+                } else if (moreSearchPending && productUrl == null) {
+                    // Pagination can navigate and discard the JavaScript click callback.
+                    // The independent more-results poller remains responsible for updates.
                 } else if (productUrl == null && !activeQuery.isEmpty() && !isHome(url)) {
                     scheduleResults(searchSerial);
                 }
@@ -319,12 +322,13 @@ public final class MainActivity extends ComponentActivity {
                 "let links=[...document.querySelectorAll('a[href*=\\\"/products/\\\"]')];if(links.length)links[links.length-1].scrollIntoView({block:'end'});"+
                 "for(let e of document.querySelectorAll('*')){if(e.scrollHeight>e.clientHeight+150&&e.clientHeight>150)e.scrollTop=e.scrollHeight}"+
                 "window.scrollTo(0,document.body.scrollHeight);return 'scrolled'})()";
-            merchant.evaluateJavascript(navigate, response -> {
-                if (serial != searchSerial || !moreSearchPending) return;
-                for (long delay : new long[]{1800, 3700, 6200, 9000}) {
-                    handler.postDelayed(() -> readMoreResults(serial, delay==9000), delay);
-                }
-            });
+            // Schedule BEFORE clicking. If Setec navigates, WebView may drop
+            // the evaluateJavascript callback entirely.
+            for (long delay : new long[]{1500, 3000, 5000, 8000, 12000}) {
+                handler.postDelayed(() -> readMoreResults(serial, delay==12000), delay);
+            }
+            merchant.evaluateJavascript(navigate, response -> {});
+
         });
     }
     private void readMoreResults(int serial, boolean finalAttempt) {
