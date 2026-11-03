@@ -34,6 +34,7 @@ public final class MainActivity extends ComponentActivity {
     private String productUrl = null;
     private boolean merchantLoaded = false;
     private int searchSerial = 0;
+    private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
 
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
@@ -53,10 +54,11 @@ public final class MainActivity extends ComponentActivity {
         root.setBackgroundColor(Color.rgb(247,248,250));
         setContentView(root);
 
-        // Attach the merchant WebView at a real size (1dp) so its JS and React page run.
+        // Give the hidden website a real viewport; 1dp widths break responsive dropdowns.
         merchant = new WebView(this);
-        merchant.setAlpha(0f);
-        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(1, 1);
+        merchant.setAlpha(0.01f);
+        merchant.setClickable(false);
+        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(-1, -1);
         root.addView(merchant, mp);
         WebSettings sourceSettings = merchant.getSettings();
         sourceSettings.setJavaScriptEnabled(true);
@@ -71,6 +73,8 @@ public final class MainActivity extends ComponentActivity {
                 merchantLoaded = true;
                 if (productUrl != null && url.startsWith(productUrl)) {
                     readProduct();
+                    int serial = ++availabilitySerial;
+                    handler.postDelayed(() -> attemptGodi(serial, url), 1000);
                 } else if (queuedQuery != null && isHome(url)) {
                     String q = queuedQuery; queuedQuery = null;
                     runSearch(q);
@@ -225,6 +229,7 @@ public final class MainActivity extends ComponentActivity {
         if (!safeProduct(url)) return;
         productUrl = url;
         searchSerial++;
+        availabilitySerial++;
         js("window.showProductLoading();");
         merchant.loadUrl(url);
     }
@@ -238,6 +243,52 @@ public final class MainActivity extends ComponentActivity {
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
+        });
+    }
+
+    /**
+     * Read the same product's visible availability dropdown once. Never infer
+     * absence from a missing menu, failed click or a partial list.
+     */
+    private void attemptGodi(int serial, String url) {
+        if (merchant == null || serial != availabilitySerial || !url.equals(productUrl)) return;
+        js("window.showGodiStatus('checking');");
+        String clickScript = "(function(){"+
+            "let b=[...document.querySelectorAll('button')].find(x=>"+
+            "/провери\\s*достапност/i.test(x.innerText||x.textContent||'') &&"+
+            "x.getBoundingClientRect().width>0 && x.getBoundingClientRect().height>0);"+
+            "if(!b)return 'missing';"+
+            "b.click();return 'clicked';})()";
+        merchant.evaluateJavascript(clickScript, unused -> {
+            for (long wait : new long[]{450, 1250, 2700}) {
+                handler.postDelayed(() -> readGodi(serial, url), wait);
+            }
+        });
+    }
+    private void readGodi(int serial, String url) {
+        if (merchant == null || serial != availabilitySerial || !url.equals(productUrl)) return;
+        String script = "(function(){"+
+           "let selectors='[role=\"option\"],[role=\"menuitem\"],option,li,[data-radix-collection-item], [role=\"listbox\"] button';"+
+           "let nodes=[...document.querySelectorAll(selectors)];"+
+           "let stores=[];"+
+           "for(let e of nodes){let r=e.getBoundingClientRect();"+
+           "if(!r.width||!r.height||getComputedStyle(e).visibility==='hidden')continue;"+
+           "let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();"+
+           "if(t.length>2&&t.length<90&&!stores.includes(t))stores.push(t)}"+
+           "let found=stores.some(t=>/(?:^|\\s)(?:сетек\\s*)?годи(?:\\s|$)/i.test(t));"+
+           "if(found)return 'yes';"+
+           // only assert not available when list explicitly contains multiple SETEC store names
+           "let shopCount=stores.filter(t=>/сетек\\s*(?:аеродром|чaир|гостивар|охрид|тетово|битола|велес|гтц|радиовиш|куманово|штип)/i.test(t)).length;"+
+           "return shopCount>=2?'no':'unknown';})()";
+        merchant.evaluateJavascript(script, encoded -> {
+            if (serial != availabilitySerial || !url.equals(productUrl)) return;
+            String state=decodeJsString(encoded);
+            if ("yes".equals(state) || "no".equals(state)) {
+                availabilitySerial++;
+                js("window.showGodiStatus(" + JSONObject.quote(state) + ");");
+            } else {
+                js("window.showGodiStatus('unknown');");
+            }
         });
     }
     @Override public void onBackPressed() {
