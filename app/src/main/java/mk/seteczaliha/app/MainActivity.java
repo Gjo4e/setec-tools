@@ -191,7 +191,7 @@ public final class MainActivity extends ComponentActivity {
             runOnUiThread(() -> {
                 ClipboardManager board = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 if (board != null) board.setPrimaryClip(ClipData.newPlainText("Setec шифри", text));
-                Toast.makeText(this, "Шифрите се копирани", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Шифрите се копирани", Toast.LENGTH_SHORT).show();
             });
         }
         @JavascriptInterface public void batchLookup(String sku) {
