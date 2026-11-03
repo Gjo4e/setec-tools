@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
 public final class SkuExtractor {
     private SkuExtractor() {}
     private static final Pattern ANCHOR = Pattern.compile(
-            "(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)\\s*[:：.]?\\s*([0-9]{4,6})(?![0-9])");
-    private static final Pattern LABEL = Pattern.compile("(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)");
+            "(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)(?:\\s*/\\s*(?:код|kod|code))?\\s*[:：.]?\\s*([0-9]{4,6})(?![0-9])");
+    private static final Pattern LABEL = Pattern.compile("(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)(?:\\s*/\\s*(?:код|kod|code))?");
     private static final Pattern NUMBER = Pattern.compile("(?<![0-9])[0-9]{4,6}(?![0-9])");
     private static final Pattern PRICES = Pattern.compile("(?iu)(?:цена|ден\\.?|мкд|price|\\b12x\\b|\\b24x\\b)");
 
