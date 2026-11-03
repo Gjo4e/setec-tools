@@ -3,6 +3,9 @@ package mk.seteczaliha.app;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -29,6 +32,11 @@ public final class MainActivity extends ComponentActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView ui;
     private WebView merchant;
+    private WebView batchMerchant;
+    private boolean batchMerchantLoaded = false;
+    private String batchCurrentSku = null;
+    private int batchSerial = 0;
+    private boolean nextScanBatch = false;
     private String activeQuery = "";
     private String queuedQuery = null;
     private String productUrl = null;
@@ -46,7 +54,8 @@ public final class MainActivity extends ComponentActivity {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 String sku = result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
                 if (sku != null && sku.matches("[0-9]{4,8}")) {
-                    js("window.onScanned(" + JSONObject.quote(sku) + ");");
+                    js((nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
+                    nextScanBatch = false;
                 }
             }
         });
@@ -85,6 +94,34 @@ public final class MainActivity extends ComponentActivity {
                 }
             }
         });
+
+        // Dedicated secondary merchant browser for bulk SKU name lookups.
+        // Never navigates the original single-product merchant WebView.
+        batchMerchant = new WebView(this);
+        batchMerchant.setAlpha(0.01f);
+        batchMerchant.setClickable(false);
+        WebSettings batchSettings = batchMerchant.getSettings();
+        batchSettings.setJavaScriptEnabled(true);
+        batchSettings.setDomStorageEnabled(true);
+        batchSettings.setLoadsImagesAutomatically(false);
+        batchMerchant.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                batchMerchantLoaded = false;
+            }
+            @Override public void onPageFinished(WebView view, String url) {
+                batchMerchantLoaded = true;
+                if (batchCurrentSku == null) return;
+                int serial = batchSerial;
+                String sku = batchCurrentSku;
+                if (isHome(url)) {
+                    handler.postDelayed(() -> submitBatchSearch(sku, serial, 0), 500);
+                } else {
+                    scheduleBatchResults(sku, serial);
+                }
+            }
+        });
+        root.addView(batchMerchant, new FrameLayout.LayoutParams(-1, -1));
+        batchMerchant.loadUrl(HOME);
 
         ui = new WebView(this);
         ui.setBackgroundColor(Color.rgb(247,248,250));
@@ -131,7 +168,34 @@ public final class MainActivity extends ComponentActivity {
             });
         }
         @JavascriptInterface public void scan() {
-            runOnUiThread(MainActivity.this::startScanner);
+            runOnUiThread(() -> {
+                nextScanBatch = false;
+                startScanner();
+            });
+        }
+        @JavascriptInterface public void scanBatch() {
+            runOnUiThread(() -> {
+                nextScanBatch = true;
+                startScanner();
+            });
+        }
+        @JavascriptInterface public void saveBatch(String json) {
+            if (json != null && json.length() < 180000)
+                getSharedPreferences("bulk_scans", MODE_PRIVATE).edit().putString("list", json).apply();
+        }
+        @JavascriptInterface public String loadBatch() {
+            return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
+        }
+        @JavascriptInterface public void copyText(String text) {
+            if (text == null || text.length() > 180000) return;
+            runOnUiThread(() -> {
+                ClipboardManager board = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (board != null) board.setPrimaryClip(ClipData.newPlainText("Setec шифри", text));
+                Toast.makeText(this, "Шифрите се копирани", Toast.LENGTH_SHORT).show();
+            });
+        }
+        @JavascriptInterface public void batchLookup(String sku) {
+            runOnUiThread(() -> startBatchLookup(sku));
         }
         @JavascriptInterface public void refresh(String query) {
             runOnUiThread(() -> {
@@ -280,6 +344,81 @@ public final class MainActivity extends ComponentActivity {
             }
         });
     }
+
+    /**
+     * Independent bulk-lookup browser. Only the text and a possible matching
+     * model name are sent to the list page. No stock claims are generated here.
+     */
+    private void startBatchLookup(String sku) {
+        if (batchMerchant == null || sku == null || !sku.matches("[0-9]{4,8}")) return;
+        batchCurrentSku = sku;
+        batchSerial++;
+        batchMerchantLoaded = false;
+        batchMerchant.stopLoading();
+        batchMerchant.loadUrl(HOME);
+    }
+    private void submitBatchSearch(String sku, int serial, int attempt) {
+        if (batchMerchant == null || serial != batchSerial || !sku.equals(batchCurrentSku)) return;
+        if (!batchMerchantLoaded || !isHome(batchMerchant.getUrl())) {
+            if (attempt < 12) handler.postDelayed(() -> submitBatchSearch(sku,serial,attempt+1), 450);
+            return;
+        }
+        String q = JSONObject.quote(sku);
+        String code = "(function(){"+
+            "let input=[...document.querySelectorAll('input')].find(x=>/пребарај|search/i.test(x.placeholder||'')||x.type==='search');"+
+            "if(!input)return 'no-input';"+
+            "let setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,"+q+");"+
+            "input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:"+q+"}));"+
+            "input.dispatchEvent(new Event('change',{bubbles:true}));"+
+            "let f=input.closest('form');"+
+            "if(f){try{f.requestSubmit()}catch(e){}}else{let b=input.parentElement&&input.parentElement.querySelector('button');if(b)b.click();else input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}"+
+            "return 'submitted';})()";
+        batchMerchant.evaluateJavascript(code, result -> {
+            if (serial != batchSerial || !sku.equals(batchCurrentSku)) return;
+            if ("submitted".equals(decodeJsString(result))) scheduleBatchResults(sku,serial);
+            else if (attempt < 12) handler.postDelayed(() -> submitBatchSearch(sku,serial,attempt+1),450);
+            else deliverBatchResult(sku,serial,"[]");
+        });
+    }
+    private void scheduleBatchResults(String sku, int serial) {
+        for (long delay : new long[]{900, 2000, 3500, 5700, 8500}) {
+            handler.postDelayed(() -> readBatchResults(sku, serial, delay == 8500), delay);
+        }
+    }
+    private void readBatchResults(String sku, int serial, boolean finalRead) {
+        if (batchMerchant == null || serial != batchSerial || !sku.equals(batchCurrentSku)) return;
+        String script = batchResultScript(sku);
+        batchMerchant.evaluateJavascript(script, encoded -> {
+            if (serial != batchSerial || !sku.equals(batchCurrentSku)) return;
+            String json = decodeJsString(encoded);
+            if (json != null && json.startsWith("[") && json.length() > 2) {
+                deliverBatchResult(sku,serial,json);
+            } else if (finalRead) {
+                deliverBatchResult(sku,serial,"[]");
+            }
+        });
+    }
+    private String batchResultScript(String query) {
+        String script = "(function(){let found=new Map();let q="+JSONObject.quote(query)+";"+
+            "for(let a of document.querySelectorAll('a[href*=\\\"/products/\\\"]')){"+
+            "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
+            "if(!['setec.mk','www.setec.mk'].includes(u.hostname)||found.has(u.href))continue;"+
+            "let p=a.closest('article,li,[class*=\\\"product\\\"],[class*=\\\"Product\\\"],[class*=\\\"card\\\"],[class*=\\\"Card\\\"]')||a.parentElement||a;"+
+            "let t=p.querySelector('h2,h3,h4,[class*=\\\"title\\\"],[class*=\\\"name\\\"]');"+
+            "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
+            "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);let sku=m?m[1]:'';"+
+            "let img=p.querySelector('img');let src=img?.currentSrc||img?.src||'';"+
+            "found.set(u.href,{name:name,sku:sku,img:src,url:u.href});if(found.size>=30)break}"+
+            "return JSON.stringify([...found.values()]);})()";
+        return script;
+    }
+    private void deliverBatchResult(String sku,int serial,String json) {
+        if (serial != batchSerial || !sku.equals(batchCurrentSku)) return;
+        batchCurrentSku = null;
+        js("window.onBatchLookup("+JSONObject.quote(sku)+","+JSONObject.quote(json)+");");
+    }
+
     @Override public void onBackPressed() {
         js("window.backToResults();");
     }
@@ -287,6 +426,7 @@ public final class MainActivity extends ComponentActivity {
         handler.removeCallbacksAndMessages(null);
         if (ui != null) {ui.removeJavascriptInterface("SetecApp");ui.destroy();ui=null;}
         if (merchant != null) {merchant.destroy();merchant=null;}
+        if (batchMerchant != null) {batchMerchant.destroy();batchMerchant=null;}
         super.onDestroy();
     }
 }
