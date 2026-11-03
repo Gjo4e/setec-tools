@@ -5,6 +5,9 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputType;
@@ -58,6 +61,19 @@ public final class ScannerActivity extends ComponentActivity {
         preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
         root.addView(preview, new FrameLayout.LayoutParams(-1,-1));
 
+        // Match the on-device OCR crop to the visible scan guide.
+        View scanGuide = new View(this);
+        GradientDrawable guide = new GradientDrawable();
+        guide.setColor(Color.TRANSPARENT);
+        guide.setCornerRadius(dp(14));
+        guide.setStroke(dp(3), ORANGE);
+        scanGuide.setBackground(guide);
+        FrameLayout.LayoutParams guideParams = new FrameLayout.LayoutParams(
+                -1, dp(140), Gravity.CENTER);
+        guideParams.leftMargin = dp(22);
+        guideParams.rightMargin = dp(22);
+        root.addView(scanGuide, guideParams);
+
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
         top.setPadding(dp(20),dp(20),dp(20),dp(18));
@@ -69,7 +85,7 @@ public final class ScannerActivity extends ComponentActivity {
         title.setTextSize(21);title.setTypeface(null,Typeface.BOLD);title.setTextColor(Color.WHITE);
         top.addView(title);
         TextView hint = new TextView(this);
-        hint.setText("Насочи ја камерата кон малото „Шифра:“ на етикетата. Препознавањето е автоматско.");
+        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во портокаловата рамка. Приближи го телефонот за јасни цифри.");
         hint.setTextSize(14);hint.setTextColor(0xFFE3E5E9);hint.setPadding(0,dp(8),0,0);
         top.addView(hint);
 
@@ -101,11 +117,14 @@ public final class ScannerActivity extends ComponentActivity {
                 cameraPreview.setSurfaceProvider(preview.getSurfaceProvider());
                 ImageAnalysis analysis = new ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .setTargetResolution(new android.util.Size(1280, 720))
+                        .setTargetResolution(new android.util.Size(1920, 1080))
                         .build();
                 analysis.setAnalyzer(executor, this::recognize);
                 provider.unbindAll();
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, cameraPreview, analysis);
+                androidx.camera.core.Camera camera = provider.bindToLifecycle(
+                        this, CameraSelector.DEFAULT_BACK_CAMERA, cameraPreview, analysis);
+                // Modest optical/digital zoom makes the tiny shop-label digits legible.
+                camera.getCameraControl().setZoomRatio(1.8f);
             } catch (Exception e) {
                 detected.setText("Не можам да ја стартувам камерата. Внеси шифра рачно.");
             }
@@ -117,21 +136,42 @@ public final class ScannerActivity extends ComponentActivity {
     }
     private void recognize(ImageProxy proxy) {
         if (completed || !busy.compareAndSet(false,true)) { proxy.close(); return; }
-        android.media.Image frame = proxy.getImage();
-        if (frame == null) {busy.set(false); proxy.close();return;}
-        InputImage image=InputImage.fromMediaImage(frame,proxy.getImageInfo().getRotationDegrees());
-        recognizer.process(image).addOnSuccessListener(result -> {
-            if (completed) return;
-            String sku = SkuExtractor.extract(result.getText());
-            if (sku != null) {
-                long now = android.os.SystemClock.elapsedRealtime();
-                if (sku.equals(lastSku) && now-previousReadMs<4000) hits++;
-                else { lastSku=sku;hits=1; }
-                previousReadMs=now;
-                detected.setText("Шифра: " + sku + (hits>=2?" ✓":" · потврдувам…"));
-                if (hits>=2) complete(sku);
-            }
-        }).addOnCompleteListener(task -> {busy.set(false);proxy.close();});
+        Bitmap original;
+        try {
+            original = proxy.toBitmap();
+            Matrix rotate = new Matrix();
+            rotate.postRotate(proxy.getImageInfo().getRotationDegrees());
+            Bitmap upright = Bitmap.createBitmap(original, 0, 0,
+                    original.getWidth(), original.getHeight(), rotate, true);
+            // The guide occupies the middle horizontal band of the live preview.
+            // Reject numbers elsewhere (large price, EAN, credit payments, etc.).
+            int x = Math.round(upright.getWidth() * 0.07f);
+            int y = Math.round(upright.getHeight() * 0.39f);
+            int width = Math.max(1, Math.round(upright.getWidth() * 0.86f));
+            int height = Math.max(1, Math.round(upright.getHeight() * 0.22f));
+            width = Math.min(width, upright.getWidth()-x);
+            height = Math.min(height, upright.getHeight()-y);
+            Bitmap stripe = Bitmap.createBitmap(upright,x,y,width,height);
+            InputImage image = InputImage.fromBitmap(stripe,0);
+            recognizer.process(image).addOnSuccessListener(result -> {
+                if (completed) return;
+                String sku = SkuExtractor.extractFramed(result.getText());
+                if (sku != null) {
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    if (sku.equals(lastSku) && now-previousReadMs<4500) hits++;
+                    else { lastSku=sku;hits=1; }
+                    previousReadMs=now;
+                    detected.setText("Шифра: " + sku + (hits>=2?" ✓":" · потврдувам…"));
+                    if (hits>=2) complete(sku);
+                } else {
+                    detected.setText("Насочи ја СИНАТА ЛЕНТА во рамката · шифра/код: #####");
+                }
+            }).addOnCompleteListener(task -> { busy.set(false); proxy.close(); });
+        } catch (Exception ex) {
+            busy.set(false);
+            proxy.close();
+            runOnUiThread(() -> detected.setText("Приближи ја етикетата или внеси шифра рачно."));
+        }
     }
     private void complete(String sku) {
         if (completed) return;
