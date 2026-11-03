@@ -34,6 +34,7 @@ public final class MainActivity extends ComponentActivity {
     private String productUrl = null;
     private boolean merchantLoaded = false;
     private int searchSerial = 0;
+    private int submittedSearchSerial = -1;
     private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
 
@@ -83,7 +84,7 @@ public final class MainActivity extends ComponentActivity {
                     handler.postDelayed(() -> {
                         if (serial == searchSerial && productUrl == null && q.equals(activeQuery)) runSearch(q);
                     }, 500);
-                } else if (productUrl == null && !activeQuery.isEmpty() && !isHome(url)) {
+                } else if (productUrl == null && submittedSearchSerial == searchSerial && !activeQuery.isEmpty() && !isHome(url)) {
                     scheduleResults(searchSerial);
                 }
             }
@@ -142,6 +143,7 @@ public final class MainActivity extends ComponentActivity {
                 productUrl = null;
                 queuedQuery = activeQuery.isEmpty() ? null : activeQuery;
                 searchSerial++;
+                submittedSearchSerial = -1;
                 availabilitySerial++;
                 merchantLoaded = false;
                 js("window.showLoading('Освежувам податоци од Setec...');");
@@ -170,6 +172,7 @@ public final class MainActivity extends ComponentActivity {
         queuedQuery = null;
         availabilitySerial++;
         int serial = ++searchSerial;
+        submittedSearchSerial = -1;
         if (activeQuery.isEmpty()) {
             merchantLoaded = false;
             merchant.stopLoading();
@@ -225,7 +228,10 @@ public final class MainActivity extends ComponentActivity {
         merchant.evaluateJavascript(code, outcome -> {
             if (serial != searchSerial || productUrl != null || !query.equals(activeQuery)) return;
             String status = decodeJsString(outcome);
-            if ("submitted".equals(status)) scheduleResults(serial);
+            if ("submitted".equals(status)) {
+                submittedSearchSerial = serial;
+                scheduleResults(serial);
+            }
             else if (retry < 18) handler.postDelayed(
                 () -> trySubmitSearch(query, serial, retry + 1), 400);
             else js("window.showLoading('Пребарувањето не се вчита. Притисни Барај повторно.');");
@@ -234,12 +240,12 @@ public final class MainActivity extends ComponentActivity {
     private void scheduleResults(int serial) {
         for (long delay : new long[]{900, 1800, 3000, 4800, 7000, 9500}) {
             handler.postDelayed(() -> {
-                if (serial == searchSerial && productUrl == null) readResults(serial);
+                if (serial == searchSerial && serial == submittedSearchSerial && productUrl == null) readResults(serial);
             }, delay);
         }
     }
     private void readResults(int serial) {
-        if (merchant == null) return;
+        if (merchant == null || serial != submittedSearchSerial) return;
         String query = activeQuery;
         String script = "(function(){let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
@@ -271,6 +277,7 @@ public final class MainActivity extends ComponentActivity {
         if (!safeProduct(url)) return;
         productUrl = url;
         searchSerial++;
+        submittedSearchSerial = -1;
         availabilitySerial++;
         js("window.showProductLoading();");
         merchant.loadUrl(url);
