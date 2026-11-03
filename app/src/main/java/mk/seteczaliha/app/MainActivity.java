@@ -73,8 +73,10 @@ public final class MainActivity extends ComponentActivity {
                 merchantLoaded = true;
                 if (productUrl != null && url.startsWith(productUrl)) {
                     readProduct();
+                    handler.postDelayed(() -> { if (productUrl != null && url.equals(productUrl)) readProduct(); }, 1400);
+                    handler.postDelayed(() -> { if (productUrl != null && url.equals(productUrl)) readProduct(); }, 3000);
                     int serial = ++availabilitySerial;
-                    handler.postDelayed(() -> attemptGodi(serial, url), 1000);
+                    handler.postDelayed(() -> attemptGodi(serial, url), 1300);
                 } else if (queuedQuery != null && isHome(url)) {
                     String q = queuedQuery; queuedQuery = null;
                     runSearch(q);
@@ -250,43 +252,30 @@ public final class MainActivity extends ComponentActivity {
      * Read the same product's visible availability dropdown once. Never infer
      * absence from a missing menu, failed click or a partial list.
      */
+    /** Open once; record which visible elements existed before the dropdown opened. */
     private void attemptGodi(int serial, String url) {
         if (merchant == null || serial != availabilitySerial || !url.equals(productUrl)) return;
         js("window.showGodiStatus('checking');");
-        String clickScript = "(function(){"+
-            "let b=[...document.querySelectorAll('button')].find(x=>"+
-            "/провери\\s*достапност/i.test(x.innerText||x.textContent||'') &&"+
-            "x.getBoundingClientRect().width>0 && x.getBoundingClientRect().height>0);"+
-            "if(!b)return 'missing';"+
-            "b.click();return 'clicked';})()";
-        merchant.evaluateJavascript(clickScript, unused -> {
-            for (long wait : new long[]{450, 1250, 2700}) {
-                handler.postDelayed(() -> readGodi(serial, url), wait);
+        String clickScript = "(function(){\n try{\n const elements=[...document.querySelectorAll('button,[role=\"button\"]')];\n const visible=e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';};\n const b=elements.find(e=>visible(e)&&/провери\\s*достапност/i.test((e.innerText||e.textContent||'').trim()));\n if(!b)return 'missing-button';\n const set=new WeakSet();\n for(const e of document.querySelectorAll('body *'))if(visible(e))set.add(e);\n window.__setecStockBaseline=set;\n window.__setecStockOpenedAt=Date.now();\n b.click();\n return 'clicked';\n }catch(e){return 'click-error'}\n})()";
+        merchant.evaluateJavascript(clickScript, reply -> {
+            if (serial != availabilitySerial || !url.equals(productUrl)) return;
+            for (long wait : new long[]{500, 1300, 2800, 4700, 7000}) {
+                handler.postDelayed(() -> readGodi(serial, url, wait == 7000), wait);
             }
         });
     }
-    private void readGodi(int serial, String url) {
+
+    /** Check only store labels newly exposed by the availability dropdown. */
+    private void readGodi(int serial, String url, boolean finalAttempt) {
         if (merchant == null || serial != availabilitySerial || !url.equals(productUrl)) return;
-        String script = "(function(){"+
-           "let selectors='[role=\"option\"],[role=\"menuitem\"],option,li,[data-radix-collection-item], [role=\"listbox\"] button';"+
-           "let nodes=[...document.querySelectorAll(selectors)];"+
-           "let stores=[];"+
-           "for(let e of nodes){let r=e.getBoundingClientRect();"+
-           "if(!r.width||!r.height||getComputedStyle(e).visibility==='hidden')continue;"+
-           "let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();"+
-           "if(t.length>2&&t.length<90&&!stores.includes(t))stores.push(t)}"+
-           "let found=stores.some(t=>/(?:^|\\s)(?:сетек\\s*)?годи(?:\\s|$)/i.test(t));"+
-           "if(found)return 'yes';"+
-           // only assert not available when list explicitly contains multiple SETEC store names
-           "let shopCount=stores.filter(t=>/сетек\\s*(?:аеродром|чaир|гостивар|охрид|тетово|битола|велес|гтц|радиовиш|куманово|штип)/i.test(t)).length;"+
-           "return shopCount>=2?'no':'unknown';})()";
+        String script = "(function(){\n try{\n const visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';};\n const baseline=window.__setecStockBaseline;\n if(!baseline)return 'unknown';\n let all=[...document.querySelectorAll('body *')], fresh=[];\n for(const e of all){\n   if(baseline.has(e)||!visible(e))continue;\n   let text=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();\n   if(text.length<2||text.length>90)continue;\n   let leaves=[...e.children].filter(visible);\n   if(leaves.some(c=>((c.innerText||c.textContent||'').replace(/\\s+/g,' ').trim())===text))continue;\n   fresh.push(text);\n }\n fresh=[...new Set(fresh)];\n if(fresh.some(t=>/^(?:(?:сетек|setec)\\s*)?годи$/i.test(t)||/^(?:сетек\\s*)?годи\\s*[-–]/i.test(t)))return 'yes';\n const stores=fresh.filter(t=>/^(?:сетек\\s*)?(?:чаир|гостивар|охрид|тетово|битола|велес|гтц|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица|кисела вода)$/i.test(t));\n if(stores.length>=2)return 'no';\n return 'unknown';\n }catch(e){return 'unknown'}\n})()";
         merchant.evaluateJavascript(script, encoded -> {
             if (serial != availabilitySerial || !url.equals(productUrl)) return;
-            String state=decodeJsString(encoded);
+            String state = decodeJsString(encoded);
             if ("yes".equals(state) || "no".equals(state)) {
                 availabilitySerial++;
                 js("window.showGodiStatus(" + JSONObject.quote(state) + ");");
-            } else {
+            } else if (finalAttempt) {
                 js("window.showGodiStatus('unknown');");
             }
         });
