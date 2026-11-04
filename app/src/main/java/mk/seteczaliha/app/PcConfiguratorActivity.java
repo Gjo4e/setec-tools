@@ -266,6 +266,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         int serial = -1;
         boolean completed = true;
         boolean clicked = false;
+        boolean detailsSent = false;
 
         StockWorker(FrameLayout root) {
             web = makeWeb();
@@ -288,6 +289,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             serial = id;
             completed = false;
             clicked = false;
+            detailsSent = false;
             web.stopLoading();
             web.loadUrl(url);
             final String target = url;
@@ -386,6 +388,22 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                 String text = decode(output);
                 if (text != null) detail = new JSONObject(text);
             } catch (Exception ignored) {}
+            // Update code and prices as soon as they are read, even when stock
+            // verification is unavailable; never mark unverified stock as available.
+            if (detail != null && !worker.detailsSent &&
+                    (!detail.optString("sku").isEmpty() ||
+                     !detail.optString("clubPrice").isEmpty() ||
+                     !detail.optString("regularPrice").isEmpty())) {
+                worker.detailsSent = true;
+                try {
+                    JSONObject metadata = new JSONObject();
+                    metadata.put("url", worker.url);
+                    for (String key : new String[]{"sku", "clubPrice", "regularPrice"}) {
+                        if (!detail.optString(key).isEmpty()) metadata.put(key, detail.optString(key));
+                    }
+                    send("window.pcProductDetails(" + JSONObject.quote(metadata.toString()) + ");");
+                } catch (Exception ignored) {}
+            }
             if (detail != null && detail.optJSONArray("stores") != null &&
                     detail.optJSONArray("stores").length() > 0) finish(worker, detail);
             else if (last) finish(worker, null);
@@ -414,6 +432,13 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         stockCompleted++;
         send("window.pcProgress("+stockCompleted+","+stockTotal+","+stockAvailable+");");
         giveNext(worker, stockSerial);
+    }
+
+    @Override public void onBackPressed() {
+        if (ui == null) { finish(); return; }
+        ui.evaluateJavascript("window.pcBack ? window.pcBack() : false", value -> {
+            if (!"true".equals(value)) finish();
+        });
     }
 
     @Override protected void onDestroy() {
