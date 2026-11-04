@@ -68,9 +68,15 @@ function priceRow(p){const box=el('div','prices');const c=cash(p.clubPrice),r=ca
 function fullText(p){return ((p?.name||'')+' '+(p?.specs||'')).toUpperCase()}
 // The PC builder lists desktop memory only; SO-DIMM is laptop-size RAM.
 function ramFormFactor(p){
- const text=fullText(p).replace(/[\u2010-\u2015\u2212]/g,'-');
- if(/\bSO[\s._/-]*DIMM\b|\bSODIMM\b|\b(?:LAPTOP|NOTEBOOK)\s*(?:RAM|MEMORY)\b|\b(?:RAM|MEMORY)\s*(?:FOR\s*)?(?:LAPTOP|NOTEBOOK)\b|(?:ЛАПТОП|НОУТБУК)/i.test(text))return 'SO-DIMM';
- if(/\b(?:U[\s._-]*DIMM|UDIMM|DIMM)\b/.test(text))return 'DIMM';
+ // Product-page "specs" may include the shop's entire navigation, including laptop categories.
+ // Never classify memory from those unrelated menu words.
+ const name=String(p?.name||'').toUpperCase().replace(/[\u2010-\u2015\u2212]/g,'-');
+ const specs=String(p?.specs||'').toUpperCase().replace(/[\u2010-\u2015\u2212]/g,'-');
+ const so=/\bSO[\s._/-]*DIMM\b|\bSODIMM\b/;
+ if(so.test(name)||/\b(?:LAPTOP|NOTEBOOK)\b|ЛАПТОП|НОУТБУК/.test(name))return 'SO-DIMM';
+ if(/\b(?:U[\s._-]*DIMM|UDIMM|DIMM)\b/.test(name))return 'DIMM';
+ // Only trust a clearly labelled form-factor field from a product description.
+ if(/(?:FORM[\s-]*FACTOR|ФОРМ[\s-]*ФАКТОР|ФОРМАТ)\s*:?\s*.{0,50}(?:SO[\s._/-]*DIMM|SODIMM)\b/.test(specs))return 'SO-DIMM';
  return '';
 }
 function typeMatch(p,id){
@@ -191,11 +197,24 @@ window.pcCandidates=json=>{
  if(!searching||candidateAccepted)return;
  let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}
  const filter=$('term').value.toLowerCase().trim();
+ const arrUnfilteredCount=arr.length;
  arr=arr.filter(p=>p&&safe(p.url)&&
   (category!=='ram'||ramFormFactor(p)!=='SO-DIMM')&&
   (!filter||(p.name||'').toLowerCase().includes(filter)||String(p.sku||'').includes(filter)));
  // Category URL already determines the type. Keyword heuristics must not hide valid parts.
- if(!arr.length)return;
+ if(!arr.length){
+  // A page containing only SO-DIMM (or no model/sku matches) must still allow the next page.
+  if(!arrUnfilteredCount)return;
+  candidateAccepted=true;
+  if(loadingMore)currentPage=searchPage;
+  loadingMore=false;searching=false;verificationFinished=true;
+  $('pageInfo').textContent='Вчитани страници: 1–'+currentPage+' · '+catalogProducts.length+' производи';
+  $('searchStatus').textContent='Нема соодветни desktop компоненти на оваа страница.';
+  $('nextPage').classList.remove('hidden');
+  $('nextPage').textContent='+ Додади подолу (страница '+(currentPage+1)+') ↓';
+  if(!catalogProducts.length)$('results').replaceChildren(el('div','warning','Нема соодветни производи на оваа страница. Притисни „Додади подолу“ за да продолжиш.'));
+  return;
+ }
  candidateAccepted=true;
  const known=new Set(catalogProducts.map(p=>p.url));const added=arr.filter(p=>!known.has(p.url));
  const wasMore=loadingMore;loadingMore=false;
