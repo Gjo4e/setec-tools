@@ -268,6 +268,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         boolean completed = true;
         boolean clicked = false;
         boolean detailsSent = false;
+        int clickAttempts = 0;
         String lastStores = "";
         int consecutiveStoreReads = 0;
 
@@ -293,6 +294,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             completed = false;
             clicked = false;
             detailsSent = false;
+            clickAttempts = 0;
             lastStores = "";
             consecutiveStoreReads = 0;
             web.stopLoading();
@@ -313,7 +315,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         stockQueue = new JSONArray();
         try {
             JSONArray list = new JSONArray(json);
-            for (int i = 0; i < Math.min(list.length(), 22); i++) {
+            for (int i = 0; i < Math.min(list.length(), 70); i++) {
                 JSONObject p = list.optJSONObject(i);
                 if (p != null && safeProduct(p.optString("url"))) stockQueue.put(p);
             }
@@ -358,20 +360,25 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private void beginProbe(StockWorker worker, int serial) {
         if (serial != stockSerial || worker.completed || worker.clicked) return;
         worker.clicked = true;
-        String click = "(function(){try{"+
-            "let visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
-            "let baseline=new WeakSet();for(let e of document.querySelectorAll('body *'))if(visible(e))baseline.add(e);"+
-            "window.__pcBefore=baseline;"+
-            "let btn=[...document.querySelectorAll('button,[role=\"button\"],a')].find(e=>visible(e)&&/провери\\s*достапност/i.test((e.innerText||e.textContent||'').trim()));"+
-            "if(!btn)return 'missing';btn.click();return 'clicked'"+
-            "}catch(e){return 'error'}})()";
-        worker.web.evaluateJavascript(click, ignored -> {});
-        for (long delay : new long[]{600, 1450, 2600, 4200, 6000}) {
-            handler.postDelayed(() -> probe(worker, serial, delay == 6000), delay);
-        }
+        String click = "(function(){try{\nlet visible=e=>{if(!e)return false;let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};\nlet text=e=>[e.innerText,e.textContent,e.getAttribute('aria-label'),e.getAttribute('title'),e.querySelector('img')?.alt].filter(Boolean).join(' ');\nlet targets=[...document.querySelectorAll('button,[role=\"button\"],a,[onclick]')];\nlet btn=targets.find(e=>visible(e)&&/провери\\s*достапност/i.test(text(e)));\nif(!btn){let img=[...document.querySelectorAll('img')].find(e=>visible(e)&&/провери\\s*достапност/i.test([e.alt,e.title].join(' ')));if(img)btn=img.closest('button,a,[role=\"button\"],[onclick]')||img}\nif(!btn)return 'missing';\nlet baseline=new WeakSet();\nfor(let e of document.querySelectorAll('body *'))if(visible(e))baseline.add(e);\nwindow.__pcBefore=baseline;\nbtn.click();\nreturn 'clicked';\n}catch(e){return 'error'}})()";
+        worker.clickAttempts++;
+        worker.web.evaluateJavascript(click, output -> {
+            if (serial != stockSerial || worker.completed) return;
+            String status = decode(output);
+            if ("clicked".equals(status)) {
+                for (long delay : new long[]{650, 1450, 2600, 4200, 6000}) {
+                    handler.postDelayed(() -> probe(worker, serial, delay == 6000), delay);
+                }
+            } else if (worker.clickAttempts < 4) {
+                worker.clicked = false;
+                handler.postDelayed(() -> beginProbe(worker, serial), 900);
+            } else {
+                finish(worker, null);
+            }
+        });
     }
 
-    private void probe(StockWorker worker, int serial, boolean last) {
+        private void probe(StockWorker worker, int serial, boolean last) {
         if (serial != stockSerial || worker.completed) return;
         String extraction = "(function(){try{\n // Restore the v3.5 mechanism: inspect text that appears AFTER the stock button opens.\n const baseline=window.__pcBefore;\n const visible=e=>{if(!e)return false;let rect=e.getBoundingClientRect(),style=getComputedStyle(e);return rect.width>0&&rect.height>0&&style.visibility!=='hidden'&&style.display!=='none'};\n const textOf=e=>(e?.innerText||e?.textContent||'').replace(/\\s+/g,' ').trim();\n const shops=['СТРУМИЦА RETAIL PARK','КРИВА ПАЛАНКА','СВЕТИ НИКОЛЕ','ЃОРЧЕ ПЕТРОВ','ДАЈМОНД МОЛ','СИТИ МОЛ','Г. МАГАЦИН','ГТЦ ИТ','БИТОЛА 2','РУЗВЕЛТОВА','АЕРОДРОМ','ГОСТИВАР','КАВАДАРЦИ','СТРУМИЦА','ДРАЧЕВО','РАДОВИШ','ДЕЛЧЕВО','НЕГОТИНО','КОЧАНИ','ПРИЛЕП','ТЕТОВО','БИТОЛА','СТРУГА','ШТИП','ЧАИР','ВЕЛЕС','ОХРИД','КИЧЕВО','РЕСЕН','ДЕБАР','ГОДИ','СТАДИОН','ГТЦ','ГЕВГЕЛИЈА','КУМАНОВО'];\n const rejected=/САМО\\s*ЗА\\s*СКОПЈЕ|ДОСТАВА|ДОСТАВУВА|ИСПОРАКА|DELIVERY|ПРЕМИУМ|КОМФОРТ|ОНЛАЈН|ON[\\s-]*LINE|ДО\\s*20\\s*КМ|ПРОВЕРИ\\s*ДОСТАПНОСТ|ЗАЛИХА\\s*ВО\\s*ПРОДАВНИЦИТЕ/;\n const unavailable=/НЕМА\\s*(?:НА\\s*)?ЗАЛИХА|НЕ\\s*Е\\s*ДОСТАПН|НЕДОСТАПН|OUT\\s*OF\\s*STOCK|NOT\\s*AVAILABLE|РАСПРОДАДЕН/;\n const nameOf=raw=>{\n  let t=String(raw||'').normalize('NFKC').toUpperCase().replace(/\\s+/g,' ').trim();\n  if(!t||t.length>130||rejected.test(t)||unavailable.test(t))return '';\n  t=t.replace(/^(?:СЕТЕК|SETEC|SETEK)\\s*[-–:]?\\s*/,'')\n     .replace(/^(?:ПРОДАВНИЦА|САЛОН)\\s*[-–:]?\\s*/,'')\n     .replace(/^СКОПЈЕ\\s*[-–:]\\s*/,'')\n     .replace(/^CAIR(?=$|[\\s,:;·-])/,'ЧАИР')\n     .replace(/^CHAIR(?=$|[\\s,:;·-])/,'ЧАИР')\n     .replace(/^STIP(?=$|[\\s,:;·-])/,'ШТИП')\n     .replace(/^SHTIP(?=$|[\\s,:;·-])/,'ШТИП');\n  for(const shop of shops)if(t===shop||t.startsWith(shop+' ')||t.startsWith(shop+',')||t.startsWith(shop+':')||t.startsWith(shop+'-')||t.startsWith(shop+'·'))return 'Сетек '+shop;\n  return '';\n };\n const stores=[],seen=new Set();\n if(baseline){\n  for(const element of document.querySelectorAll('body *')){\n   if(baseline.has(element)||!visible(element))continue;\n   const label=textOf(element);\n   if(label.length<2||label.length>130)continue;\n   // Exclude container duplicates; use the most specific new text labels.\n   if([...element.children].some(child=>visible(child)&&textOf(child)===label))continue;\n   const store=nameOf(label);\n   if(store&&!seen.has(store)){seen.add(store);stores.push(store)}\n  }\n }\n // Also support newly visible dialog rows when the shop name is in a text node\n // but the element's own text includes a small stock badge.\n if(!stores.length&&baseline){\n  for(const element of document.querySelectorAll('dialog[open] *,[role=\"dialog\"] *,[aria-modal=\"true\"] *')){\n   if(!visible(element)||baseline.has(element))continue;\n   const label=textOf(element);\n   if(label.length<2||label.length>130)continue;\n   if([...element.children].some(child=>visible(child)&&textOf(child)===label))continue;\n   const store=nameOf(label);\n   if(store&&!seen.has(store)){seen.add(store);stores.push(store)}\n  }\n }\n let body=document.body?.innerText||'';\n let title=document.querySelector('h1')?.innerText||'';\n let price=key=>{let m=body.match(new RegExp(key+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].replace(/\\s/g,''):''};\n let sku=(body.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';\n let image='';\n for(const raw of [document.querySelector('meta[property=\"og:image\"]')?.content,document.querySelector('meta[name=\"twitter:image\"]')?.content,document.querySelector('main img')?.getAttribute('data-src'),document.querySelector('main img')?.getAttribute('src')]){\n  if(!raw)continue;\n  let u;try{u=new URL(raw,location.href)}catch(e){continue}\n  if(u.protocol==='https:'&&!/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname)){image=u.href;break}\n }\n return JSON.stringify({stores,name:title.trim(),sku,image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:body.slice(0,4200)});\n}catch(e){return '{}'}})()";
         worker.web.evaluateJavascript(extraction, output -> {
