@@ -232,7 +232,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             "let body=(p.innerText||'').replace(/\\s+/g,' ');"+
             "let sku=(body.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';"+
             "let price=(key)=>{let m=body.match(new RegExp(key+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].trim().replace(/\\s/g,''):''};"+
-            "out.set(u.href,{name:name,url:u.href,sku:sku,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена')});"+
+            "let image=(function(){\nlet candidates=[...a.querySelectorAll('img,picture source'),...p.querySelectorAll('img,picture source')];\nfor(let im of candidates){\n  let sets=[im.getAttribute('data-srcset'),im.getAttribute('srcset')].filter(Boolean);\n  let opts=[im.getAttribute('data-src'),im.getAttribute('data-original'),im.getAttribute('data-lazy-src'),im.getAttribute('data-image')];\n  for(let set of sets)opts.push(set.split(',').pop().trim().split(/\\s+/)[0]);\n  opts.push(im.getAttribute('src'),im.currentSrc);\n  for(let raw of opts){\n    if(!raw||/^(data:|blob:|about:|javascript:)/i.test(raw))continue;\n    let u;try{u=new URL(raw,location.href)}catch(e){continue}\n    if(u.protocol!=='https:'||/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname))continue;\n    return u.href;\n  }\n}\nreturn '';\n})();"+
+            "out.set(u.href,{name:name,url:u.href,sku:sku,image:image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена')});"+
             "if(out.size>=70)break;}return JSON.stringify([...out.values()]);})()";
         catalog.evaluateJavascript(script, output -> {
             if (serial != searchSerial) return;
@@ -379,7 +380,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             "let text=document.body?.innerText||'';let title=document.querySelector('h1')?.innerText||'';"+
             "let price=k=>{let m=text.match(new RegExp(k+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].replace(/\\s/g,''):''};"+
             "let sku=(text.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';"+
-            "return JSON.stringify({stores,name:title.trim(),sku,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:text.slice(0,4200)});"+
+            "let image='';\nfor(let raw of [\ndocument.querySelector('meta[property=\"og:image\"]')?.content,\ndocument.querySelector('meta[name=\"twitter:image\"]')?.content,\ndocument.querySelector('main img')?.getAttribute('data-src'),\ndocument.querySelector('main img')?.getAttribute('src')\n]){\n if(!raw)continue;\n let u;try{u=new URL(raw,location.href)}catch(e){continue}\n if(u.protocol==='https:'&&!/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname)){image=u.href;break;}\n}\n"+
+            "return JSON.stringify({stores,name:title.trim(),sku,image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:text.slice(0,4200)});"+
             "}catch(e){return '{}'}})()";
         worker.web.evaluateJavascript(extraction, output -> {
             if (serial != stockSerial || worker.completed) return;
@@ -391,14 +393,15 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             // Update code and prices as soon as they are read, even when stock
             // verification is unavailable; never mark unverified stock as available.
             if (detail != null && !worker.detailsSent &&
-                    (!detail.optString("sku").isEmpty() ||
+                    (!detail.optString("image").isEmpty() ||
+                     !detail.optString("sku").isEmpty() ||
                      !detail.optString("clubPrice").isEmpty() ||
                      !detail.optString("regularPrice").isEmpty())) {
                 worker.detailsSent = true;
                 try {
                     JSONObject metadata = new JSONObject();
                     metadata.put("url", worker.url);
-                    for (String key : new String[]{"sku", "clubPrice", "regularPrice"}) {
+                    for (String key : new String[]{"sku", "image", "clubPrice", "regularPrice"}) {
                         if (!detail.optString(key).isEmpty()) metadata.put(key, detail.optString(key));
                     }
                     send("window.pcProductDetails(" + JSONObject.quote(metadata.toString()) + ");");
@@ -419,7 +422,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             try {
                 verified = new JSONObject(worker.product.toString());
                 if (!detail.optString("name").isEmpty()) verified.put("name", detail.optString("name"));
-                for (String key : new String[]{"sku", "clubPrice", "regularPrice", "specs"}) {
+                for (String key : new String[]{"sku", "image", "clubPrice", "regularPrice", "specs"}) {
                     if (!detail.optString(key).isEmpty()) verified.put(key, detail.optString(key));
                 }
                 verified.put("stores", detail.optJSONArray("stores"));
