@@ -206,13 +206,17 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                 handler.postDelayed(() -> {
                     if (serial != searchSerial || !resolvingCategory) return;
                     String url = catalog.getUrl();
-                    if (url != null && url.contains("/category/") &&
-                        !Uri.parse(url).getPath().equals(Uri.parse(COMPONENT_ROOT).getPath())) {
-                        String discovered = Uri.parse(url).buildUpon().clearQuery().build().toString();
-                        knownCategories.put(categoryKey, discovered);
+                    if (url != null && url.contains("/category/")) {
+                        boolean changedPage = !Uri.parse(url).getPath().equals(Uri.parse(COMPONENT_ROOT).getPath());
+                        String discovered = changedPage ?
+                                Uri.parse(url).buildUpon().clearQuery().build().toString() :
+                                COMPONENT_ROOT;
+                        // Some Setec sidebar categories are checkboxes that filter in-place
+                        // without changing the URL; keep the currently filtered catalogue.
                         categoryUrl = discovered;
                         resolvingCategory = false;
-                        if (catalogPage > 1) catalog.loadUrl(categoryPageUrl(discovered, catalogPage));
+                        if (changedPage) knownCategories.put(categoryKey, discovered);
+                        if (changedPage && catalogPage > 1) catalog.loadUrl(categoryPageUrl(discovered, catalogPage));
                         else readCatalog(serial);
                     }
                 }, 1000);
