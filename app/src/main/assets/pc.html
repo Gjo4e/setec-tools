@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Состави PC — Setec Шифри</title>
+<style>
+:root{--orange:#f5821e;--ink:#24242b;--muted:#717884;--line:#e3e5e9;--bg:#f8f9fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,Arial,sans-serif}button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.header{background:#1c1c21;color:white;padding:16px 16px 18px}.headrow{display:flex;align-items:center;gap:12px}.back{border:0;background:#34343b;color:white;border-radius:9px;padding:10px 12px;font-size:13px;font-weight:700}.headname{font-size:18px;font-weight:850}.headname b{color:var(--orange)}.sub{font-size:11px;color:#bdc1cc;margin-top:4px}
+main{max-width:680px;margin:auto;padding:16px 14px 42px}.title{font-size:17px;font-weight:800;margin:6px 0 12px}.small{font-size:12px;line-height:1.5;color:var(--muted)}.card{background:white;border:1px solid var(--line);border-radius:13px;padding:14px;margin:10px 0}.categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.cat{border:1px solid var(--line);border-radius:12px;background:white;text-align:left;padding:14px 12px;min-height:100px}.cat .sym{font-size:23px}.cat .name{font-weight:800;font-size:14px;margin-top:8px}.cat .picked{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4;overflow-wrap:anywhere}.cat.selected{border-color:#ffb572;background:#fff9f3}
+.row{display:flex;justify-content:space-between;align-items:center;gap:9px}.wrap{flex-wrap:wrap}.btn{background:var(--orange);border:0;color:white;border-radius:10px;padding:11px 14px;font-weight:800}.ghost{background:white;border:1px solid #dde0e6;color:#333;border-radius:10px;padding:10px 12px;font-weight:750}.inputrow{display:flex;gap:8px;margin:12px 0}.inputrow input{min-width:0;flex:1;background:white;border:1px solid #d7dae0;border-radius:9px;padding:11px}.inputrow button{flex:0 0 auto}
+.prices{font-size:11px;display:flex;flex-wrap:wrap;gap:10px;margin:5px 0 0}.prices .club{color:#d76b11;font-weight:750}.prices .regular{color:#727988}
+.result{padding:13px;background:white;border:1px solid var(--line);border-radius:12px;margin:9px 0}.resultName{font-size:13px;font-weight:780;line-height:1.4;overflow-wrap:anywhere}.resultMeta{font-size:11px;color:var(--muted);margin:6px 0}.stores{font-size:11px;color:#17633a;margin:6px 0;line-height:1.5}.warning{background:#fff8e9;border:1px solid #f1dcad;color:#87591c;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.error{background:#fff0f0;border:1px solid #f2b9b9;color:#9b2828;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.good{color:#17713a}.checked{font-size:11px;color:#165b35}.foot{margin-top:18px;font-size:11px;line-height:1.5;color:#7a808b}
+.summary{padding:14px;border:1px solid var(--line);border-radius:13px;background:#fff;margin-top:16px}.total{font-size:15px;font-weight:800}.total small{font-size:11px;color:var(--muted);font-weight:500}.total strong{color:#e27412}
+.bar{height:4px;background:#edeef1;border-radius:6px;overflow:hidden;margin:8px 0}.fill{height:100%;background:var(--orange);width:0%;transition:width .2s}
+.slot{font-size:12px;padding:8px 0;border-bottom:1px solid #eff0f2;display:flex;gap:10px;align-items:center;justify-content:space-between}.slot .sname{flex:1;min-width:0;overflow-wrap:anywhere}.slot button{border:0;background:#f5f5f6;color:#a63c2c;border-radius:7px;padding:7px}
+select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;max-width:100%}
+</style></head><body>
+<header class="header"><div class="headrow"><button class="back" onclick="PcApp.close()">‹ Назад</button><div><div class="headname"><b>SETEC</b> · Состави PC</div><div class="sub">Конфигуратор на компоненти · каталог од Setec.mk</div></div></div></header>
+<main>
+<section id="home">
+  <div class="row wrap"><div class="title">Избери компоненти</div><span id="progress" class="small">0 / 8</span></div>
+  <div class="categories" id="categories"></div>
+  <div class="summary">
+    <div class="row"><b>Твоја конфигурација</b><button class="ghost" style="font-size:11px" onclick="copyBuild()">Копирај</button></div>
+    <div id="selected"></div>
+    <div class="row wrap" style="margin-top:13px"><div class="total">Клуб: <strong id="clubTotal">0 ден.</strong></div><div class="total">Редовна: <strong id="regularTotal">0 ден.</strong></div></div>
+    <p id="priceNote" class="small"></p>
+    <div id="compatibility"></div>
+    <div id="sharedStore" class="small"></div>
+  </div>
+  <div class="foot">Се прикажуваат само производи со потврдена наведена локација во официјалното мени „Провери Достапност“. Ако Setec не дозволи проверка, производот останува скриен, без да се претпоставува дека го нема. Податоците може да се променат.</div>
+</section>
+<section id="categoryPage" class="hidden">
+ <div class="row"><button class="ghost" onclick="goHome()">‹ Конфигурација</button><span id="catCount" class="small"></span></div>
+ <h2 class="title" id="categoryTitle"></h2>
+ <p class="small">Пребарувањето е во Setec.mk. Прикажуваме само соодветни делови со потврдена наведена локација; проверката може да потрае.</p>
+ <form class="inputrow" onsubmit="event.preventDefault();runSearch(1)"><input type="search" id="term" placeholder="Барај бренд, модел или шифра" autocomplete="off"><button class="btn" type="submit">Барај</button></form>
+ <div class="row wrap"><span id="searchStatus" class="small" aria-live="polite">Избери пребарување</span><span id="pageInfo" class="small"></span></div>
+ <div class="bar"><div id="progressFill" class="fill"></div></div>
+ <div id="results"></div>
+ <button id="nextPage" class="ghost hidden" style="width:100%;margin-top:10px" onclick="runSearch(currentPage+1)">Следна страница од Setec →</button>
+</section>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const CATS=[
+ {id:'board',icon:'▦',label:'Матична плоча',term:'матична плоча'},
+ {id:'cpu',icon:'▣',label:'Процесор',term:'Ryzen'},
+ {id:'ram',icon:'▤',label:'RAM меморија',term:'DDR5'},
+ {id:'gpu',icon:'▧',label:'Графичка карта',term:'RTX'},
+ {id:'storage',icon:'▥',label:'SSD / HDD',term:'SSD'},
+ {id:'psu',icon:'ϟ',label:'Напојување',term:'напојување'},
+ {id:'case',icon:'▯',label:'Куќиште',term:'куќиште'},
+ {id:'cooler',icon:'❄',label:'Ладење',term:'кулер'}
+];
+const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
+let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
+if(!chosen||typeof chosen!=='object')chosen={};
+let category='board',currentPage=1,searching=false,shown=new Set(),candidateAccepted=false,verifiedCount=0;
+const safe=x=>{try{const u=new URL(x);return u.protocol==='https:'&&['www.setec.mk','setec.mk'].includes(u.hostname)&&u.pathname.startsWith('/products/')}catch(e){return false}};
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
+function labelFor(id){return CATS.find(x=>x.id===id)?.label||id}
+function cash(s){const x=String(s||'').replace(/\s/g,'');if(!/^\d[\d.,]*$/.test(x))return null;const n=Number(x.replace(/[.,]/g,''));return Number.isFinite(n)?n:null}
+function money(n){return n.toLocaleString('de-DE')+' ден.'}
+function priceRow(p){const box=el('div','prices');const c=cash(p.clubPrice),r=cash(p.regularPrice);if(c!==null)box.appendChild(el('span','club','Клуб: '+money(c)));if(r!==null)box.appendChild(el('span','regular','Редовна: '+money(r)));return box}
+function fullText(p){return ((p?.name||'')+' '+(p?.specs||'')).toUpperCase()}
+function typeMatch(p,id){
+ const n=(p.name||'').toLowerCase();
+ if(/лаптоп|laptop|notebook|конфигурац|desktop pc|all.in.one|систем\b/.test(n))return false;
+ switch(id){
+  case 'board':return /матична|motherboard|mainboard|\b(?:a[3568]20|b[45678][456578]0|x[35678][679]0|z[46789][679]0|h[45678]10|h[45678]70)\b/i.test(n)||/\b(?:B650M|B850M|X870E|Z790|B760M|A620M|B550M|H610M)\b/i.test(n);
+  case 'cpu':return /ryzen\s*[3579]|intel\s*core|core\s*ultra|процесор|processor|pentium|celeron|\bcpu\b/i.test(n)&&!/cooler|кулер|ладилник/i.test(n);
+  case 'ram':return /ddr[345]|\bdimm\b|ram\s*memor|рам меморија|fury beast|vengeance/i.test(n)&&!/sodimm|so.dimm|лаптоп|laptop/i.test(n);
+  case 'gpu':return /rtx\s*\d{4}|gtx\s*\d{3,4}|rx\s*[56789]\d{3}|geforce|radeon|графичка\s*карт/i.test(n);
+  case 'storage':return /\bssd\b|\bhdd\b|nvme|m\.2\s*(ssd|nvme)|hard\s*disk|хард\s*диск/i.test(n)&&!/enclosure|адаптер|куќиште за|adapter|cable|кабел/i.test(n);
+  case 'psu':return /power\s*supply|\bpsu\b|напојување/i.test(n)&&!/case\s*\+|куќиште\s*\+/i.test(n);
+  case 'case':return /куќиште|chassis|pc\s*case|computer\s*case|gaming\s*case|mid.tower|full.tower/i.test(n)&&!/ssd|hdd|external|надвореш/i.test(n);
+  case 'cooler':return /cpu\s*cooler|air\s*cooler|water\s*cooler|water\s*cooling|\baio\b|кулер|ладилник|case\s*fan|вентилатор/i.test(n)&&!/лаптоп|laptop/i.test(n);
+ }
+ return false;
+}
+function getSocket(p,id){
+ const t=fullText(p);
+ const m=t.match(/\b(?:AM[45]|LGA[\s-]?(?:1700|1851|1200|1151))\b/);
+ if(m)return m[0].replace(/[\s-]/g,'');
+ if(id==='board'){
+  if(/\b(?:A620|B650|B850|X670|X870)\w*\b/.test(t))return 'AM5';
+  if(/\b(?:A320|A520|B450|B550|X470|X570)\w*\b/.test(t))return 'AM4';
+  if(/\b(?:H610|B660|B760|Z690|Z790|H670|H770)\w*\b/.test(t))return 'LGA1700';
+  if(/\b(?:B860|Z890)\w*\b/.test(t))return 'LGA1851';
+ } else if(id==='cpu'){
+  const ry=t.match(/\bRYZEN\s*[3579]\s*(\d{4})/);
+  if(ry){const d=ry[1][0];if('789'.includes(d))return 'AM5';if('345'.includes(d))return 'AM4'}
+  const intel=t.match(/\bI[3579][ -]?(1[01234])\d{3}[A-Z]{0,3}\b/);
+  if(intel){const gen=Number(intel[1]);if(gen>=12&&gen<=14)return 'LGA1700';if(gen===10||gen===11)return 'LGA1200'}
+  if(/CORE\s*ULTRA\s*[3579]\s*2\d{2}[A-Z]*/.test(t))return 'LGA1851';
+ }
+ return '';
+}
+function getDdr(p,id){
+ const t=fullText(p);
+ let m=t.match(/\bDDR[345]\b/);if(m)return m[0];
+ if(id==='board'){
+  if(/\b(?:A620|B650|B850|X670|X870|B860|Z890)\w*\b/.test(t))return 'DDR5';
+  if(/\b(?:B450|B550|A520|X570)\w*\b/.test(t))return 'DDR4';
+  if(/\bD4\b|\bDDR4\b/.test(t))return 'DDR4';
+ }
+ return '';
+}
+function compatibility(next,p){
+ const draft={...chosen,[next]:p},issues=[],notes=[];
+ if(draft.board&&draft.cpu){const a=getSocket(draft.board,'board'),b=getSocket(draft.cpu,'cpu');if(a&&b&&a!==b)issues.push('Процесорот има сокет '+b+', а матичната плоча '+a+'.');else if(!a||!b)notes.push('CPU/матична: сокетот не е целосно потврден.')}
+ if(draft.board&&draft.ram){const a=getDdr(draft.board,'board'),b=getDdr(draft.ram,'ram');if(a&&b&&a!==b)issues.push('RAM е '+b+', а матичната плоча бара '+a+'.');else if(!a||!b)notes.push('RAM/матична: провери го поддржаниот DDR тип.')}
+ if(draft.cpu&&draft.cooler){const a=getSocket(draft.cpu,'cpu'),t=fullText(draft.cooler);const explicit=t.match(/\bAM[45]\b|\bLGA[\s-]?(?:1700|1851|1200)\b/g)||[];if(a&&explicit.length&&!explicit.some(x=>x.replace(/[\s-]/g,'')===a))notes.push('Ладилник: провери дали има монтажен комплет за '+a+'.')}
+ if(draft.board&&draft.case){const b=fullText(draft.board),c=fullText(draft.case);if(/\b(?:ATX)\b/.test(b)&&!/(M.ATX|MICRO.ATX)/.test(b)&&/\b(?:ONLY\s*M.ATX|MICRO.ATX\s*ONLY)\b/.test(c))issues.push('ATX матичната не собира во куќиште само за mATX.');else notes.push('Провери големина на матична плоча и куќиште.')}
+ if(draft.gpu&&draft.case)notes.push('Провери должина на графичката и просторот во куќиштето.');
+ if(draft.psu&&draft.gpu)notes.push('Провери ги препорачаните W и PCIe конектори за графичката.');
+ if(draft.storage&&draft.board)notes.push('Провери M.2/SATA приклучоци на матичната плоча.');
+ return {issues,notes:[...new Set(notes)]};
+}
+function rebuild(){
+ const grid=$('categories');grid.replaceChildren();
+ for(const c of CATS){const p=chosen[c.id];const b=el('button','cat'+(p?' selected':''));b.appendChild(el('div','sym',c.icon));b.appendChild(el('div','name',c.label));b.appendChild(el('div','picked',p?p.name:'+ Избери компонента'));b.onclick=()=>openCategory(c.id);grid.appendChild(b)}
+ const n=slots.filter(x=>!!chosen[x]).length;$('progress').textContent=n+' / '+slots.length;
+ const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name);const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];persist();rebuild()};row.append(l,x);host.appendChild(row)}
+ let c=0,r=0,haveClub=0,haveRegular=0;
+ for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice);if(v!==null){c+=v;haveClub++}if(w!==null){r+=w;haveRegular++}}
+ $('clubTotal').textContent=money(c);$('regularTotal').textContent=money(r);
+ $('priceNote').textContent=(n&& (haveClub<n||haveRegular<n))?'Внимание: ова е нецелосен збир. Недостасуваат проверени цени за некои избрани делови.':(!n?'Избери компоненти за да ја видиш вкупната цена.':'Збир на '+n+' избрани производи; цените може да се променат.');
+ const check=compatibility('',null),area=$('compatibility');area.replaceChildren();
+ if(check.issues.length)area.appendChild(el('div','error','НЕСООДВЕТНО: '+check.issues.join(' ')));
+ else if(n>0)area.appendChild(el('div','warning','Нема потврдена основна некомпатибилност. Ова не значи целосно проверена конфигурација.'));
+ for(const msg of check.notes)area.appendChild(el('div','small','• '+msg));
+ const stocked=slots.filter(x=>chosen[x]), common=stocked.length?stocked.map(x=>new Set(chosen[x].stores||[])).reduce((a,b)=>new Set([...a].filter(y=>b.has(y)))):new Set();
+ $('sharedStore').textContent=stocked.length>1?'Заеднички потврдени локации: '+(common.size?[...common].join(' · '):'не е пронајдена иста локација за сите избрани делови'):'';
+}
+function openCategory(id){category=id;const cat=CATS.find(x=>x.id===id);$('home').classList.add('hidden');$('categoryPage').classList.remove('hidden');$('categoryTitle').textContent=cat.label;$('term').value=cat.term;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('searchStatus').textContent='Пребарување и проверка на залиха';runSearch(1)}
+function goHome(){$('categoryPage').classList.add('hidden');$('home').classList.remove('hidden');rebuild()}
+function runSearch(page){currentPage=page;shown=new Set();searching=true;candidateAccepted=false;verifiedCount=0;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Страница '+page;PcApp.search(category,$('term').value.trim(),page)}
+window.pcLoading=(q,page)=>{$('searchStatus').textContent='Пребарувам Setec: '+q+' · страница '+page};
+window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;$('searchStatus').textContent='Setec не врати резултати. Пробај со друг поим.'}};
+window.pcCandidates=(json)=>{
+ if(!searching||candidateAccepted)return;
+ let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}
+ arr=arr.filter(p=>p&&safe(p.url)&&typeMatch(p,category));
+ if(!arr.length)return;
+ candidateAccepted=true;
+ $('searchStatus').textContent='Пронајдени '+arr.length+' кандидати. Проверувам залиха по локации…';
+ PcApp.verify(JSON.stringify(arr.slice(0,22)));
+};
+window.pcProgress=(done,total,available)=>{
+ $('progressFill').style.width=(total?Math.round(done/total*100):100)+'%';
+ $('catCount').textContent=available+' потврдени · '+done+'/'+total+' проверени';
+ $('searchStatus').textContent=done<total?'Проверувам официјална залиха: '+done+' / '+total+'…':'Проверени '+total+' производи; '+available+' имаат потврдена локација.';
+};
+window.pcVerifiedProduct=json=>{
+ let p;try{p=JSON.parse(json)}catch(e){return}
+ if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length||shown.has(p.url))return;
+ shown.add(p.url);verifiedCount++;
+ const row=el('div','result');row.appendChild(el('div','resultName',p.name||'Производ'));
+ row.appendChild(el('div','resultMeta','Шифра: '+(p.sku||'непрочитана')));row.appendChild(priceRow(p));
+ row.appendChild(el('div','stores','✓ Локации: '+p.stores.join(' · ')));
+ const compare=compatibility(category,p);
+ if(compare.issues.length)row.appendChild(el('div','error','Некомпатибилно: '+compare.issues.join(' ')));
+ else if(compare.notes.length)row.appendChild(el('div','warning','Потребна дополнителна проверка: '+compare.notes.join(' ')));
+ else row.appendChild(el('div','checked','✓ Нема утврдена некомпатибилност со избраните делови'));
+ const b=el('button','btn',chosen[category]?.url===p.url?'Веќе избрано':'Избери го делот');
+ b.disabled=compare.issues.length>0||chosen[category]?.url===p.url;
+ b.onclick=()=>{chosen[category]=p;persist();goHome()};
+ row.appendChild(b);$('results').appendChild(row);
+};
+window.pcVerificationDone=()=>{searching=false;const n=shown.size;if(n===0)$('results').appendChild(el('div','warning','Нема производ со потврдена наведена залиха во проверените кандидати. Ова не е доказ дека производите се распродадени.'));$('nextPage').classList.remove('hidden')};
+function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
+rebuild();
+</script></body></html>
