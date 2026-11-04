@@ -217,7 +217,9 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                         resolvingCategory = false;
                         if (changedPage) knownCategories.put(categoryKey, discovered);
                         if (changedPage && catalogPage > 1) catalog.loadUrl(categoryPageUrl(discovered, catalogPage));
-                        else readCatalog(serial);
+                        else for (long delay : new long[]{350, 950, 1950, 3400}) {
+                            handler.postDelayed(() -> readCatalog(serial), delay);
+                        }
                     }
                 }, 1000);
             }
