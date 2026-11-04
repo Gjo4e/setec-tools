@@ -156,7 +156,7 @@ function renderCandidates(){
   const verified=p.stockVerified===true&&Array.isArray(p.stores)&&p.stores.length>0;
   const row=el('div','result'+(verified?'':' pending')+(check.issues.length?' incompatible':''));
   const nameLine=el('div','resultName',p.name||'Производ');row.appendChild(nameLine);
-  const skuLine=el('div','resultMeta');const sku=p.sku&&/^\\d{4,8}$/.test(String(p.sku))?String(p.sku):'';skuLine.appendChild(el('strong','',sku?'Setec шифра: '+sku:'Setec шифра: се проверува'));
+  const skuLine=el('div','resultMeta');const sku=p.sku&&/^\d{4,8}$/.test(String(p.sku))?String(p.sku):'';skuLine.appendChild(el('strong','',sku?'Setec шифра: '+sku:'Setec шифра: се проверува'));
   if(sku){const copy=el('button','ghost','⧉ Копирај шифра');copy.style.cssText='margin-left:8px;padding:5px 8px;font-size:11px';copy.onclick=()=>{const txt=document.createElement('textarea');txt.value=sku;document.body.appendChild(txt);txt.select();document.execCommand('copy');txt.remove();copy.textContent='✓ Копирано'};skuLine.appendChild(copy)}
   row.appendChild(skuLine);
   row.appendChild(priceRow(p));
