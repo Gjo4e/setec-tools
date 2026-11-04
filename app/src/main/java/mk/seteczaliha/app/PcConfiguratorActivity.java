@@ -31,7 +31,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private JSONObject current;
     private String currentUrl;
     private boolean checkComplete = true, stockClicked = false;
-    private static final String COMPONENT_ROOT = "https://www.setec.mk/category/komp-d1-98uteri-20i-20komp-d1-98uterski-20delovi-20";
+    private static final String COMPONENT_ROOT = "https://www.setec.mk/category/komp-d1-98uteri-20i-20it-20oprema-19";
     private String categoryKey = "board", categoryUrl = null, localFilter = "";
     private int catalogPage = 1;
     private boolean resolvingCategory = false;
