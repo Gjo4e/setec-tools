@@ -25,12 +25,9 @@ import org.json.JSONObject;
  */
 public final class PcConfiguratorActivity extends ComponentActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private WebView ui, catalog, checker;
+    private WebView ui, catalog;
     private int searchSerial = 0, stockSerial = 0, stockIndex = 0, stockTotal = 0, stockAvailable = 0;
     private JSONArray stockQueue = new JSONArray();
-    private JSONObject current;
-    private String currentUrl;
-    private boolean checkComplete = true, stockClicked = false;
     private static final String COMPONENT_ROOT = "https://www.setec.mk/category/komp-d1-98uteri-20i-20it-20oprema-19";
     private String categoryKey = "board", categoryUrl = null, localFilter = "";
     private int catalogPage = 1;
@@ -46,13 +43,9 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         FrameLayout root = new FrameLayout(this);
         setContentView(root);
         catalog = makeWeb();
-        checker = makeWeb();
         root.addView(catalog, new FrameLayout.LayoutParams(-1, -1));
-        root.addView(checker, new FrameLayout.LayoutParams(-1, -1));
         catalog.setAlpha(0.01f);
-        checker.setAlpha(0.01f);
         catalog.setClickable(false);
-        checker.setClickable(false);
         // Exact official category URLs supplied by the user. Never guess a category path.
         knownCategories.put("board", "https://www.setec.mk/category/matichni-20plochi-22");
         knownCategories.put("case", "https://www.setec.mk/category/kukjishta-28");
@@ -77,13 +70,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                 }
             }
         });
-        checker.setWebViewClient(new WebViewClient() {
-            @Override public void onPageFinished(WebView view, String url) {
-                if (currentUrl == null || !url.startsWith(currentUrl) || checkComplete) return;
-                int id = stockSerial;
-                handler.postDelayed(() -> beginStockProbe(id), 700);
-            }
-        });
+        for (int i = 0; i < STOCK_WORKERS; i++) workers.add(new StockWorker(root));
         ui = makeWeb();
         ui.setBackgroundColor(Color.rgb(248, 249, 251));
         ui.addJavascriptInterface(new Bridge(), "PcApp");
@@ -135,8 +122,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         if (catalog == null) return;
         final int id = ++searchSerial;
         stockSerial++;
-        checkComplete = true;
-        currentUrl = null;
+        for (StockWorker worker : workers) { worker.completed = true; worker.web.stopLoading(); }
         categoryKey = category == null ? "" : category;
         localFilter = text == null ? "" : text.trim();
         if (localFilter.length() > 75) localFilter = localFilter.substring(0, 75);
@@ -255,51 +241,116 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         });
     }
 
+
+    // Multiple independent WebViews check stock concurrently rather than
+    // blocking all products behind one slow product detail page.
+    private static final int STOCK_WORKERS = 4;
+    private final java.util.ArrayList<StockWorker> workers = new java.util.ArrayList<>();
+    private final java.util.HashMap<String, StockCacheEntry> stockCache = new java.util.HashMap<>();
+    private int stockCompleted = 0;
+    private static final long CACHE_MS = 10 * 60 * 1000L;
+
+    private static final class StockCacheEntry {
+        final JSONObject result;
+        final long savedAt;
+        StockCacheEntry(JSONObject result) {
+            this.result = result;
+            this.savedAt = android.os.SystemClock.elapsedRealtime();
+        }
+    }
+
+    private final class StockWorker {
+        final WebView web;
+        JSONObject product;
+        String url = "";
+        int serial = -1;
+        boolean completed = true;
+        boolean clicked = false;
+
+        StockWorker(FrameLayout root) {
+            web = makeWeb();
+            web.setAlpha(0.01f);
+            web.setClickable(false);
+            root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+            web.setWebViewClient(new WebViewClient() {
+                @Override public void onPageFinished(WebView view, String location) {
+                    if (!completed && serial == stockSerial && location.startsWith(url)) {
+                        final int expected = serial;
+                        handler.postDelayed(() -> beginProbe(StockWorker.this, expected), 350);
+                    }
+                }
+            });
+        }
+
+        void start(JSONObject item, int id) {
+            product = item;
+            url = item.optString("url");
+            serial = id;
+            completed = false;
+            clicked = false;
+            web.stopLoading();
+            web.loadUrl(url);
+            final String target = url;
+            handler.postDelayed(() -> {
+                if (!completed && serial == stockSerial && target.equals(url)) finish(this, null);
+            }, 8200);
+        }
+    }
+
     private void startVerification(String json) {
         stockSerial++;
-        int id = stockSerial;
+        int serial = stockSerial;
         stockIndex = 0;
         stockAvailable = 0;
+        stockCompleted = 0;
         stockQueue = new JSONArray();
         try {
-            JSONArray arr = new JSONArray(json);
-            for (int i = 0; i < Math.min(arr.length(), 22); i++) {
-                JSONObject p = arr.optJSONObject(i);
+            JSONArray list = new JSONArray(json);
+            for (int i = 0; i < Math.min(list.length(), 22); i++) {
+                JSONObject p = list.optJSONObject(i);
                 if (p != null && safeProduct(p.optString("url"))) stockQueue.put(p);
             }
         } catch (Exception ignored) {}
         stockTotal = stockQueue.length();
+        for (StockWorker worker : workers) {
+            worker.completed = true;
+            worker.web.stopLoading();
+        }
         send("window.pcProgress(0," + stockTotal + ",0);");
-        nextVerification(id);
+        for (StockWorker worker : workers) giveNext(worker, serial);
+        if (stockTotal == 0) send("window.pcVerificationDone();");
     }
 
-    private void nextVerification(int serial) {
-        if (serial != stockSerial || checker == null) return;
+    private void giveNext(StockWorker worker, int serial) {
+        if (serial != stockSerial) return;
         if (stockIndex >= stockTotal) {
-            send("window.pcVerificationDone();");
+            if (stockCompleted >= stockTotal) send("window.pcVerificationDone();");
             return;
         }
-        current = stockQueue.optJSONObject(stockIndex);
-        stockIndex++;
-        if (current == null) { nextVerification(serial); return; }
-        currentUrl = current.optString("url");
-        if (!safeProduct(currentUrl)) { nextVerification(serial); return; }
-        checkComplete = false;
-        stockClicked = false;
-        checker.stopLoading();
-        checker.loadUrl(currentUrl);
-        final String expected = currentUrl;
-        handler.postDelayed(() -> {
-            if (serial == stockSerial && !checkComplete && expected.equals(currentUrl))
-                finishVerification(serial, null);
-        }, 10500);
+        JSONObject p = stockQueue.optJSONObject(stockIndex++);
+        if (p == null) {
+            stockCompleted++;
+            giveNext(worker, serial);
+            return;
+        }
+        String url = p.optString("url");
+        StockCacheEntry cached = stockCache.get(url);
+        if (cached != null && android.os.SystemClock.elapsedRealtime() - cached.savedAt < CACHE_MS) {
+            if (cached.result != null) {
+                stockAvailable++;
+                send("window.pcVerifiedProduct(" + JSONObject.quote(cached.result.toString()) + ");");
+            }
+            stockCompleted++;
+            send("window.pcProgress("+stockCompleted+","+stockTotal+","+stockAvailable+");");
+            giveNext(worker, serial);
+            return;
+        }
+        worker.start(p, serial);
     }
 
-    private void beginStockProbe(int serial) {
-        if (serial != stockSerial || checkComplete || stockClicked || checker == null) return;
-        stockClicked = true;
-        // A shop must appear after the official availability control is opened.
-        // Existing visible navigation / footer shop names are ignored.
+    private void beginProbe(StockWorker worker, int serial) {
+        if (serial != stockSerial || worker.completed || worker.clicked) return;
+        worker.clicked = true;
         String click = "(function(){try{"+
             "let visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
             "let baseline=new WeakSet();for(let e of document.querySelectorAll('body *'))if(visible(e))baseline.add(e);"+
@@ -307,14 +358,14 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             "let btn=[...document.querySelectorAll('button,[role=\"button\"],a')].find(e=>visible(e)&&/провери\\s*достапност/i.test((e.innerText||e.textContent||'').trim()));"+
             "if(!btn)return 'missing';btn.click();return 'clicked'"+
             "}catch(e){return 'error'}})()";
-        checker.evaluateJavascript(click, ignored -> {});
-        for (long ms : new long[]{950, 2250, 4050, 6200}) {
-            handler.postDelayed(() -> probeStock(serial, ms == 6200), ms);
+        worker.web.evaluateJavascript(click, ignored -> {});
+        for (long delay : new long[]{600, 1450, 2600, 4200, 6000}) {
+            handler.postDelayed(() -> probe(worker, serial, delay == 6000), delay);
         }
     }
 
-    private void probeStock(int serial, boolean last) {
-        if (serial != stockSerial || checkComplete || checker == null) return;
+    private void probe(StockWorker worker, int serial, boolean last) {
+        if (serial != stockSerial || worker.completed) return;
         String extraction = "(function(){try{"+
             "let base=window.__pcBefore;let visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
             "let newly=[];if(base)for(let e of document.querySelectorAll('body *')){"+
@@ -328,25 +379,27 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             "let sku=(text.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';"+
             "return JSON.stringify({stores,name:title.trim(),sku,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:text.slice(0,4200)});"+
             "}catch(e){return '{}'}})()";
-        checker.evaluateJavascript(extraction, output -> {
-            if (serial != stockSerial || checkComplete) return;
-            JSONObject data = null;
-            try { String text = decode(output); if (text != null) data = new JSONObject(text); }
-            catch (Exception ignored) {}
-            if (data != null && data.optJSONArray("stores") != null && data.optJSONArray("stores").length() > 0) {
-                finishVerification(serial, data);
-            } else if (last) {
-                finishVerification(serial, null);
-            }
+        worker.web.evaluateJavascript(extraction, output -> {
+            if (serial != stockSerial || worker.completed) return;
+            JSONObject detail = null;
+            try {
+                String text = decode(output);
+                if (text != null) detail = new JSONObject(text);
+            } catch (Exception ignored) {}
+            if (detail != null && detail.optJSONArray("stores") != null &&
+                    detail.optJSONArray("stores").length() > 0) finish(worker, detail);
+            else if (last) finish(worker, null);
         });
     }
 
-    private void finishVerification(int serial, JSONObject detail) {
-        if (serial != stockSerial || checkComplete) return;
-        checkComplete = true;
-        if (detail != null && current != null) {
+    private void finish(StockWorker worker, JSONObject detail) {
+        if (worker.completed || worker.serial != stockSerial) return;
+        worker.completed = true;
+        String url = worker.url;
+        JSONObject verified = null;
+        if (detail != null && worker.product != null) {
             try {
-                JSONObject verified = new JSONObject(current.toString());
+                verified = new JSONObject(worker.product.toString());
                 if (!detail.optString("name").isEmpty()) verified.put("name", detail.optString("name"));
                 for (String key : new String[]{"sku", "clubPrice", "regularPrice", "specs"}) {
                     if (!detail.optString(key).isEmpty()) verified.put(key, detail.optString(key));
@@ -357,8 +410,10 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                 send("window.pcVerifiedProduct(" + JSONObject.quote(verified.toString()) + ");");
             } catch (Exception ignored) {}
         }
-        send("window.pcProgress(" + stockIndex + "," + stockTotal + "," + stockAvailable + ");");
-        handler.postDelayed(() -> nextVerification(serial), 100);
+        stockCache.put(url, new StockCacheEntry(verified));
+        stockCompleted++;
+        send("window.pcProgress("+stockCompleted+","+stockTotal+","+stockAvailable+");");
+        giveNext(worker, stockSerial);
     }
 
     @Override protected void onDestroy() {
@@ -367,7 +422,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         handler.removeCallbacksAndMessages(null);
         if (ui != null) { ui.removeJavascriptInterface("PcApp"); ui.destroy(); ui = null; }
         if (catalog != null) { catalog.destroy(); catalog = null; }
-        if (checker != null) { checker.destroy(); checker = null; }
+        for (StockWorker worker : workers) worker.web.destroy();
+        workers.clear();
         super.onDestroy();
     }
 }
