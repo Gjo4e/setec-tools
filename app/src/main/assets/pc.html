@@ -32,8 +32,8 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
 <section id="categoryPage" class="hidden">
  <div class="row"><button class="ghost" onclick="goHome()">‹ Конфигурација</button><span id="catCount" class="small"></span></div>
  <h2 class="title" id="categoryTitle"></h2>
- <p class="small">Пребарувањето е во Setec.mk. Прикажуваме само соодветни делови со потврдена наведена локација; проверката може да потрае.</p>
- <form class="inputrow" onsubmit="event.preventDefault();runSearch(1)"><input type="search" id="term" placeholder="Барај бренд, модел или шифра" autocomplete="off"><button class="btn" type="submit">Барај</button></form>
+ <p class="small">Се отвора официјалната категорија од „Компјутери и Компјутерски Делови“ на Setec.mk. Полето подолу е само за дополнителен филтер по модел или бренд.</p>
+ <form class="inputrow" onsubmit="event.preventDefault();runSearch(1)"><input type="search" id="term" placeholder="Филтрирај по бренд или модел (незадолжително)" autocomplete="off"><button class="btn" type="submit">Филтрирај</button></form>
  <div class="row wrap"><span id="searchStatus" class="small" aria-live="polite">Избери пребарување</span><span id="pageInfo" class="small"></span></div>
  <div class="bar"><div id="progressFill" class="fill"></div></div>
  <div id="results"></div>
@@ -44,14 +44,14 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
 'use strict';
 const $=id=>document.getElementById(id);
 const CATS=[
- {id:'board',icon:'▦',label:'Матична плоча',term:'матична плоча'},
- {id:'cpu',icon:'▣',label:'Процесор',term:'Ryzen'},
- {id:'ram',icon:'▤',label:'RAM меморија',term:'DDR5'},
- {id:'gpu',icon:'▧',label:'Графичка карта',term:'RTX'},
- {id:'storage',icon:'▥',label:'SSD / HDD',term:'SSD'},
- {id:'psu',icon:'ϟ',label:'Напојување',term:'напојување'},
- {id:'case',icon:'▯',label:'Куќиште',term:'куќиште'},
- {id:'cooler',icon:'❄',label:'Ладење',term:'кулер'}
+ {id:'board',icon:'▦',label:'Матична плоча',term:''},
+ {id:'cpu',icon:'▣',label:'Процесор',term:''},
+ {id:'ram',icon:'▤',label:'RAM меморија',term:''},
+ {id:'gpu',icon:'▧',label:'Графичка карта',term:''},
+ {id:'storage',icon:'▥',label:'SSD / HDD',term:''},
+ {id:'psu',icon:'ϟ',label:'Напојување',term:''},
+ {id:'case',icon:'▯',label:'Куќиште',term:''},
+ {id:'cooler',icon:'❄',label:'Ладење',term:''}
 ];
 const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
 let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
@@ -138,15 +138,16 @@ function rebuild(){
 function openCategory(id){category=id;const cat=CATS.find(x=>x.id===id);$('home').classList.add('hidden');$('categoryPage').classList.remove('hidden');$('categoryTitle').textContent=cat.label;$('term').value=cat.term;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('searchStatus').textContent='Пребарување и проверка на залиха';runSearch(1)}
 function goHome(){$('categoryPage').classList.add('hidden');$('home').classList.remove('hidden');rebuild()}
 function runSearch(page){currentPage=page;shown=new Set();searching=true;candidateAccepted=false;verifiedCount=0;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Страница '+page;PcApp.search(category,$('term').value.trim(),page)}
-window.pcLoading=(q,page)=>{$('searchStatus').textContent='Пребарувам Setec: '+q+' · страница '+page};
-window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;$('searchStatus').textContent='Setec не врати резултати. Пробај со друг поим.'}};
+window.pcLoading=(q,page)=>{$('searchStatus').textContent='Го отворам официјалниот каталог · страница '+page+'…'};
+window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;$('searchStatus').textContent='Категоријата не се вчита. Провери ја интернет-врската и обиди се повторно.'}};
+window.pcCatalogError=msg=>{searching=false;$('searchStatus').textContent=msg||'Не можам да ја пронајдам категоријата на Setec.'};
 window.pcCandidates=(json)=>{
  if(!searching||candidateAccepted)return;
  let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}
- arr=arr.filter(p=>p&&safe(p.url)&&typeMatch(p,category));
+ const filter=$('term').value.toLowerCase().trim();arr=arr.filter(p=>p&&safe(p.url)&&(!['cpu','gpu'].includes(category)||typeMatch(p,category))&&(!filter||(p.name||'').toLowerCase().includes(filter)));
  if(!arr.length)return;
  candidateAccepted=true;
- $('searchStatus').textContent='Пронајдени '+arr.length+' кандидати. Проверувам залиха по локации…';
+ $('searchStatus').textContent='Категоријата е отворена: '+arr.length+' производи. Проверувам залиха по локации…';
  PcApp.verify(JSON.stringify(arr.slice(0,22)));
 };
 window.pcProgress=(done,total,available)=>{
