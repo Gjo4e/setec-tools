@@ -29,6 +29,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private WebView ui, catalog;
     private int searchSerial = 0, stockSerial = 0, stockIndex = 0, stockTotal = 0, stockAvailable = 0;
     private JSONArray stockQueue = new JSONArray();
+    private final java.util.HashSet<String> queuedStockUrls = new java.util.HashSet<>();
+    private int emptyCatalogReads = 0;
     private static final String COMPONENT_ROOT = "https://www.setec.mk/category/komp-d1-98uteri-20i-20it-20oprema-19";
     private String categoryKey = "board", categoryUrl = null, localFilter = "";
     private int catalogPage = 1;
@@ -131,8 +133,16 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private void startSearch(String category, String text, int page) {
         if (catalog == null) return;
         final int id = ++searchSerial;
-        stockSerial++;
-        for (StockWorker worker : workers) { worker.completed = true; worker.web.stopLoading(); }
+        // The catalog page may advance without cancelling product availability checks.
+        // Reset verification ONLY for a new category/filter search, never for page 2+.
+        if (page <= 1 || !java.util.Objects.equals(categoryKey, category)
+                || !java.util.Objects.equals(localFilter, text == null ? "" : text.trim())) {
+            stockSerial++;
+            stockIndex = 0; stockTotal = 0; stockAvailable = 0; stockCompleted = 0;
+            stockQueue = new JSONArray(); queuedStockUrls.clear();
+            for (StockWorker worker : workers) { worker.completed = true; worker.web.stopLoading(); }
+        }
+        emptyCatalogReads = 0;
         categoryKey = category == null ? "" : category;
         localFilter = text == null ? "" : text.trim();
         if (localFilter.length() > 75) localFilter = localFilter.substring(0, 75);
@@ -248,7 +258,10 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         catalog.evaluateJavascript(script, output -> {
             if (serial != searchSerial) return;
             String result = decode(output);
-            if (result != null) send("window.pcCandidates(" + JSONObject.quote(result) + ");");
+            if (result == null) return;
+            // Wait for hydrated Setec catalog before considering an empty page final.
+            if ("[]".equals(result) && ++emptyCatalogReads < 3) return;
+            send("window.pcCandidates(" + JSONObject.quote(result) + ");");
         });
     }
 
@@ -317,26 +330,23 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     }
 
     private void startVerification(String json) {
-        stockSerial++;
-        int serial = stockSerial;
-        stockIndex = 0;
-        stockAvailable = 0;
-        stockCompleted = 0;
-        stockQueue = new JSONArray();
+        // Append new pages to the SAME verification queue. The four existing workers
+        // continue checking earlier items while more catalog pages are downloaded.
+        final int serial = stockSerial;
         try {
             JSONArray list = new JSONArray(json);
-            for (int i = 0; i < Math.min(list.length(), 70); i++) {
+            for (int i = 0; i < list.length(); i++) {
                 JSONObject p = list.optJSONObject(i);
-                if (p != null && safeProduct(p.optString("url"))) stockQueue.put(p);
+                if (p == null) continue;
+                String url = p.optString("url");
+                if (safeProduct(url) && queuedStockUrls.add(url)) stockQueue.put(p);
             }
         } catch (Exception ignored) {}
         stockTotal = stockQueue.length();
+        send("window.pcProgress("+stockCompleted+","+stockTotal+","+stockAvailable+");");
         for (StockWorker worker : workers) {
-            worker.completed = true;
-            worker.web.stopLoading();
+            if (worker.completed) giveNext(worker, serial);
         }
-        send("window.pcProgress(0," + stockTotal + ",0);");
-        for (StockWorker worker : workers) giveNext(worker, serial);
         if (stockTotal == 0) send("window.pcVerificationDone();");
     }
 
