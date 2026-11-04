@@ -276,19 +276,19 @@ public final class MainActivity extends ComponentActivity {
     private void readResults(int serial) {
         if (merchant == null || moreSearchPending) return;
         String query = activeQuery;
-        String script = "(function(){let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
+        String script = "(function(){"+labelledPricesJs()+"let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
             "if(!['setec.mk','www.setec.mk'].includes(u.hostname)||found.has(u.href))continue;"+
             "let p=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;"+
             "let t=p.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');"+
             "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
-            "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
-            "found.set(u.href,{url:u.href,name:name,sku:sku,img:src});if(found.size>=50)break}"+
+            "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
             "return JSON.stringify([...found.values()]);})()";
         merchant.evaluateJavascript(script, encoded -> {
             if (serial != searchSerial || productUrl != null) return;
@@ -363,21 +363,30 @@ public final class MainActivity extends ComponentActivity {
         });
     }
     private String collectMoreResultScript(String query) {
-        return "(function(){let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
+        return "(function(){"+labelledPricesJs()+"let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
             "if(!['setec.mk','www.setec.mk'].includes(u.hostname)||found.has(u.href))continue;"+
             "let p=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;"+
             "let t=p.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');"+
             "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
-            "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
-            "found.set(u.href,{url:u.href,name:name,sku:sku,img:src});if(found.size>=150)break}"+
+            "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=150)break}"+
             "return JSON.stringify([...found.values()]);})()";
     }
+    /** Read only price values explicitly labelled by Setec, without estimation. */
+    private static String labelledPricesJs() {
+        return "function setecPrices(text){"+
+            "let club=text.match(/Клуб\\s*цена\\s*:\\s*([0-9][0-9.,\\s]*)\\s*ден\\.?/i);"+
+            "let regular=text.match(/Редовна\\s*цена\\s*:\\s*([0-9][0-9.,\\s]*)\\s*ден\\.?/i);"+
+            "let fmt=m=>m?m[1].replace(/\\s/g,'').replace(/[.,]$/,''):'';"+
+            "return {clubPrice:fmt(club),regularPrice:fmt(regular)};}";
+    }
+
     private static String decodeJsString(String encoded) {
         if (encoded == null || "null".equals(encoded)) return null;
         try { return new JSONArray("[" + encoded + "]").getString(0); }
@@ -393,11 +402,13 @@ public final class MainActivity extends ComponentActivity {
     }
     private void readProduct() {
         if (merchant == null || productUrl == null) return;
-        String script="(function(){let title=document.querySelector('h1')?.innerText||document.querySelector('meta[property=\"og:title\"]')?.content||document.title;"+
+        String script="(function(){"+labelledPricesJs()+"let title=document.querySelector('h1')?.innerText||document.querySelector('meta[property=\"og:title\"]')?.content||document.title;"+
             "let b=document.body?.innerText||'';let match=b.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i);"+
+            "let node=document.querySelector('h1'),price={clubPrice:'',regularPrice:''};"+
+            "for(let i=0;node&&i<7;i++,node=node.parentElement){let p=setecPrices(node.innerText||'');if(p.clubPrice||p.regularPrice){price=p;break}}"+
             "let img=document.querySelector('meta[property=\"og:image\"]')?.content||'';"+
             "if(!img)img=[...document.images].find(x=>x.naturalWidth>=170&&x.naturalHeight>=170)?.src||'';"+
-            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href});})()";
+            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice});})()";
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
@@ -491,18 +502,18 @@ public final class MainActivity extends ComponentActivity {
         });
     }
     private String batchResultScript(String query) {
-        String script = "(function(){let found=new Map();let q="+JSONObject.quote(query)+";"+
+        String script = "(function(){"+labelledPricesJs()+"let found=new Map();let q="+JSONObject.quote(query)+";"+
             "for(let a of document.querySelectorAll('a[href*=\\\"/products/\\\"]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
             "if(!['setec.mk','www.setec.mk'].includes(u.hostname)||found.has(u.href))continue;"+
             "let p=a.closest('article,li,[class*=\\\"product\\\"],[class*=\\\"Product\\\"],[class*=\\\"card\\\"],[class*=\\\"Card\\\"]')||a.parentElement||a;"+
             "let t=p.querySelector('h2,h3,h4,[class*=\\\"title\\\"],[class*=\\\"name\\\"]');"+
             "let name=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).trim().replace(/\\s+/g,' ').slice(0,200);"+
-            "let txt=(p.innerText||'').replace(/\\s+/g,' ');"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);let sku=m?m[1]:'';"+
             "if(sku!==q && !txt.includes(q))continue;"+
             "let img=p.querySelector('img');let src=img?.currentSrc||img?.src||'';"+
-            "found.set(u.href,{name:name,sku:sku,img:src,url:u.href});if(found.size>=30)break}"+
+            "found.set(u.href,{name:name,sku:sku,img:src,url:u.href,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=30)break}"+
             "return JSON.stringify([...found.values()]);})()";
         return script;
     }
