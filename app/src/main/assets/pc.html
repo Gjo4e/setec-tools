@@ -312,7 +312,7 @@ window.pcCandidates=json=>{
  $('searchStatus').textContent='Додадени '+added.length+' производи; вкупно '+catalogProducts.length+'. Проверувам залиха…';
  $('nextPage').classList.toggle('hidden',noMorePages);$('nextPage').textContent='+ Додади подолу (страница '+(currentPage+1)+') ↓';
  renderCandidates();
- PcApp.verify(JSON.stringify(added.slice(0,22)));
+ PcApp.verify(JSON.stringify(added));
 };
 window.pcProgress=(done,total,available)=>{
  $('progressFill').style.width=(total?Math.round(done/total*100):100)+'%';
