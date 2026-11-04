@@ -1,6 +1,7 @@
 package mk.seteczaliha.app;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -114,6 +115,15 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         }
         @JavascriptInterface public void verify(String json) {
             runOnUiThread(() -> startVerification(json));
+        }
+        // Fallback when Setec's live stock widget cannot be read.
+        @JavascriptInterface public void openProduct(String url) {
+            if (!safeProduct(url)) return;
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                } catch (Exception ignored) {}
+            });
         }
     }
 
