@@ -53,9 +53,15 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         checker.setAlpha(0.01f);
         catalog.setClickable(false);
         checker.setClickable(false);
+        // Exact official category URLs supplied by the user. Never guess a category path.
+        knownCategories.put("board", "https://www.setec.mk/category/matichni-20plochi-22");
+        knownCategories.put("case", "https://www.setec.mk/category/kukjishta-28");
         knownCategories.put("cpu", "https://www.setec.mk/category/protsesori-21");
         knownCategories.put("gpu", "https://www.setec.mk/category/grafichki-20karti-25");
+        knownCategories.put("storage", "https://www.setec.mk/category/tvrdi-20diskovi-20i-20ssd-20diskovi-23");
+        knownCategories.put("ram", "https://www.setec.mk/category/ram-20memori-d1-98a-24");
         knownCategories.put("cooler", "https://www.setec.mk/category/kuleri-27");
+        knownCategories.put("psu", "https://www.setec.mk/category/napo-d1-98uvanja-29");
         catalog.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 int id = searchSerial;
