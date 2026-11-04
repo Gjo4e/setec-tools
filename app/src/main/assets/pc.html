@@ -8,7 +8,7 @@
 main{max-width:680px;margin:auto;padding:16px 14px 42px}.title{font-size:17px;font-weight:800;margin:6px 0 12px}.small{font-size:12px;line-height:1.5;color:var(--muted)}.card{background:white;border:1px solid var(--line);border-radius:13px;padding:14px;margin:10px 0}.categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.cat{border:1px solid var(--line);border-radius:12px;background:white;text-align:left;padding:14px 12px;min-height:100px}.cat .sym{font-size:23px}.cat .name{font-weight:800;font-size:14px;margin-top:8px}.cat .picked{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4;overflow-wrap:anywhere}.cat.selected{border-color:#ffb572;background:#fff9f3}
 .row{display:flex;justify-content:space-between;align-items:center;gap:9px}.wrap{flex-wrap:wrap}.btn{background:var(--orange);border:0;color:white;border-radius:10px;padding:11px 14px;font-weight:800}.ghost{background:white;border:1px solid #dde0e6;color:#333;border-radius:10px;padding:10px 12px;font-weight:750}.inputrow{display:flex;gap:8px;margin:12px 0}.inputrow input{min-width:0;flex:1;background:white;border:1px solid #d7dae0;border-radius:9px;padding:11px}.inputrow button{flex:0 0 auto}
 .prices{font-size:11px;display:flex;flex-wrap:wrap;gap:10px;margin:5px 0 0}.prices .club{color:#d76b11;font-weight:750}.prices .regular{color:#727988}
-.result{padding:13px;background:white;border:1px solid var(--line);border-radius:12px;margin:9px 0}.resultName{font-size:13px;font-weight:780;line-height:1.4;overflow-wrap:anywhere}.resultMeta{font-size:11px;color:var(--muted);margin:6px 0}.stores{font-size:11px;color:#17633a;margin:6px 0;line-height:1.5}.warning{background:#fff8e9;border:1px solid #f1dcad;color:#87591c;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.error{background:#fff0f0;border:1px solid #f2b9b9;color:#9b2828;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.good{color:#17713a}.checked{font-size:11px;color:#165b35}.foot{margin-top:18px;font-size:11px;line-height:1.5;color:#7a808b}
+.result{padding:13px;background:white;border:1px solid var(--line);border-radius:12px;margin:9px 0}.result.pending{border-color:#e9e0ce}.result.incompatible{border-color:#f0d1d1;background:#fffafa}.result .btn:disabled{opacity:.55;cursor:not-allowed}.resultName{font-size:13px;font-weight:780;line-height:1.4;overflow-wrap:anywhere}.resultMeta{font-size:11px;color:var(--muted);margin:6px 0}.stores{font-size:11px;color:#17633a;margin:6px 0;line-height:1.5}.warning{background:#fff8e9;border:1px solid #f1dcad;color:#87591c;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.error{background:#fff0f0;border:1px solid #f2b9b9;color:#9b2828;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.good{color:#17713a}.checked{font-size:11px;color:#165b35}.foot{margin-top:18px;font-size:11px;line-height:1.5;color:#7a808b}
 .summary{padding:14px;border:1px solid var(--line);border-radius:13px;background:#fff;margin-top:16px}.total{font-size:15px;font-weight:800}.total small{font-size:11px;color:var(--muted);font-weight:500}.total strong{color:#e27412}
 .bar{height:4px;background:#edeef1;border-radius:6px;overflow:hidden;margin:8px 0}.fill{height:100%;background:var(--orange);width:0%;transition:width .2s}
 .slot{font-size:12px;padding:8px 0;border-bottom:1px solid #eff0f2;display:flex;gap:10px;align-items:center;justify-content:space-between}.slot .sname{flex:1;min-width:0;overflow-wrap:anywhere}.slot button{border:0;background:#f5f5f6;color:#a63c2c;border-radius:7px;padding:7px}
@@ -35,6 +35,7 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
  <p class="small">Се отвора официјалната категорија од „Компјутери и Компјутерски Делови“ на Setec.mk. Полето подолу е само за дополнителен филтер по модел или бренд.</p>
  <form class="inputrow" onsubmit="event.preventDefault();runSearch(1)"><input type="search" id="term" placeholder="Филтрирај по бренд или модел (незадолжително)" autocomplete="off"><button class="btn" type="submit">Филтрирај</button></form>
  <div class="row wrap"><span id="searchStatus" class="small" aria-live="polite">Избери пребарување</span><span id="pageInfo" class="small"></span></div>
+ <label class="small" style="display:flex;gap:7px;align-items:center;margin:10px 0"><input id="compatibleOnly" type="checkbox" checked onchange="renderCandidates()"> Прикажи само делови без утврдена некомпатибилност</label>
  <div class="bar"><div id="progressFill" class="fill"></div></div>
  <div id="results"></div>
  <button id="nextPage" class="ghost hidden" style="width:100%;margin-top:10px" onclick="runSearch(currentPage+1)">Следна страница од Setec →</button>
@@ -56,7 +57,7 @@ const CATS=[
 const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
 let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
 if(!chosen||typeof chosen!=='object')chosen={};
-let category='board',currentPage=1,searching=false,shown=new Set(),candidateAccepted=false,verifiedCount=0;
+let category='board',currentPage=1,searching=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
 const safe=x=>{try{const u=new URL(x);return u.protocol==='https:'&&['www.setec.mk','setec.mk'].includes(u.hostname)&&u.pathname.startsWith('/products/')}catch(e){return false}};
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
@@ -137,41 +138,72 @@ function rebuild(){
 }
 function openCategory(id){category=id;const cat=CATS.find(x=>x.id===id);$('home').classList.add('hidden');$('categoryPage').classList.remove('hidden');$('categoryTitle').textContent=cat.label;$('term').value=cat.term;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('searchStatus').textContent='Пребарување и проверка на залиха';runSearch(1)}
 function goHome(){$('categoryPage').classList.add('hidden');$('home').classList.remove('hidden');rebuild()}
-function runSearch(page){currentPage=page;shown=new Set();searching=true;candidateAccepted=false;verifiedCount=0;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Страница '+page;PcApp.search(category,$('term').value.trim(),page)}
+function runSearch(page){currentPage=page;shown=new Set();catalogProducts=[];verifiedMap=new Map();verificationFinished=false;searching=true;candidateAccepted=false;verifiedCount=0;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Страница '+page;PcApp.search(category,$('term').value.trim(),page)}
 window.pcLoading=(q,page)=>{$('searchStatus').textContent='Го отворам официјалниот каталог · страница '+page+'…'};
 window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;$('searchStatus').textContent='Категоријата не се вчита. Провери ја интернет-врската и обиди се повторно.'}};
 window.pcCatalogError=msg=>{searching=false;$('searchStatus').textContent=msg||'Не можам да ја пронајдам категоријата на Setec.'};
-window.pcCandidates=(json)=>{
+// Show products from the actual official category immediately.
+// A product must have a confirmed Setec store before the "choose" action is enabled.
+function renderCandidates(){
+ const host=$('results');host.replaceChildren();
+ let shownCount=0, incompatibleCount=0;
+ for(const item of catalogProducts){
+  const p=verifiedMap.get(item.url)||item;
+  const check=compatibility(category,p);
+  if(check.issues.length){incompatibleCount++;if($('compatibleOnly').checked)continue;}
+  shownCount++;
+  const verified=p.stockVerified===true&&Array.isArray(p.stores)&&p.stores.length>0;
+  const row=el('div','result'+(verified?'':' pending')+(check.issues.length?' incompatible':''));
+  row.appendChild(el('div','resultName',p.name||'Производ'));
+  row.appendChild(el('div','resultMeta','Шифра: '+(p.sku||'непрочитана')));
+  row.appendChild(priceRow(p));
+  if(verified)row.appendChild(el('div','stores','✓ Потврдена залиха: '+p.stores.join(' · ')));
+  else row.appendChild(el('div','warning',verificationFinished?'Локацијата не е потврдена · не може да се избере.':'Ја проверувам достапноста по локации…'));
+  if(check.issues.length)row.appendChild(el('div','error','Некомпатибилно: '+check.issues.join(' ')));
+  else if(check.notes.length)row.appendChild(el('div','small','⚠ Провери компатибилност: '+check.notes.join(' ')));
+  else row.appendChild(el('div','checked','✓ Не е откриена некомпатибилност (не е целосна гаранција)'));
+  const button=el('button','btn',chosen[category]?.url===p.url?'Веќе избрано':!verified?'Се чека потврда на залиха':'Избери го делот');
+  button.disabled=!verified||check.issues.length>0||chosen[category]?.url===p.url;
+  button.onclick=()=>{chosen[category]=p;persist();goHome()};
+  row.appendChild(button);
+  host.appendChild(row);
+ }
+ if(catalogProducts.length&&!shownCount){
+  host.appendChild(el('div','warning','Сите прочитани производи од оваа страница имаат утврдена некомпатибилност со избраните делови. Исклучи го филтерот за да ги видиш.'));
+ }
+ $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
+}
+window.pcCandidates=json=>{
  if(!searching||candidateAccepted)return;
  let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}
- const filter=$('term').value.toLowerCase().trim();arr=arr.filter(p=>p&&safe(p.url)&&(!['cpu','gpu'].includes(category)||typeMatch(p,category))&&(!filter||(p.name||'').toLowerCase().includes(filter)));
+ const filter=$('term').value.toLowerCase().trim();
+ arr=arr.filter(p=>p&&safe(p.url)&&(!filter||(p.name||'').toLowerCase().includes(filter)));
+ // Category URL already determines the type. Keyword heuristics must not hide valid parts.
  if(!arr.length)return;
  candidateAccepted=true;
- $('searchStatus').textContent='Категоријата е отворена: '+arr.length+' производи. Проверувам залиха по локации…';
- PcApp.verify(JSON.stringify(arr.slice(0,22)));
+ catalogProducts=[...new Map(arr.map(p=>[p.url,p])).values()];
+ $('searchStatus').textContent='Пронајдени '+catalogProducts.length+' производи од официјалната категорија. Проверувам залиха…';
+ $('nextPage').classList.remove('hidden');
+ renderCandidates();
+ PcApp.verify(JSON.stringify(catalogProducts.slice(0,22)));
 };
 window.pcProgress=(done,total,available)=>{
  $('progressFill').style.width=(total?Math.round(done/total*100):100)+'%';
- $('catCount').textContent=available+' потврдени · '+done+'/'+total+' проверени';
- $('searchStatus').textContent=done<total?'Проверувам официјална залиха: '+done+' / '+total+'…':'Проверени '+total+' производи; '+available+' имаат потврдена локација.';
+ $('searchStatus').textContent=done<total?'Залиха: проверени '+done+' од '+total+' производи…':'Проверени '+total+' производи; потврдени локации кај '+available+'.';
+ $('catCount').textContent=available+' со потврдена локација · '+catalogProducts.length+' во каталогот';
 };
 window.pcVerifiedProduct=json=>{
  let p;try{p=JSON.parse(json)}catch(e){return}
- if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length||shown.has(p.url))return;
- shown.add(p.url);verifiedCount++;
- const row=el('div','result');row.appendChild(el('div','resultName',p.name||'Производ'));
- row.appendChild(el('div','resultMeta','Шифра: '+(p.sku||'непрочитана')));row.appendChild(priceRow(p));
- row.appendChild(el('div','stores','✓ Локации: '+p.stores.join(' · ')));
- const compare=compatibility(category,p);
- if(compare.issues.length)row.appendChild(el('div','error','Некомпатибилно: '+compare.issues.join(' ')));
- else if(compare.notes.length)row.appendChild(el('div','warning','Потребна дополнителна проверка: '+compare.notes.join(' ')));
- else row.appendChild(el('div','checked','✓ Нема утврдена некомпатибилност со избраните делови'));
- const b=el('button','btn',chosen[category]?.url===p.url?'Веќе избрано':'Избери го делот');
- b.disabled=compare.issues.length>0||chosen[category]?.url===p.url;
- b.onclick=()=>{chosen[category]=p;persist();goHome()};
- row.appendChild(b);$('results').appendChild(row);
+ if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length)return;
+ verifiedMap.set(p.url,p);renderCandidates();
 };
-window.pcVerificationDone=()=>{searching=false;const n=shown.size;if(n===0)$('results').appendChild(el('div','warning','Нема производ со потврдена наведена залиха во проверените кандидати. Ова не е доказ дека производите се распродадени.'));$('nextPage').classList.remove('hidden')};
+window.pcVerificationDone=()=>{
+ searching=false;verificationFinished=true;
+ renderCandidates();
+ if(!catalogProducts.length)$('results').appendChild(el('div','warning','На оваа страница не се прочитани производи. Провери ја врската или отвори друга страница.'));
+ else if(!verifiedMap.size)$('searchStatus').textContent='Производите се прочитани, но не е потврдена залиха по локации. Не ги означуваме како достапни.';
+ $('nextPage').classList.remove('hidden');
+};
 function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
 rebuild();
 </script></body></html>
