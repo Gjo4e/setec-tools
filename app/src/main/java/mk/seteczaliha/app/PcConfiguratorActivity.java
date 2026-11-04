@@ -31,6 +31,12 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private JSONObject current;
     private String currentUrl;
     private boolean checkComplete = true, stockClicked = false;
+    private static final String COMPONENT_ROOT = "https://www.setec.mk/category/komp-d1-98uteri-20i-20komp-d1-98uterski-20delovi-20";
+    private String categoryKey = "board", categoryUrl = null, localFilter = "";
+    private int catalogPage = 1;
+    private boolean resolvingCategory = false;
+    private final java.util.HashMap<String, String> knownCategories = new java.util.HashMap<>();
+
 
     @Override @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     public void onCreate(Bundle savedState) {
@@ -47,9 +53,19 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         checker.setAlpha(0.01f);
         catalog.setClickable(false);
         checker.setClickable(false);
+        knownCategories.put("cpu", "https://www.setec.mk/category/protsesori-21");
+        knownCategories.put("gpu", "https://www.setec.mk/category/grafichki-20karti-25");
+        knownCategories.put("cooler", "https://www.setec.mk/category/kuleri-27");
         catalog.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 int id = searchSerial;
+                if (resolvingCategory) {
+                    for (long delay : new long[]{400, 1200, 2600, 4400}) {
+                        handler.postDelayed(() -> resolveCategory(id), delay);
+                    }
+                    return;
+                }
+                if (!url.contains("/category/")) return;
                 for (long delay : new long[]{650, 1600, 3100, 5100}) {
                     handler.postDelayed(() -> readCatalog(id), delay);
                 }
@@ -108,30 +124,106 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         }
     }
 
+    /** Category browsing replaces the unreliable free-text Setec search endpoint. */
     private void startSearch(String category, String text, int page) {
         if (catalog == null) return;
-        searchSerial++;
+        final int id = ++searchSerial;
         stockSerial++;
         checkComplete = true;
         currentUrl = null;
-        String query = text == null ? "" : text.replaceAll("[\\r\\n]", " ").trim();
-        if (query.length() > 75) query = query.substring(0, 75);
-        int safePage = Math.max(1, Math.min(75, page));
-        String address = Uri.parse("https://www.setec.mk/search-result").buildUpon()
-            .appendQueryParameter("q", query)
-            .appendQueryParameter("page", String.valueOf(safePage))
-            .build().toString();
-        send("window.pcLoading(" + JSONObject.quote(query) + "," + safePage + ");");
+        categoryKey = category == null ? "" : category;
+        localFilter = text == null ? "" : text.trim();
+        if (localFilter.length() > 75) localFilter = localFilter.substring(0, 75);
+        catalogPage = Math.max(1, Math.min(page, 75));
+        categoryUrl = knownCategories.get(categoryKey);
+        send("window.pcLoading(" + JSONObject.quote(localFilter) + "," + catalogPage + ");");
         catalog.stopLoading();
-        catalog.loadUrl(address);
-        final int id = searchSerial;
+        if (categoryUrl != null) {
+            resolvingCategory = false;
+            catalog.loadUrl(categoryPageUrl(categoryUrl, catalogPage));
+        } else {
+            // Discover the current official subcategory URL from the Setec category menu.
+            resolvingCategory = true;
+            catalog.loadUrl(COMPONENT_ROOT);
+        }
         handler.postDelayed(() -> {
             if (id == searchSerial) send("window.pcSearchTimeout();");
-        }, 13000);
+        }, 16000);
+    }
+
+    private static String categoryPageUrl(String base, int page) {
+        Uri.Builder b = Uri.parse(base).buildUpon().clearQuery();
+        if (page > 1) b.appendQueryParameter("page", String.valueOf(page));
+        return b.build().toString();
+    }
+
+    private static String categoryLabel(String id) {
+        switch (id) {
+            case "board": return "Матични Плочи";
+            case "case": return "Куќишта";
+            case "ram": return "РАМ Меморија";
+            case "storage": return "Тврди Дискови и SSD Дискови";
+            case "psu": return "Напојувања";
+            case "cpu": return "Процесори";
+            case "gpu": return "Графички Карти";
+            case "cooler": return "Кулери";
+            default: return "";
+        }
+    }
+
+    private void resolveCategory(int serial) {
+        if (serial != searchSerial || !resolvingCategory || catalog == null) return;
+        String label = categoryLabel(categoryKey);
+        if (label.isEmpty()) {
+            resolvingCategory = false;
+            send("window.pcCatalogError('Непозната категорија.');");
+            return;
+        }
+        String javascript = "(function(){"+
+            "let wanted="+JSONObject.quote(label.toLowerCase(java.util.Locale.ROOT))+";"+
+            "let clean=s=>(s||'').replace(/\\(\\s*\\d+\\s*\\)/g,'').replace(/\\s+/g,' ').trim().toLowerCase();"+
+            "let links=[...document.querySelectorAll('a[href*=\\\"/category/\\\"]')];"+
+            "let a=links.find(e=>clean(e.textContent)===wanted)||links.find(e=>clean(e.textContent).startsWith(wanted));"+
+            "if(a){let u=new URL(a.getAttribute('href'),location.href);return u.origin+u.pathname;}"+
+            "let candidates=[...document.querySelectorAll('label,button,span,li,a,[role=button]')];"+
+            "let e=candidates.find(e=>clean(e.textContent)===wanted&&e.getBoundingClientRect().width>0);"+
+            "if(e){let target=e.closest('a,button,label,[role=button]')||e;target.click();return 'clicked'}"+
+            "return ''})()";
+        catalog.evaluateJavascript(javascript, value -> {
+            if (serial != searchSerial || !resolvingCategory) return;
+            String result = decode(value);
+            if (result != null && result.startsWith("https://")) {
+                Uri uri = Uri.parse(result);
+                if (("setec.mk".equals(uri.getHost()) || "www.setec.mk".equals(uri.getHost()))
+                        && uri.getPath() != null && uri.getPath().startsWith("/category/")
+                        && !uri.getPath().equals(Uri.parse(COMPONENT_ROOT).getPath())) {
+                    categoryUrl = result;
+                    knownCategories.put(categoryKey, result);
+                    resolvingCategory = false;
+                    catalog.loadUrl(categoryPageUrl(result, catalogPage));
+                }
+            } else if (result != null && result.equals("clicked")) {
+                handler.postDelayed(() -> {
+                    if (serial != searchSerial || !resolvingCategory) return;
+                    String url = catalog.getUrl();
+                    if (url != null && url.contains("/category/") &&
+                        !Uri.parse(url).getPath().equals(Uri.parse(COMPONENT_ROOT).getPath())) {
+                        String discovered = Uri.parse(url).buildUpon().clearQuery().build().toString();
+                        knownCategories.put(categoryKey, discovered);
+                        categoryUrl = discovered;
+                        resolvingCategory = false;
+                        if (catalogPage > 1) catalog.loadUrl(categoryPageUrl(discovered, catalogPage));
+                        else readCatalog(serial);
+                    }
+                }, 1000);
+            }
+        });
     }
 
     private void readCatalog(int serial) {
-        if (serial != searchSerial || catalog == null) return;
+        if (serial != searchSerial || catalog == null || resolvingCategory) return;
+        if (categoryUrl == null || catalog.getUrl() == null ||
+                !Uri.parse(catalog.getUrl()).getPath().equals(Uri.parse(categoryUrl).getPath())) return;
         String script = "(function(){let out=new Map();"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
