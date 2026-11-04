@@ -159,6 +159,9 @@ public final class MainActivity extends ComponentActivity {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
     private final class UiBridge {
+        @JavascriptInterface public void openPcConfigurator() {
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
+        }
         @JavascriptInterface public void moreResults() {
             runOnUiThread(MainActivity.this::startMoreResults);
         }
