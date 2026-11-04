@@ -249,7 +249,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
     private final java.util.ArrayList<StockWorker> workers = new java.util.ArrayList<>();
     private final java.util.HashMap<String, StockCacheEntry> stockCache = new java.util.HashMap<>();
     private int stockCompleted = 0;
-    private static final long CACHE_MS = 10 * 60 * 1000L;
+    private static final long CACHE_MS = 2 * 60 * 1000L;
 
     private static final class StockCacheEntry {
         final JSONObject result;
@@ -268,6 +268,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         boolean completed = true;
         boolean clicked = false;
         boolean detailsSent = false;
+        String lastStores = "";
+        int consecutiveStoreReads = 0;
 
         StockWorker(FrameLayout root) {
             web = makeWeb();
@@ -291,6 +293,8 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             completed = false;
             clicked = false;
             detailsSent = false;
+            lastStores = "";
+            consecutiveStoreReads = 0;
             web.stopLoading();
             web.loadUrl(url);
             final String target = url;
@@ -369,20 +373,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
 
     private void probe(StockWorker worker, int serial, boolean last) {
         if (serial != stockSerial || worker.completed) return;
-        String extraction = "(function(){try{"+
-            "let base=window.__pcBefore;let visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
-            "let newly=[];if(base)for(let e of document.querySelectorAll('body *')){"+
-            "if(base.has(e)||!visible(e))continue;let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();"+
-            "if(t.length<2||t.length>105)continue;"+
-            "if([...e.children].some(c=>visible(c)&&(c.innerText||c.textContent||'').trim()===t))continue;newly.push(t)}"+
-            "let pattern=/(?:Годи|ГТЦ|Рузвелтова|Главен\\s+магацин|магацин|Аеродром|Чаир|Кисела\\s+Вода|Карпош|Битола|Тетово|Охрид|Велес|Куманово|Штип|Струмица|Прилеп|Гостивар|Радовиш|Драчево|Скопје|Ѓорче|Кавадарци|Кочани|Неготино|Кичево|Струга|Ресен)/i;"+
-            "let stores=[...new Set(newly.filter(t=>pattern.test(t)&&t.length<75&&!/избери|провери|продавниц|достапност/i.test(t)))].slice(0,35);"+
-            "let text=document.body?.innerText||'';let title=document.querySelector('h1')?.innerText||'';"+
-            "let price=k=>{let m=text.match(new RegExp(k+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].replace(/\\s/g,''):''};"+
-            "let sku=(text.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';"+
-            "let image='';\nfor(let raw of [\ndocument.querySelector('meta[property=\"og:image\"]')?.content,\ndocument.querySelector('meta[name=\"twitter:image\"]')?.content,\ndocument.querySelector('main img')?.getAttribute('data-src'),\ndocument.querySelector('main img')?.getAttribute('src')\n]){\n if(!raw)continue;\n let u;try{u=new URL(raw,location.href)}catch(e){continue}\n if(u.protocol==='https:'&&!/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname)){image=u.href;break;}\n}\n"+
-            "return JSON.stringify({stores,name:title.trim(),sku,image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:text.slice(0,4200)});"+
-            "}catch(e){return '{}'}})()";
+        String extraction = "(function(){\n try{\n  const visible=e=>{if(!e)return false;const r=e.getBoundingClientRect(),z=getComputedStyle(e);return r.width>0&&r.height>0&&z.visibility!=='hidden'&&z.display!=='none'};\n  const textOf=e=>(e?.innerText||e?.textContent||'').replace(/\\s+/g,' ').trim();\n  const known=['ГТЦ ИТ','БИТОЛА 2','СТРУМИЦА RETAIL PARK','КРИВА ПАЛАНКА','СВЕТИ НИКОЛЕ','ЃОРЧЕ ПЕТРОВ','ДАЈМОНД МОЛ','СИТИ МОЛ','Г. МАГАЦИН','РУЗВЕЛТОВА','АЕРОДРОМ','ГОСТИВАР','КУМАНОВО','КАВАДАРЦИ','СТРУМИЦА','ДРАЧЕВО','РАДОВИШ','ДЕЛЧЕВО','НЕГОТИНО','КОЧАНИ','ПРИЛЕП','ТЕТОВО','БИТОЛА','СТРУГА','ШТИП','ЧАИР','ВЕЛЕС','ОХРИД','КИЧЕВО','РЕСЕН','ДЕБАР','ГОДИ','СТАДИОН','ГТЦ'];\n  // Only an actual Setec branch name can be a stock location. Generic delivery text is not one.\n  const namedShop=raw=>{\n   let t=String(raw||'').normalize('NFKC').toUpperCase().replace(/\\s+/g,' ').trim();\n   if(!t||t.length>95||/САМО ЗА|ДОСТАВА|ДОСТАВУВА|ДО\\s*20\\s*КМ|DELIVERY|ON-?LINE|ОНЛАЈН|РАБОТНО ВРЕМЕ|[0-9]{3,}\\s*ДЕН/.test(t))return '';\n   t=t.replace(/^(?:СЕТЕК|SETEC|SETEK)\\s*[-–:]?\\s*/,'').replace(/^(?:САЛОН|ПРОДАВНИЦА)\\s*[-–:]?\\s*/,'');\n   t=t.replace(/^СКОПЈЕ\\s*[-–:]\\s*/,'').replace(/\\s*[-–,]\\s*СКОПЈЕ$/,'');\n   t=t.replace(/^CAIR$/,'ЧАИР').replace(/^CHAIR$/,'ЧАИР').replace(/^STIP$/,'ШТИП').replace(/^SHTIP$/,'ШТИП').replace(/^GOSTIVAR$/,'ГОСТИВАР');\n   for(const key of known){\n    if(t===key||t.startsWith(key+' ·')||t.startsWith(key+' - ')||t.startsWith(key+' – ')||t.startsWith(key+' ДOСТАПНО')||t.startsWith(key+' ДОСТАПНО')||t.startsWith(key+' НА ЗАЛИХА'))return 'Сетек '+key;\n   }\n   return '';\n  };\n  let root=null;\n  const modalMatches=[...document.querySelectorAll('dialog[open],[role=\"dialog\"],[aria-modal=\"true\"],[class*=\"modal\"],[class*=\"Modal\"],[class*=\"popup\"],[class*=\"Popup\"],[class*=\"drawer\"],[class*=\"Drawer\"]')].filter(e=>visible(e)&&/ДОСТАПНОСТ|ЗАЛИХА|ПРОДАВНИЦИ|САЛОНИ/i.test(textOf(e)));\n  if(modalMatches.length)root=modalMatches.sort((a,b)=>textOf(a).length-textOf(b).length)[0];\n  if(!root){\n   const base=window.__pcBefore;\n   const added=[...document.querySelectorAll('body *')].filter(e=>visible(e)&&base&&!base.has(e)&&textOf(e).length>25&&textOf(e).length<9000&&/ДОСТАПНОСТ|ЗАЛИХА|ПРОДАВНИЦИ|САЛОНИ/i.test(textOf(e)));\n   root=added.sort((a,b)=>textOf(a).length-textOf(b).length).find(e=>[...e.querySelectorAll('span,div,p,li,td,tr,strong')].some(x=>visible(x)&&namedShop(textOf(x))))||null;\n  }\n  const stores=[];\n  if(root){\n   const contents=textOf(root);\n   const unavailable=/НЕМА\\s*(?:НА\\s*)?ЗАЛИХА|НЕ\\s*Е\\s*ДОСТАПН|НЕДОСТАПН|OUT\\s*OF\\s*STOCK|NOT\\s*AVAILABLE|РАСПРОДАДЕН/i;\n   const available=/ИМА\\s*(?:НА\\s*)?ЗАЛИХА|НА\\s*ЗАЛИХА|ДОСТАПНО\\s*(?:ВО|НА|$)|IN\\s*STOCK|AVAILABLE\\s*(?:AT|IN|$)/i;\n   const explicitStatuses=unavailable.test(contents)||available.test(contents);\n   const onlyAvailable=/ДОСТАПНИ\\s*(?:САЛОНИ|ПРОДАВНИЦИ|ЛОКАЦИИ)|ДОСТАПНО\\s*ВО\\s*(?:САЛОНИ|ПРОДАВНИЦИ)|САЛОНИ\\s*СО\\s*ЗАЛИХА/i.test(contents);\n   const unique=new Set();\n   const leaves=[...root.querySelectorAll('span,div,p,li,td,tr,strong,b,small,button,[role=\"row\"]')].filter(visible);\n   for(const leaf of leaves){\n    const raw=textOf(leaf);\n    if(raw.length>95)continue;\n    const shop=namedShop(raw);\n    if(!shop||unique.has(shop))continue;\n    // Check stock state in the nearest small row, not in the whole modal.\n    let context=leaf, rowText=raw;\n    for(let depth=0;depth<3;depth++){\n     const parent=context.parentElement;\n     if(!parent||parent===root)break;\n     const body=textOf(parent);\n     if(body.length>220)break;\n     rowText=body;context=parent;\n     if(unavailable.test(body)||available.test(body))break;\n    }\n    if(unavailable.test(rowText))continue;\n    if(explicitStatuses&&!available.test(rowText))continue;\n    // No explicit statuses: use the branch-only list in the opened stock dialog,\n    // never a bare city name or unrelated \"only Skopje\" service message.\n    if(!explicitStatuses&&!onlyAvailable&&leaves.length>350)continue;\n    unique.add(shop);stores.push(shop);\n   }\n  }\n  let body=document.body?.innerText||'';\n  let title=document.querySelector('h1')?.innerText||'';\n  const price=k=>{let m=body.match(new RegExp(k+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].replace(/\\s/g,''):''};\n  const sku=(body.match(/Шифра\\s*:?\\s*([0-9]{4,8})/i)||[])[1]||'';\n  let image='';\n  for(const raw of [document.querySelector('meta[property=\"og:image\"]')?.content,document.querySelector('meta[name=\"twitter:image\"]')?.content,document.querySelector('main img')?.getAttribute('data-src'),document.querySelector('main img')?.getAttribute('src')]){\n   if(!raw)continue;let u;try{u=new URL(raw,location.href)}catch(e){continue}\n   if(u.protocol==='https:'&&!/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname)){image=u.href;break}\n  }\n  return JSON.stringify({stores,name:title.trim(),sku,image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена'),specs:body.slice(0,4200)});\n }catch(e){return '{}'}\n})()";
         worker.web.evaluateJavascript(extraction, output -> {
             if (serial != stockSerial || worker.completed) return;
             JSONObject detail = null;
@@ -407,9 +398,17 @@ public final class PcConfiguratorActivity extends ComponentActivity {
                     send("window.pcProductDetails(" + JSONObject.quote(metadata.toString()) + ");");
                 } catch (Exception ignored) {}
             }
-            if (detail != null && detail.optJSONArray("stores") != null &&
-                    detail.optJSONArray("stores").length() > 0) finish(worker, detail);
-            else if (last) finish(worker, null);
+            JSONArray locations = detail == null ? null : detail.optJSONArray("stores");
+            if (locations != null && locations.length() > 0) {
+                java.util.ArrayList<String> keys = new java.util.ArrayList<>();
+                for (int i = 0; i < locations.length(); i++) keys.add(locations.optString(i));
+                java.util.Collections.sort(keys);
+                String signature = android.text.TextUtils.join("|", keys);
+                if (signature.equals(worker.lastStores)) worker.consecutiveStoreReads++;
+                else { worker.lastStores = signature; worker.consecutiveStoreReads = 1; }
+                // At least three consistent snapshots; allow the shop list to finish loading.
+                if (worker.consecutiveStoreReads >= 3 || last) finish(worker, detail);
+            } else if (last) finish(worker, null);
         });
     }
 
