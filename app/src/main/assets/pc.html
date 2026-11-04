@@ -238,7 +238,7 @@ function rebuild(){
 function openCategory(id){category=id;const cat=CATS.find(x=>x.id===id);$('home').classList.add('hidden');$('categoryPage').classList.remove('hidden');$('categoryTitle').textContent=cat.label+(id==='cooler'?' · само CPU кулери':'');$('term').value=cat.term;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('searchStatus').textContent='Пребарување и проверка на залиха';runSearch(1)}
 function goHome(){$('categoryPage').classList.add('hidden');$('home').classList.remove('hidden');rebuild();window.scrollTo(0,0)}
 window.pcBack=()=>{if(!$('categoryPage').classList.contains('hidden')){goHome();return true;}return false};
-function runSearch(page){if(loadingMore||noMorePages&&page>1)return;const append=page>1&&catalogProducts.length>0;if(!append){noMorePages=false;currentPage=1;searchPage=1;shown=new Set();catalogProducts=[];verifiedMap=new Map();verifiedCount=0;$('results').replaceChildren()}else{searchPage=page;loadingMore=true;}verificationFinished=false;searching=true;candidateAccepted=false;$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Вчитани страници: 1–'+(append?currentPage:1)+(append?' · додавам '+page+'…':'');$('searchStatus').textContent=append?'Вчитувам уште производи без да ги отстранам претходните…':'Го отворам каталогот…';PcApp.search(category,$('term').value.trim(),page)}
+function runSearch(page){if(loadingMore||noMorePages&&page>1)return;const append=page>1;if(!append){noMorePages=false;currentPage=1;searchPage=1;shown=new Set();catalogProducts=[];verifiedMap=new Map();verifiedCount=0;$('results').replaceChildren()}else{searchPage=page;loadingMore=true;}verificationFinished=false;searching=true;candidateAccepted=false;$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Вчитани страници: 1–'+(append?currentPage:1)+(append?' · додавам '+page+'…':'');$('searchStatus').textContent=append?'Вчитувам уште производи без да ги отстранам претходните…':'Го отворам каталогот…';PcApp.search(category,$('term').value.trim(),page)}
 window.pcLoading=(q,page)=>{$('searchStatus').textContent='Го отворам официјалниот каталог · страница '+page+'…'};
 window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;loadingMore=false;$('nextPage').classList.toggle('hidden',!catalogProducts.length);$('searchStatus').textContent='Страницата не се вчита. Пробај повторно.'}};
 window.pcCatalogError=msg=>{searching=false;loadingMore=false;$('nextPage').classList.toggle('hidden',!catalogProducts.length);$('searchStatus').textContent=msg||'Не можам да ја пронајдам категоријата на Setec.'};
@@ -275,7 +275,7 @@ function renderCandidates(){
   fragment.appendChild(row);
  }
  if(catalogProducts.length&&!shownCount){
-  fragment.appendChild(el('div','warning','Сите прочитани производи од оваа страница имаат утврдена некомпатибилност со избраните делови. Исклучи го филтерот за да ги видиш.'));
+  fragment.appendChild(el('div','warning','Нема прикажани соодветни компоненти. Провери го филтерот или вчитај следна страница.'));
  }
  host.replaceChildren(fragment);
  $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
