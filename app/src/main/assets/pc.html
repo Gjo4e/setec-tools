@@ -57,7 +57,7 @@ const CATS=[
 const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
 let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
 if(!chosen||typeof chosen!=='object')chosen={};
-let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
+let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=false,noMorePages=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
 const safe=x=>{try{const u=new URL(x);return u.protocol==='https:'&&['www.setec.mk','setec.mk'].includes(u.hostname)&&u.pathname.startsWith('/products/')}catch(e){return false}};
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
@@ -139,14 +139,14 @@ function rebuild(){
 function openCategory(id){category=id;const cat=CATS.find(x=>x.id===id);$('home').classList.add('hidden');$('categoryPage').classList.remove('hidden');$('categoryTitle').textContent=cat.label;$('term').value=cat.term;$('results').replaceChildren();$('nextPage').classList.add('hidden');$('searchStatus').textContent='Пребарување и проверка на залиха';runSearch(1)}
 function goHome(){$('categoryPage').classList.add('hidden');$('home').classList.remove('hidden');rebuild();window.scrollTo(0,0)}
 window.pcBack=()=>{if(!$('categoryPage').classList.contains('hidden')){goHome();return true;}return false};
-function runSearch(page){if(loadingMore)return;const append=page>1&&catalogProducts.length>0;if(!append){currentPage=1;searchPage=1;shown=new Set();catalogProducts=[];verifiedMap=new Map();verifiedCount=0;$('results').replaceChildren()}else{searchPage=page;loadingMore=true;}verificationFinished=false;searching=true;candidateAccepted=false;$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Вчитани страници: 1–'+(append?currentPage:1)+(append?' · додавам '+page+'…':'');$('searchStatus').textContent=append?'Вчитувам уште производи без да ги отстранам претходните…':'Го отворам каталогот…';PcApp.search(category,$('term').value.trim(),page)}
+function runSearch(page){if(loadingMore||noMorePages&&page>1)return;const append=page>1&&catalogProducts.length>0;if(!append){noMorePages=false;currentPage=1;searchPage=1;shown=new Set();catalogProducts=[];verifiedMap=new Map();verifiedCount=0;$('results').replaceChildren()}else{searchPage=page;loadingMore=true;}verificationFinished=false;searching=true;candidateAccepted=false;$('nextPage').classList.add('hidden');$('progressFill').style.width='0%';$('pageInfo').textContent='Вчитани страници: 1–'+(append?currentPage:1)+(append?' · додавам '+page+'…':'');$('searchStatus').textContent=append?'Вчитувам уште производи без да ги отстранам претходните…':'Го отворам каталогот…';PcApp.search(category,$('term').value.trim(),page)}
 window.pcLoading=(q,page)=>{$('searchStatus').textContent='Го отворам официјалниот каталог · страница '+page+'…'};
 window.pcSearchTimeout=()=>{if(!candidateAccepted&&searching){searching=false;loadingMore=false;$('nextPage').classList.toggle('hidden',!catalogProducts.length);$('searchStatus').textContent='Страницата не се вчита. Пробај повторно.'}};
 window.pcCatalogError=msg=>{searching=false;loadingMore=false;$('nextPage').classList.toggle('hidden',!catalogProducts.length);$('searchStatus').textContent=msg||'Не можам да ја пронајдам категоријата на Setec.'};
 // Show products from the actual official category immediately.
 // A product must have a confirmed Setec store before the "choose" action is enabled.
 function renderCandidates(){
- const host=$('results');host.replaceChildren();
+ const host=$('results');const fragment=document.createDocumentFragment();
  let shownCount=0, incompatibleCount=0;
  for(const item of catalogProducts){
   const p=verifiedMap.get(item.url)||item;
@@ -169,11 +169,12 @@ function renderCandidates(){
   button.disabled=!verified||check.issues.length>0||chosen[category]?.url===p.url;
   button.onclick=()=>{chosen[category]=p;persist();goHome()};
   row.appendChild(button);
-  host.appendChild(row);
+  fragment.appendChild(row);
  }
  if(catalogProducts.length&&!shownCount){
-  host.appendChild(el('div','warning','Сите прочитани производи од оваа страница имаат утврдена некомпатибилност со избраните делови. Исклучи го филтерот за да ги видиш.'));
+  fragment.appendChild(el('div','warning','Сите прочитани производи од оваа страница имаат утврдена некомпатибилност со избраните делови. Исклучи го филтерот за да ги видиш.'));
  }
+ host.replaceChildren(fragment);
  $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
 }
 window.pcCandidates=json=>{
@@ -187,10 +188,11 @@ window.pcCandidates=json=>{
  const known=new Set(catalogProducts.map(p=>p.url));const added=arr.filter(p=>!known.has(p.url));
  const wasMore=loadingMore;loadingMore=false;
  if(wasMore)currentPage=searchPage;
+ if(wasMore&&added.length===0)noMorePages=true;
  catalogProducts.push(...added);
  $('pageInfo').textContent='Вчитани страници: 1–'+currentPage+' · '+catalogProducts.length+' производи';
  $('searchStatus').textContent='Додадени '+added.length+' производи; вкупно '+catalogProducts.length+'. Проверувам залиха…';
- $('nextPage').classList.toggle('hidden',wasMore&&added.length===0);$('nextPage').textContent='+ Прикажи уште (страница '+(currentPage+1)+') ↓';
+ $('nextPage').classList.toggle('hidden',noMorePages);$('nextPage').textContent='+ Прикажи уште (страница '+(currentPage+1)+') ↓';
  renderCandidates();
  PcApp.verify(JSON.stringify(added.slice(0,22)));
 };
@@ -210,7 +212,7 @@ window.pcVerificationDone=()=>{
  renderCandidates();
  if(!catalogProducts.length)$('results').appendChild(el('div','warning','На оваа страница не се прочитани производи. Провери ја врската или отвори друга страница.'));
  else if(!verifiedMap.size)$('searchStatus').textContent='Производите се прочитани, но не е потврдена залиха по локации. Не ги означуваме како достапни.';
- if(!loadingMore&&catalogProducts.length)$('nextPage').classList.remove('hidden');
+ if(!loadingMore&&catalogProducts.length&&!noMorePages)$('nextPage').classList.remove('hidden');
 };
 function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
 rebuild();
