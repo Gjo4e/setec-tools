@@ -272,6 +272,10 @@ function renderCandidates(){
   button.disabled=!verified||check.issues.length>0||chosen[category]?.url===p.url;
   button.onclick=()=>{chosen[category]=p;persist();goHome()};
   row.appendChild(button);
+  const official=el('button','ghost','↗ Провери на Setec.mk');
+  official.style.cssText='margin-left:8px;margin-top:7px;font-size:11px';
+  official.onclick=()=>PcApp.openProduct(p.url);
+  row.appendChild(official);
   fragment.appendChild(row);
  }
  if(catalogProducts.length&&!shownCount){
