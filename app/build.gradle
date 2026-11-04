@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.pcfast'
+        applicationId 'mk.setecsifri.pcappend'
         minSdk 26
         targetSdk 35
-        versionCode 32
-        versionName '3.3'
+        versionCode 33
+        versionName '3.4'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
