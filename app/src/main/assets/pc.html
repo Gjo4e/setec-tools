@@ -143,6 +143,40 @@ function typeMatch(p,id){
  }
  return false;
 }
+// Keep only components that physically belong in a desktop PC build.
+// Product-page specs may contain entire store navigation; classify only by the model name.
+function builderPart(p,id){
+ const n=String(p?.name||'').normalize('NFKC').toUpperCase();
+ if(!n||/ЛАПТОП|NOTEBOOK|ALL[\s-]*IN[\s-]*ONE|КОМПЛЕТЕН\s*КОМПЈУТЕР|PC\s*CONFIGURATION|ГОТОВА\s*КОНФИГУРАЦИЈА/.test(n))return false;
+ const accessory=/\b(?:ADAPTER|ADAPTOR|CONVERTER|CABLE|SPLITTER|HOLDER|BRACKET|MOUNTING\s*KIT|EXTENSION\s*CABLE|DOCKING\s*STATION|HUB|ENCLOSURE|CASE\s*FOR\s*(?:SSD|HDD)|CARD\s*READER)\b|АДАПТЕР|КАБЕЛ|НОСАЧ|ДРЖАЧ|КОНВЕРТОР|КУТИЈА\s*ЗА\s*(?:SSD|HDD)|КУЌИШТЕ\s*ЗА\s*(?:SSD|HDD)|ЧИТАЧ\s*НА\s*КАРТИЧКИ/;
+ switch(id){
+  case 'storage':
+   // External SSDs/HDDs, USB sticks, SD cards, NAS and enclosures aren't PC build disks.
+   if(/\b(?:EXTERNAL|EXTERN|PORTABLE|PORTATIV|FLASH\s*(?:DRIVE|DISK)|USB\s*(?:FLASH|STICK|MEMORY|DRIVE)|THUMB\s*DRIVE|PENDRIVE|MICRO[\s-]?SD|SD[\s-]*CARD|MEMORY\s*CARD|CARD\s*READER|NAS|DAS|MY\s*PASSPORT|MY\s*BOOK|STOREJET|T7\s*SHIELD|SE\d{3}\s+\d+(?:GB|TB)\s+USB)\b|НАДВОРЕШ|ЕКСТЕРН|ПРЕНОСЕН\s*ДИСК|ПРЕНОСНА\s*МЕМОРИЈА|USB\s*МЕМОРИЈА|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
+   if(accessory.test(n)||/\b(?:M\.2|SATA)\s*(?:TO|2)\s*USB\b|\bUSB[\s-]*C\b|\bUSB\s*3[.]?[012]?\b/.test(n))return false;
+   return /\b(?:SSD|HDD|NVME|M\.?2|SATA|HARD\s*DISK|HARD\s*DRIVE)\b|ТВРД\s*ДИСК|ХАРД\s*ДИСК/.test(n);
+  case 'ram':
+   if(ramFormFactor(p)==='SO-DIMM')return false;
+   if(/\b(?:FLASH|USB\s*MEMORY|SD[\s-]*CARD|CARD\s*READER|EXTERNAL|PORTABLE)\b|ФЛЕШ|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
+   return !accessory.test(n)&&/\bDDR[345]\b|\bDIMM\b|\bUDIMM\b|\bRAM\b|РАМ\s*МЕМОРИЈА|\b(?:FURY|VENGEANCE|TRIDENT|RIPJAWS)\b/.test(n);
+  case 'cooler':return cpuCooler(p);
+  case 'gpu':
+   if(accessory.test(n)||/\b(?:RISER|VERTICAL\s*MOUNT|GRAPHICS\s*CARD\s*STAND|GPU\s*SUPPORT|EGPU\s*ENCLOSURE|GPU\s*BACKPLATE)\b|РАЈЗЕР/.test(n))return false;
+   return /\b(?:RTX|GTX|GT\s*\d{3,4}|RX\s*[56789]\d{3}|RADEON|GEFORCE|ARC\s*[AB]\d{3}|QUADRO)\b|ГРАФИЧКА\s*КАРТИЧКА/.test(n);
+  case 'cpu':
+   if(accessory.test(n)||/\b(?:COOLER|CPU\s*FAN|THERMAL\s*PASTE|HEATSINK|WATER\s*BLOCK)\b|КУЛЕР|ЛАДИЛНИК|ТЕРМАЛНА\s*ПАСТА/.test(n))return false;
+   return true; // Official processor category; allow model-only names.
+  case 'board':
+   return !accessory.test(n)&&!/\b(?:EXPANSION\s*CARD|SOUND\s*CARD|WIFI\s*CARD|NETWORK\s*CARD|RISER)\b/.test(n);
+  case 'psu':
+   if(accessory.test(n)||/\b(?:UPS|CHARGER|POWER\s*BANK|LAPTOP\s*POWER|AC[\s-]*DC\s*ADAPTER)\b|ПОЛНАЧ|ПРОДОЛЖЕН\s*КАБЕЛ/.test(n))return false;
+   return true;
+  case 'case':
+   if(accessory.test(n)||/\b(?:HDD|SSD|EXTERNAL|NAS\s*ENCLOSURE|LAPTOP\s*BAG|PHONE\s*CASE|TABLET\s*CASE|RACK\s*SHELF)\b|НАДВОРЕШ|ЕКСТЕРН|ТОРБА/.test(n))return false;
+   return true;
+ }
+ return false;
+}
 function getSocket(p,id){
  const t=fullText(p);
  const m=t.match(/\b(?:AM[45]|LGA[\s-]?(?:1700|1851|1200|1151))\b/);
@@ -173,6 +207,7 @@ function getDdr(p,id){
 }
 function compatibility(next,p){
  const draft={...chosen,[next]:p},issues=[],notes=[];
+ for(const id of slots){if(draft[id]&&!builderPart(draft[id],id))issues.push('Избраниот дел во '+labelFor(id)+' не одговара на категоријата.');}
  if(draft.cooler&&!cpuCooler(draft.cooler))issues.push('Избраното ладење не е потврден CPU кулер. Избери ладилник наменет за процесор.');
  if(draft.ram){const fmt=ramFormFactor(draft.ram);if(fmt==='SO-DIMM')issues.push('SO-DIMM е меморија за лаптоп и не одговара во стандардна desktop DIMM матична плоча.');else if(!fmt)notes.push('RAM: форматот DIMM не е потврден; провери ја спецификацијата на производот.');}
  if(draft.board&&draft.cpu){const a=getSocket(draft.board,'board'),b=getSocket(draft.cpu,'cpu');if(a&&b&&a!==b)issues.push('Процесорот има сокет '+b+', а матичната плоча '+a+'.');else if(!a||!b)notes.push('CPU/матична: сокетот не е целосно потврден.')}
@@ -214,8 +249,7 @@ function renderCandidates(){
  let shownCount=0, incompatibleCount=0;
  for(const item of catalogProducts){
   const p=verifiedMap.get(item.url)||item;
-  if(category==='ram'&&ramFormFactor(p)==='SO-DIMM')continue;
-  if(category==='cooler'&&!cpuCooler(p))continue;
+  if(!builderPart(p,category))continue;
   const check=compatibility(category,p);
   if(check.issues.length){incompatibleCount++;if($('compatibleOnly').checked)continue;}
   shownCount++;
@@ -252,8 +286,7 @@ window.pcCandidates=json=>{
  const filter=$('term').value.toLowerCase().trim();
  const arrUnfilteredCount=arr.length;
  arr=arr.filter(p=>p&&safe(p.url)&&
-  (category!=='ram'||ramFormFactor(p)!=='SO-DIMM')&&
-  (category!=='cooler'||cpuCooler(p))&&
+  builderPart(p,category)&&
   (!filter||(p.name||'').toLowerCase().includes(filter)||String(p.sku||'').includes(filter)));
  // Category URL already determines the type. Keyword heuristics must not hide valid parts.
  if(!arr.length){
@@ -286,11 +319,11 @@ window.pcProgress=(done,total,available)=>{
  $('searchStatus').textContent=done<total?'Залиха: проверени '+done+' од '+total+' производи…':'Проверени '+total+' производи; потврдени локации кај '+available+'.';
  $('catCount').textContent=available+' со потврдена локација · '+catalogProducts.length+' во каталогот';
 };
-window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(verifiedMap.has(p.url))verifiedMap.set(p.url,{...verifiedMap.get(p.url),...p});if((category==='ram'&&ramFormFactor(catalogProducts[i])==='SO-DIMM')||(category==='cooler'&&!cpuCooler(catalogProducts[i]))){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}renderCandidates()};
+window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(verifiedMap.has(p.url))verifiedMap.set(p.url,{...verifiedMap.get(p.url),...p});if(!builderPart(catalogProducts[i],category)){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}renderCandidates()};
 window.pcVerifiedProduct=json=>{
  let p;try{p=JSON.parse(json)}catch(e){return}
  if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length)return;
- if((category==='ram'&&ramFormFactor(p)==='SO-DIMM')||(category==='cooler'&&!cpuCooler(p))){catalogProducts=catalogProducts.filter(x=>x.url!==p.url);verifiedMap.delete(p.url);renderCandidates();return;}
+ if(!builderPart(p,category)){catalogProducts=catalogProducts.filter(x=>x.url!==p.url);verifiedMap.delete(p.url);renderCandidates();return;}
  verifiedMap.set(p.url,{...catalogProducts.find(x=>x.url===p.url),...p,stores:uniqueStores(p)});renderCandidates();
 };
 window.pcVerificationDone=()=>{
