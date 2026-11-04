@@ -8,7 +8,13 @@
 main{max-width:680px;margin:auto;padding:16px 14px 42px}.title{font-size:17px;font-weight:800;margin:6px 0 12px}.small{font-size:12px;line-height:1.5;color:var(--muted)}.card{background:white;border:1px solid var(--line);border-radius:13px;padding:14px;margin:10px 0}.categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.cat{border:1px solid var(--line);border-radius:12px;background:white;text-align:left;padding:14px 12px;min-height:100px}.cat .sym{font-size:23px}.cat .name{font-weight:800;font-size:14px;margin-top:8px}.cat .picked{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4;overflow-wrap:anywhere}.cat.selected{border-color:#ffb572;background:#fff9f3}
 .row{display:flex;justify-content:space-between;align-items:center;gap:9px}.wrap{flex-wrap:wrap}.btn{background:var(--orange);border:0;color:white;border-radius:10px;padding:11px 14px;font-weight:800}.ghost{background:white;border:1px solid #dde0e6;color:#333;border-radius:10px;padding:10px 12px;font-weight:750}.inputrow{display:flex;gap:8px;margin:12px 0}.inputrow input{min-width:0;flex:1;background:white;border:1px solid #d7dae0;border-radius:9px;padding:11px}.inputrow button{flex:0 0 auto}
 .prices{font-size:11px;display:flex;flex-wrap:wrap;gap:10px;margin:5px 0 0}.prices .club{color:#d76b11;font-weight:750}.prices .regular{color:#727988}
-.result{padding:13px;background:white;border:1px solid var(--line);border-radius:12px;margin:9px 0}.result.pending{border-color:#e9e0ce}.result.incompatible{border-color:#f0d1d1;background:#fffafa}.result .btn:disabled{opacity:.55;cursor:not-allowed}.resultName{font-size:13px;font-weight:780;line-height:1.4;overflow-wrap:anywhere}.resultMeta{font-size:11px;color:var(--muted);margin:6px 0}.stores{font-size:11px;color:#17633a;margin:6px 0;line-height:1.5}.warning{background:#fff8e9;border:1px solid #f1dcad;color:#87591c;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.error{background:#fff0f0;border:1px solid #f2b9b9;color:#9b2828;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.good{color:#17713a}.checked{font-size:11px;color:#165b35}.foot{margin-top:18px;font-size:11px;line-height:1.5;color:#7a808b}
+.result{padding:13px;background:white;border:1px solid var(--line);border-radius:12px;margin:9px 0}.result.pending{border-color:#e9e0ce}.result.incompatible{border-color:#f0d1d1;background:#fffafa}.result .btn:disabled{opacity:.55;cursor:not-allowed}
+.productHead{display:flex;align-items:flex-start;gap:11px}
+.productHeadInfo{flex:1;min-width:0}
+.productThumb{width:68px;height:68px;flex:0 0 68px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #e6e8ed;border-radius:9px;background:#fff;color:#9fa6b1;font-size:24px}
+.productThumb img{display:block;width:100%;height:100%;object-fit:contain}
+.productThumb.compact{width:42px;height:42px;flex-basis:42px;font-size:18px}
+.resultName{font-size:13px;font-weight:780;line-height:1.4;overflow-wrap:anywhere}.resultMeta{font-size:11px;color:var(--muted);margin:6px 0}.stores{font-size:11px;color:#17633a;margin:6px 0;line-height:1.5}.warning{background:#fff8e9;border:1px solid #f1dcad;color:#87591c;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.error{background:#fff0f0;border:1px solid #f2b9b9;color:#9b2828;border-radius:9px;padding:9px 10px;margin:10px 0;font-size:11px;line-height:1.5}.good{color:#17713a}.checked{font-size:11px;color:#165b35}.foot{margin-top:18px;font-size:11px;line-height:1.5;color:#7a808b}
 .summary{padding:14px;border:1px solid var(--line);border-radius:13px;background:#fff;margin-top:16px}.total{font-size:15px;font-weight:800}.total small{font-size:11px;color:var(--muted);font-weight:500}.total strong{color:#e27412}
 .bar{height:4px;background:#edeef1;border-radius:6px;overflow:hidden;margin:8px 0}.fill{height:100%;background:var(--orange);width:0%;transition:width .2s}
 .slot{font-size:12px;padding:8px 0;border-bottom:1px solid #eff0f2;display:flex;gap:10px;align-items:center;justify-content:space-between}.slot .sname{flex:1;min-width:0;overflow-wrap:anywhere}.slot button{border:0;background:#f5f5f6;color:#a63c2c;border-radius:7px;padding:7px}
@@ -60,6 +66,24 @@ if(!chosen||typeof chosen!=='object')chosen={};
 let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=false,noMorePages=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
 const safe=x=>{try{const u=new URL(x);return u.protocol==='https:'&&['www.setec.mk','setec.mk'].includes(u.hostname)&&u.pathname.startsWith('/products/')}catch(e){return false}};
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+// Images come from the Setec product listing or its verified product page.
+// Loading is deferred until the item is near the viewport, without blocking search.
+function productThumb(p,compact=false){
+ const box=el('div','productThumb'+(compact?' compact':''),'▧');
+ let src='';
+ try{const u=new URL(String(p?.image||''));if(u.protocol==='https:'&&u.hostname&&u.hostname!=='localhost')src=u.href}catch(e){}
+ if(src){
+  const img=el('img');
+  img.alt='';
+  img.loading='lazy';
+  img.decoding='async';
+  img.src=src;
+  img.onerror=()=>{img.remove();box.textContent='▧'};
+  box.textContent='';
+  box.appendChild(img);
+ }
+ return box;
+}
 function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
 function labelFor(id){return CATS.find(x=>x.id===id)?.label||id}
 function cash(s){const x=String(s||'').replace(/\s/g,'');if(!/^\d[\d.,]*$/.test(x))return null;const n=Number(x.replace(/[.,]/g,''));return Number.isFinite(n)?n:null}
@@ -138,7 +162,7 @@ function rebuild(){
  const grid=$('categories');grid.replaceChildren();
  for(const c of CATS){const p=chosen[c.id];const b=el('button','cat'+(p?' selected':''));b.appendChild(el('div','sym',c.icon));b.appendChild(el('div','name',c.label));b.appendChild(el('div','picked',p?p.name:'+ Избери компонента'));b.onclick=()=>openCategory(c.id);grid.appendChild(b)}
  const n=slots.filter(x=>!!chosen[x]).length;$('progress').textContent=n+' / '+slots.length;
- const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];persist();rebuild()};row.append(l,x);host.appendChild(row)}
+ const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];persist();rebuild()};row.append(productThumb(p,true),l,x);host.appendChild(row)}
  let c=0,r=0,haveClub=0,haveRegular=0;
  for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice);if(v!==null){c+=v;haveClub++}if(w!==null){r+=w;haveRegular++}}
  $('clubTotal').textContent=money(c);$('regularTotal').textContent=money(r);
@@ -170,10 +194,12 @@ function renderCandidates(){
   shownCount++;
   const verified=p.stockVerified===true&&Array.isArray(p.stores)&&p.stores.length>0;
   const row=el('div','result'+(verified?'':' pending')+(check.issues.length?' incompatible':''));
-  const nameLine=el('div','resultName',p.name||'Производ');row.appendChild(nameLine);
+  const productHead=el('div','productHead');const productHeadInfo=el('div','productHeadInfo');
+  productHead.append(productThumb(p),productHeadInfo);row.appendChild(productHead);
+  const nameLine=el('div','resultName',p.name||'Производ');productHeadInfo.appendChild(nameLine);
   const skuLine=el('div','resultMeta');const sku=p.sku&&/^\d{4,8}$/.test(String(p.sku))?String(p.sku):'';skuLine.appendChild(el('strong','',sku?'Setec шифра: '+sku:'Setec шифра: се проверува'));
   if(sku){const copy=el('button','ghost','⧉ Копирај шифра');copy.style.cssText='margin-left:8px;padding:5px 8px;font-size:11px';copy.onclick=()=>{const txt=document.createElement('textarea');txt.value=sku;document.body.appendChild(txt);txt.select();document.execCommand('copy');txt.remove();copy.textContent='✓ Копирано'};skuLine.appendChild(copy)}
-  row.appendChild(skuLine);
+  productHeadInfo.appendChild(skuLine);
   if(category==='ram')row.appendChild(el('div','resultMeta','RAM формат: '+(ramFormFactor(p)||'непотврден (провери DIMM)')));
   row.appendChild(priceRow(p));
   if(verified)row.appendChild(el('div','stores','✓ Потврдена залиха: '+p.stores.join(' · ')));
@@ -232,12 +258,12 @@ window.pcProgress=(done,total,available)=>{
  $('searchStatus').textContent=done<total?'Залиха: проверени '+done+' од '+total+' производи…':'Проверени '+total+' производи; потврдени локации кај '+available+'.';
  $('catCount').textContent=available+' со потврдена локација · '+catalogProducts.length+' во каталогот';
 };
-window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(category==='ram'&&ramFormFactor(catalogProducts[i])==='SO-DIMM'){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}renderCandidates()};
+window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(verifiedMap.has(p.url))verifiedMap.set(p.url,{...verifiedMap.get(p.url),...p});if(category==='ram'&&ramFormFactor(catalogProducts[i])==='SO-DIMM'){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}renderCandidates()};
 window.pcVerifiedProduct=json=>{
  let p;try{p=JSON.parse(json)}catch(e){return}
  if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length)return;
  if(category==='ram'&&ramFormFactor(p)==='SO-DIMM'){catalogProducts=catalogProducts.filter(x=>x.url!==p.url);verifiedMap.delete(p.url);renderCandidates();return;}
- verifiedMap.set(p.url,p);renderCandidates();
+ verifiedMap.set(p.url,{...catalogProducts.find(x=>x.url===p.url),...p});renderCandidates();
 };
 window.pcVerificationDone=()=>{
  searching=false;verificationFinished=true;
