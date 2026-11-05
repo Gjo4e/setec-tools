@@ -85,6 +85,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private TextView googleStatus, googleFacts;
     private LinearLayout googleSources;
     private boolean googleHasResults=false;
+    private int bestFactCount=0;
     private String bestSetecUrl="",activeSetecModel="";
     private int setecStage=0; // 0 idle, 1 catalog search, 2 exact product
     private int setecSerial=0;
@@ -427,59 +428,63 @@ public final class ModelScannerActivity extends ComponentActivity {
         startGoogleResearch(query);
         startSetecLookup(query);
         networkExecutor.execute(() -> {
-            // An exact manufacturer's product page is more reliable than scraped
-            // Google HTML. It still uses a NON-SETEC source for descriptions.
-            List<GoogleModelResearch.Result> manufacturer=OfficialModelSources.fetch(query);
-            if(!manufacturer.isEmpty()){
-                runOnUiThread(()->{
-                    if(serial!=researchSerial||isFinishing())return;
-                    googleHasResults=true;
-                    showGoogleSources(query,manufacturer,"Производител");
-                    internetStatus.setText("Официјалните податоци од производителот се прикажани погоре. Не се користи опис од Setec.");
-                    sources.removeAllViews();
-                });
-                return;
+            // Enrich exact-model public results by reading the product details,
+            // not only the one-line Google preview. Setec is NEVER a spec source.
+            List<GoogleModelResearch.Result> candidates=new ArrayList<>();
+            java.util.HashSet<String> urls=new java.util.HashSet<>();
+            for(GoogleModelResearch.Result result:OfficialModelSources.fetch(query))
+                if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
+            try{
+                for(GoogleModelResearch.Result result:GoogleSearchFetcher.search(query))
+                    if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
+            }catch(Exception ignored){}
+            if(GoogleModelResearch.extract(query,candidates).size()<5){
+                for(GoogleModelResearch.Result result:AlternativeSearchFetcher.search(query))
+                    if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
             }
-            // Google may block automated requests; independent exact-model
-            // search is the fallback, never arbitrary unrelated links.
-            List<GoogleModelResearch.Result> google=new ArrayList<>();
-            try{google=GoogleSearchFetcher.search(query);}catch(Exception ignored){}
-            final List<GoogleModelResearch.Result> directGoogle=google;
-            if(!directGoogle.isEmpty()){
-                runOnUiThread(()->{
-                    if(serial!=researchSerial||isFinishing()||googleHasResults)return;
-                    googleHasResults=true;
-                    showGoogleSources(query,directGoogle,"Google");
-                    internetStatus.setText("Google изворите се прикажани погоре. Линковите се за детална проверка.");
-                    sources.removeAllViews();
-                });
-                return;
+            if(GoogleModelResearch.extract(query,candidates).size()<5){
+                try{
+                    for(Result fallback:fetchPublicResults(query)){
+                        GoogleModelResearch.Result result=new GoogleModelResearch.Result(
+                            fallback.title,fallback.description,fallback.url);
+                        if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))
+                            candidates.add(result);
+                    }
+                }catch(Exception ignored){}
             }
-            List<GoogleModelResearch.Result> alt=AlternativeSearchFetcher.search(query);
-            if(!alt.isEmpty()){
-                runOnUiThread(()->{
-                    if(serial!=researchSerial||isFinishing()||googleHasResults)return;
-                    googleHasResults=true;
-                    showGoogleSources(query,alt,"Независни веб извори");
-                    internetStatus.setText("Проверени извори се прикажани погоре. Google не е единствениот пребарувач.");
-                    sources.removeAllViews();
-                });
-                return;
-            }
-            List<Result> fallback=new ArrayList<>();
-            String error="";
-            try{fallback=fetchPublicResults(query);}
-            catch(Exception e){error="Автоматските извори моментално не се достапни.";}
-            final List<Result> received=fallback;
-            final String message=error;
+            // Select the most informative independent pages for detail loading.
+            candidates.sort((a,b)->{
+                int left=GoogleModelResearch.extract(query,
+                    java.util.Collections.singletonList(a)).size();
+                int right=GoogleModelResearch.extract(query,
+                    java.util.Collections.singletonList(b)).size();
+                return Integer.compare(right,left);
+            });
+            List<GoogleModelResearch.Result> rich=IndependentProductDetails.enrich(query,candidates);
+            final List<GoogleModelResearch.Result> safe=rich;
             runOnUiThread(()->{
-                if(serial!=researchSerial||isFinishing()||googleHasResults)return;
-                renderSources(query,received,message);
+                if(serial!=researchSerial||isFinishing())return;
+                int factCount=GoogleModelResearch.extract(query,safe).size();
+                if(factCount>=3&&factCount>bestFactCount){
+                    googleHasResults=true;
+                    showGoogleSources(query,safe,"Независни веб извори");
+                    internetStatus.setText("Пронајдени се спецификации од независни страници за точниот модел.");
+                    sources.removeAllViews();
+                }else if(bestFactCount<3){
+                    googleHasResults=false;
+                    googleFacts.setText("");
+                    googleSources.removeAllViews();
+                    googleStatus.setText("Нема доволно проверени податоци за целосен опис. "
+                        +"Не прикажувам само еден изолиран податок како целосни спецификации.");
+                    internetStatus.setText("Користи „Веб резултати“ за дополнителна проверка.");
+                    sources.removeAllViews();
+                }
             });
         });
     }
     private void startGoogleResearch(String model){
         googleHasResults=false;
+        bestFactCount=0;
         googleFacts.setText("");
         googleSources.removeAllViews();
         googleStatus.setText("🔎 Google: барам податоци за точниот модел и независни извори…");
@@ -520,7 +525,7 @@ public final class ModelScannerActivity extends ComponentActivity {
                     if(GoogleModelResearch.relevant(model,hit))list.add(hit);
                     if(list.size()>=7)break;
                 }
-                if(!list.isEmpty()){
+                if(GoogleModelResearch.extract(model,list).size()>=3){
                     googleHasResults=true;
                     showGoogleSources(model,list,"Google");
                 }
@@ -533,6 +538,16 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(found.isEmpty())return;
         googleStatus.setText("✓ "+provider+": "+found.size()+" извори поврзани со моделот. Подолу се достапните податоци и линкови за проверка.");
         List<GoogleModelResearch.Fact> values=GoogleModelResearch.extract(model,found);
+        if(values.size()<3){
+            googleHasResults=false;
+            googleFacts.setText("");
+            googleSources.removeAllViews();
+            googleStatus.setText("Само "+values.size()+" потврден(и) податок(ци). "
+                +"Не е доволно за корисен опис; ќе пробам други независни извори.");
+            return;
+        }
+        bestFactCount=Math.max(bestFactCount,values.size());
+        googleHasResults=true;
         GoogleModelResearch.Result description=GoogleModelResearch.description(model,found);
         StringBuilder summary=new StringBuilder();
         if(description!=null){
@@ -869,7 +884,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             GoogleModelResearch.Result candidate=new GoogleModelResearch.Result(r.title,r.description,r.url);
             if(GoogleModelResearch.relevant(model,candidate))verified.add(candidate);
         }
-        if(verified.isEmpty()){
+        if(GoogleModelResearch.extract(model,verified).size()<3){
             internetStatus.setText("Нема потврдени интернет резултати за овој точен модел. Нема да прикажувам нерелевантни линкови.");
             googleStatus.setText("Google не дозволи автоматско читање, а резервниот извор нема потврдени податоци. Користи „Веб резултати“ за рачна проверка.");
             if(!error.isEmpty())sources.addView(label(error,12,false,0xFF915F28));
