@@ -42,6 +42,8 @@ final class SetecModelMatcher {
         while(m.find()){
             String candidate=m.group();
             if(!candidate.matches(".*\\d.*"))continue;
+            // Capacities like 8GB/128GB are not the laptop model number.
+            if(candidate.matches("(?i)\\d+(?:GB|TB|MB)(?:[/\\-]\\d+(?:GB|TB|MB))*"))continue;
             if(candidate.length()>selected.length()){selected=candidate;end=m.end();}
         }
         if(selected.isEmpty())return "";
@@ -69,8 +71,8 @@ final class SetecModelMatcher {
             Matcher m=COMPLEX_CODE.matcher(value.toUpperCase(Locale.ROOT));
             if(m.find())return m.group().split("/")[0];
         }
-        return value.replaceAll("(?i)\\b(INDIGO|SILVER|CITRUS|BLUSH|BLACK|WHITE|GRAY|BLUE)\\b","")
-            .trim().substring(0,Math.min(72,value.trim().length()));
+        String reduced=value.replaceAll("(?i)\\b(INDIGO|SILVER|CITRUS|BLUSH|BLACK|WHITE|GRAY|BLUE)\\b","").trim();
+        return reduced.substring(0,Math.min(72,reduced.length()));
     }
 
     static List<String> searchTerms(String query) {
@@ -101,6 +103,10 @@ final class SetecModelMatcher {
     static String possibleOfficialSlug(String query) {
         String normalized=ModelNameParser.normalizeModel(query);
         if(modelCode(normalized).length()<6)return "";
+        String[] words=normalized.split("\\s+");
+        for(int i=0;i<words.length;i++)if(BRANDS.contains(words[i].toUpperCase(Locale.ROOT))){
+            normalized=String.join(" ",Arrays.copyOfRange(words,i,words.length));break;
+        }
         String slug=normalized.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+","-")
             .replaceAll("^-+|-+$","");
         return slug.length()>8&&slug.length()<120?slug:"";
