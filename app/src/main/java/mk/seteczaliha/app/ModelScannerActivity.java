@@ -136,15 +136,6 @@ public final class ModelScannerActivity extends ComponentActivity {
         settings.setLoadsImagesAutomatically(false);
         settings.setBlockNetworkImage(true);
         appRoot.addView(setecBrowser,new FrameLayout.LayoutParams(-1,-1));
-        googleBrowser=new WebView(this);
-        googleBrowser.setAlpha(0.01f);
-        googleBrowser.setClickable(false);
-        WebSettings googleSettings=googleBrowser.getSettings();
-        googleSettings.setJavaScriptEnabled(true);
-        googleSettings.setDomStorageEnabled(true);
-        googleSettings.setLoadsImagesAutomatically(false);
-        googleSettings.setBlockNetworkImage(true);
-        appRoot.addView(googleBrowser,new FrameLayout.LayoutParams(-1,-1));
         appRoot.addView(page,new FrameLayout.LayoutParams(-1,-1));
         setecBrowser.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
@@ -174,16 +165,6 @@ public final class ModelScannerActivity extends ComponentActivity {
                 }else if(setecStage==2){
                     for(long delay:new long[]{650,1550,2900,4500})
                         handler.postDelayed(()->readSetecDetails(serial),delay);
-                }
-            }
-        });
-
-        googleBrowser.setWebViewClient(new WebViewClient(){
-            @Override public void onPageFinished(WebView view,String url){
-                if(!url.startsWith("https://www.google.com/search")&&!url.startsWith("https://google.com/search"))return;
-                final int serial=researchSerial;
-                for(long delay:new long[]{600,1500,3100,5200,7600}){
-                    handler.postDelayed(()->readGoogleResults(serial),delay);
                 }
             }
         });
@@ -249,7 +230,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content);
 
-        status = label(comparePicker?"Ја проверувам SETEC шифрата и го наоѓам точниот модел. Потоа ќе ги истражам спецификациите на интернет.":"Сликај го моделот или ЦЕЛАТА ЦЕНА. Притисни SCAN — ќе го извлечам само моделот, не цените и шифрите.",13,false,0xFF5B6270);
+        status = label(comparePicker?"Ја проверувам SETEC шифрата и ги читам клучните податоци само од Setec.mk.":"Сликај го моделот или целата цена. Притисни SCAN — податоците се читаат само од Setec.mk.",13,false,0xFF5B6270);
         content.addView(status);
 
         selectedLabel = label(comparePicker?"SETEC шифра / пронајден модел":"Модел за пребарување",15,true,INK);
@@ -275,7 +256,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.addView(suggestions);
         suggestions.addView(label("По SCAN ќе се појават препознаените модели. Можеш и рачно да го поправиш текстот.",12,false,0xFF6A7280));
 
-        setecStatus=label("SETEC: само модел, шифра и цена. Описи се бараат од Google.",13,true,0xFF835419);
+        setecStatus=label("SETEC.MK · Модел, шифра, цена и кратки спецификации.",13,true,0xFF835419);
         topMargin(content,setecStatus,dp(17));
         setecOptions=new LinearLayout(this);
         setecOptions.setOrientation(LinearLayout.VERTICAL);
@@ -283,7 +264,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         facts=label("",14,false,INK);
         facts.setTextIsSelectable(true);
         topMargin(content,facts,dp(8));
-        googleStatus=label("GOOGLE · Опис и технички податоци (од надворешни извори).",14,true,0xFF87551F);
+        googleStatus=label("НАЈВАЖНИ СПЕЦИФИКАЦИИ · само од Setec.mk",14,true,0xFF87551F);
         topMargin(content,googleStatus,dp(20));
         googleFacts=label("",14,false,INK);
         googleFacts.setTextIsSelectable(true);
@@ -293,18 +274,16 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.addView(googleSources);
 
         LinearLayout links=new LinearLayout(this);
-        links.setOrientation(LinearLayout.HORIZONTAL);
+        links.setOrientation(LinearLayout.VERTICAL);
         topMargin(content,links,dp(11));
-        Button web=button("Веб резултати",0xFF383F4A),setec=button("Setec.mk",0xFF383F4A);
-        LinearLayout.LayoutParams a=new LinearLayout.LayoutParams(0,dp(48),1),b=new LinearLayout.LayoutParams(0,dp(48),1);
-        b.leftMargin=dp(8);
-        links.addView(web,a);links.addView(setec,b);
-        web.setOnClickListener(v -> openSearch(modelInput.getText().toString(),""));
+        Button setec=button("Отвори го производот на Setec.mk",0xFF383F4A);
+        links.addView(setec,new LinearLayout.LayoutParams(-1,dp(48)));
         setec.setOnClickListener(v -> openExactSetec());
 
-        internetStatus = label("По SCAN автоматски ќе побарам јавно достапни извори и спецификации.",13,false,0xFF687181);
+        internetStatus=label("По пребарување ќе се прикажат само важни податоци од точниот Setec производ.",13,false,0xFF687181);
         topMargin(content,internetStatus,dp(14));
-        sources=new LinearLayout(this);sources.setOrientation(LinearLayout.VERTICAL);
+        sources=new LinearLayout(this);
+        sources.setOrientation(LinearLayout.VERTICAL);
         content.addView(sources);
 
         activePreview=preview;
@@ -471,8 +450,8 @@ public final class ModelScannerActivity extends ComponentActivity {
             setStatus("Не е потврдена точната SETEC шифра. Не можам да го зачувам производот.");
             return;
         }
-        if(compareResearchBusy&&compareFacts.size()<3){
-            setStatus("Сѐ уште ги барам спецификациите од независни извори. Пробај „Зачувај“ повторно кога ќе заврши пребарувањето.");
+        if(compareResearchBusy){
+            setStatus("Сѐ уште ги читам спецификациите од Setec.mk. Пробај „Зачувај“ повторно.");
             return;
         }
         try{
@@ -483,7 +462,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             record.put("regular",compareRegular);
             JSONArray arr=new JSONArray();
             for(GoogleModelResearch.Fact fact:compareFacts){
-                if(fact==null||GoogleModelResearch.blockedSource(fact.url))continue;
+                if(fact==null||!SetecPageData.isOfficialProductUrl(fact.url))continue;
                 JSONObject data=new JSONObject();
                 data.put("label",fact.label);
                 data.put("value",fact.value);
@@ -503,77 +482,27 @@ public final class ModelScannerActivity extends ComponentActivity {
     private void research(String input){research(input,true);}
     private void research(String input,boolean lookUpModelOnSetec){
         String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
-        if(model.length()<4){setStatus("Внеси го точниот модел (барем 4 знаци).");return;}
-        if(model.length()>100)model=model.substring(0,100);
+        if(model.length()<4){setStatus("Внеси точен модел (барем 4 знаци).");return;}
+        if(model.length()>110)model=model.substring(0,110);
         modelInput.setText(model);
         modelInput.setSelection(model.length());
-        final String query=model;
-        if(lookUpModelOnSetec)clearComparisonData(query);
-        else{
-            compareModel=query;compareFacts=new ArrayList<>();compareResearchBusy=true;
+        ++researchSerial;
+        if(lookUpModelOnSetec){
+            clearComparisonData(model);
+            facts.setText("");
+            compareResearchBusy=false;
+            googleFacts.setText("");
+            googleSources.removeAllViews();
+            googleStatus.setText("НАЈВАЖНИ СПЕЦИФИКАЦИИ · само од Setec.mk");
+            internetStatus.setText("Барам точен модел на Setec.mk. Нема Google пребарување.");
+            startSetecLookup(model);
+        }else{
+            // A verified SKU is already shown; no external research and no reset.
+            compareModel=model;
+            internetStatus.setText("Точниот производ е потврден на Setec.mk.");
         }
-        final int serial=++researchSerial;
-        if(lookUpModelOnSetec)facts.setText(""); // Preserve already-confirmed Setec model, SKU and prices when starting delayed web research.
-        internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
-        sources.removeAllViews();
-        startGoogleResearch(query);
-        if(lookUpModelOnSetec)startSetecLookup(query);
-        networkExecutor.execute(() -> {
-            // Enrich exact-model public results by reading the product details,
-            // not only the one-line Google preview. Setec is NEVER a spec source.
-            List<GoogleModelResearch.Result> candidates=new ArrayList<>();
-            java.util.HashSet<String> urls=new java.util.HashSet<>();
-            for(GoogleModelResearch.Result result:OfficialModelSources.fetch(query))
-                if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
-            try{
-                for(GoogleModelResearch.Result result:GoogleSearchFetcher.search(query))
-                    if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
-            }catch(Exception ignored){}
-            if(GoogleModelResearch.extract(query,candidates).size()<5){
-                for(GoogleModelResearch.Result result:AlternativeSearchFetcher.search(query))
-                    if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))candidates.add(result);
-            }
-            if(GoogleModelResearch.extract(query,candidates).size()<5){
-                try{
-                    for(Result fallback:fetchPublicResults(query)){
-                        GoogleModelResearch.Result result=new GoogleModelResearch.Result(
-                            fallback.title,fallback.description,fallback.url);
-                        if(GoogleModelResearch.relevant(query,result)&&urls.add(result.url))
-                            candidates.add(result);
-                    }
-                }catch(Exception ignored){}
-            }
-            // Select the most informative independent pages for detail loading.
-            candidates.sort((a,b)->{
-                int left=GoogleModelResearch.extract(query,
-                    java.util.Collections.singletonList(a)).size();
-                int right=GoogleModelResearch.extract(query,
-                    java.util.Collections.singletonList(b)).size();
-                return Integer.compare(right,left);
-            });
-            List<GoogleModelResearch.Result> rich=IndependentProductDetails.enrich(query,candidates);
-            final List<GoogleModelResearch.Result> safe=rich;
-            runOnUiThread(()->{
-                if(serial!=researchSerial||isFinishing())return;
-                compareResearchBusy=false;
-                int factCount=GoogleModelResearch.extract(query,safe).size();
-                if(factCount>=3&&factCount>bestFactCount){
-                    googleHasResults=true;
-                    showGoogleSources(query,safe,"Независни веб извори");
-                    internetStatus.setText("Пронајдени се спецификации од независни страници за точниот модел.");
-                    sources.removeAllViews();
-                }else if(bestFactCount<3){
-                    googleHasResults=false;
-                    googleFacts.setText("");
-                    googleSources.removeAllViews();
-                    googleStatus.setText("Нема доволно проверени податоци за целосен опис. "
-                        +"Не прикажувам само еден изолиран податок како целосни спецификации.");
-                    internetStatus.setText("Користи „Веб резултати“ за дополнителна проверка.");
-                    sources.removeAllViews();
-                }
-            });
-        });
     }
+
     private void startGoogleResearch(String model){
         googleHasResults=false;
         bestFactCount=0;
