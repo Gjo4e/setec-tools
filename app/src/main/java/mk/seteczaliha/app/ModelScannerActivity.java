@@ -230,7 +230,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content);
 
-        status = label("Насочи го моделот во портокаловата рамка и притисни SCAN. Нема автоматско скенирање.",13,false,0xFF5B6270);
+        status = label("Сликај го моделот или ЦЕЛАТА ЦЕНА. Притисни SCAN — ќе го извлечам само моделот, не цените и шифрите.",13,false,0xFF5B6270);
         content.addView(status);
 
         selectedLabel = label("Модел за пребарување",15,true,INK);
@@ -316,8 +316,8 @@ public final class ModelScannerActivity extends ComponentActivity {
         researchSerial++;
         sources.removeAllViews();
         facts.setText("");
-        internetStatus.setText("Се чита само текстот во портокаловата рамка.");
-        setStatus("Снимив кадар. Препознавам текст само од рамката…");
+        internetStatus.setText("Читам цела етикета, а ги игнорирам цените, ратите и шифрите.");
+        setStatus("Снимив кадар. Го барам моделот на целата слика…");
         capture.takePicture(ContextCompat.getMainExecutor(this),new ImageCapture.OnImageCapturedCallback(){
             @Override public void onCaptureSuccess(ImageProxy proxy){
                 try{
@@ -326,10 +326,10 @@ public final class ModelScannerActivity extends ComponentActivity {
                     matrix.postRotate(proxy.getImageInfo().getRotationDegrees());
                     Bitmap upright=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
                     proxy.close();
-                    // CameraX captures a full image even though PreviewView only
-                    // shows the central crop. OCR *only* the orange on-screen guide.
-                    Bitmap modelArea=cropToScanGuide(upright);
-                    InputImage input=InputImage.fromBitmap(modelArea,0);
+                    // The whole price tag can be photographed. OCR the full frame;
+                    // model selection is based on product-code syntax and OCR geometry,
+                    // NOT on the first text, the largest price, or the orange guide.
+                    InputImage input=InputImage.fromBitmap(upright,0);
                     recognizer.process(input)
                         .addOnSuccessListener(ModelScannerActivity.this::handleRecognized)
                         .addOnFailureListener(e->setStatus("Не можам да го прочитам моделот. Приближи или внеси рачно."))
@@ -368,44 +368,22 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
 
     private void handleRecognized(Text imageText){
-        List<Text.Line> detected=new ArrayList<>();
-        for(Text.TextBlock block:imageText.getTextBlocks())
-            detected.addAll(block.getLines());
-        // Small brand captions are often printed above a MUCH larger bold
-        // product title. Remove only captions whose brand is repeated in a
-        // larger model line. Keep the large title (and all model suffixes).
-        int largest=0;
-        for(Text.Line line:detected){
-            android.graphics.Rect bounds=line.getBoundingBox();
-            if(bounds!=null&&line.getText().matches(".*\\\\d.*"))
-                largest=Math.max(largest,bounds.height());
-        }
-        List<String> lines=new ArrayList<>();
-        for(Text.Line line:detected){
-            String value=line.getText().trim();
-            android.graphics.Rect bounds=line.getBoundingBox();
-            boolean small=bounds!=null&&largest>0&&bounds.height()*100<largest*83;
-            boolean caption=value.matches("(?i)^(?:GORENJE|MIDEA|BEKO|BOSCH|WHIRLPOOL|CANDY|HISENSE|AEG|ELECTROLUX|SAMSUNG|LG|TESLA|HAIER|VOX|APPLE|ASUS|LENOVO|DELL|HP)$");
-            boolean repeated=false;
-            if(small&&caption){
-                for(Text.Line other:detected){
-                    if(other==line)continue;
-                    String upper=other.getText().toUpperCase(Locale.ROOT);
-                    if(upper.contains(value.toUpperCase(Locale.ROOT))&&upper.matches(".*\\\\d.*")){
-                        repeated=true;break;
-                    }
-                }
+        List<SmartModelSelector.Line> observed=new ArrayList<>();
+        for(Text.TextBlock block:imageText.getTextBlocks()){
+            for(Text.Line line:block.getLines()){
+                android.graphics.Rect rect=line.getBoundingBox();
+                observed.add(new SmartModelSelector.Line(
+                    line.getText(),rect==null?0:rect.top,rect==null?0:rect.height()));
             }
-            if(!repeated)lines.add(value);
         }
-        List<ModelNameParser.Candidate> options=ModelNameParser.rank(lines);
+        List<ModelNameParser.Candidate> options=SmartModelSelector.rank(observed);
         suggestions.removeAllViews();
         if(options.isEmpty()){
             modelInput.setText("");
             facts.setText("");
             internetStatus.setText("Не е препознаен јасен модел. Не пребарувам за рати или цени.");
-            suggestions.addView(label("Скенирај повторно со моделот во рамката или внеси го рачно.",12,false,0xFF966125));
-            setStatus("Не прочитав сигурен модел. „12x“ и цените се игнорирани.");
+            suggestions.addView(label("Нема сигурен модел на сликата. Сликај ја целата етикета почитливо или внеси ја ознаката рачно.",12,false,0xFF966125));
+            setStatus("Не прочитав сигурен модел. Цените, ратите, шифрите и гаранцијата ги игнорирам.");
             return;
         }
         for(ModelNameParser.Candidate candidate:options){
