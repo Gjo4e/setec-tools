@@ -78,7 +78,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private ImageCapture capture;
     private Button scanButton, researchButton;
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
-    private LinearLayout suggestions, sources;
+    private LinearLayout suggestions, sources, setecOptions;
     private EditText modelInput;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private WebView setecBrowser;
@@ -197,6 +197,9 @@ public final class ModelScannerActivity extends ComponentActivity {
 
         setecStatus=label("Официјални податоци од Setec.mk ќе се појават тука.",13,true,0xFF835419);
         topMargin(content,setecStatus,dp(17));
+        setecOptions=new LinearLayout(this);
+        setecOptions.setOrientation(LinearLayout.VERTICAL);
+        content.addView(setecOptions);
         facts=label("",13,false,INK);
         facts.setTextIsSelectable(true);
         topMargin(content,facts,dp(18));
@@ -379,6 +382,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     // One search per chosen model. Research stays inside this Activity.
     private void startSetecLookup(String requestedModel){
         bestSetecUrl="";
+        setecOptions.removeAllViews();
         activeSetecModel=ModelNameParser.normalizeModel(requestedModel);
         int serial=++setecSerial;
         setecStage=1;setecMatched=false;
@@ -413,25 +417,50 @@ public final class ModelScannerActivity extends ComponentActivity {
                 String raw=decodeJs(encoded);
                 if(raw==null)return;
                 JSONArray options=new JSONArray(raw);
-                int topScore=-1,runnerUp=-1;String topUrl="",topName="";
+                java.util.ArrayList<JSONObject> matches=new java.util.ArrayList<>();
                 for(int i=0;i<options.length();i++){
                     JSONObject item=options.optJSONObject(i);
                     if(item==null)continue;
-                    String url=item.optString("url");
-                    String name=item.optString("name");
+                    String url=item.optString("url"),name=item.optString("name");
                     if(!isSetecProduct(url))continue;
                     int score=SetecModelMatcher.score(activeSetecModel,name);
-                    if(score>topScore){
-                        runnerUp=topScore;topScore=score;topUrl=url;topName=name;
-                    }else if(score>runnerUp){runnerUp=score;}
+                    if(score>=85){
+                        item.put("matchScore",score);
+                        matches.add(item);
+                    }
                 }
-                if(topScore>=100&&topScore-runnerUp>=4){
-                    setecMatched=true;setecStage=2;bestSetecUrl=topUrl;
-                    setecStatus.setText("✓ Совпаѓање во Setec: "+topName+"\nГи читам техничките спецификации…");
-                    setecBrowser.loadUrl(topUrl);
+                matches.sort((a,b)->Integer.compare(b.optInt("matchScore"),a.optInt("matchScore")));
+                if(matches.isEmpty())return;
+                JSONObject top=matches.get(0);
+                int best=top.optInt("matchScore");
+                int second=matches.size()>1?matches.get(1).optInt("matchScore"):-1;
+                // Never silently pick the wrong capacity/color variant.
+                if(best>=100 && best-second>=4){
+                    selectSetecProduct(top.optString("url"),top.optString("name"));
+                }else{
+                    setecOptions.removeAllViews();
+                    setecStatus.setText("Пронајдов слични производи. Избери го точниот модел/боја за да ги видиш спецификациите:");
+                    for(int i=0;i<Math.min(5,matches.size());i++){
+                        JSONObject match=matches.get(i);
+                        final String name=match.optString("name"),url=match.optString("url");
+                        Button choice=button("✓ "+name,0xFFE9EDF3);
+                        choice.setTextColor(INK);
+                        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+                        lp.topMargin=dp(5);
+                        setecOptions.addView(choice,lp);
+                        choice.setOnClickListener(v->selectSetecProduct(url,name));
+                    }
                 }
             }catch(Exception ignored){}
         });
+    }
+
+    private void selectSetecProduct(String url,String name){
+        if(!isSetecProduct(url)||setecStage!=1)return;
+        setecMatched=true;setecStage=2;bestSetecUrl=url;
+        setecOptions.removeAllViews();
+        setecStatus.setText("✓ Точен производ: "+name+"\nГи читам спецификациите на Setec.mk…");
+        setecBrowser.loadUrl(url);
     }
 
     private static boolean isSetecProduct(String link){
