@@ -847,28 +847,47 @@ public final class ModelScannerActivity extends ComponentActivity {
                 if(raw==null)return;
                 JSONObject product=new JSONObject(raw);
                 String sku=product.optString("sku");
-                String name=product.optString("name").trim();
+                String rawName=product.optString("name").trim();
+                String cleanModel=SetecProductTitle.modelFromProductName(rawName);
                 String url=setecBrowser.getUrl();
-                if(!compareSkuRequested.equals(sku)||name.length()<5||!isSetecProduct(url))return;
-                // This is the ONLY path that can confirm the scanned SKU.
+                // Do not send a description, processor or unrelated specification
+                // to Google as if that whole text were the manufacturer model.
+                if(!compareSkuRequested.equals(sku)||cleanModel.length()<5||
+                    !isSetecProduct(url))return;
+                // SKU is confirmed from the actual Setec product page, not from
+                // a similar search result or a number in the price.
                 compareSku=sku;
                 compareClub=product.optString("club");
                 compareRegular=product.optString("regular");
                 bestSetecUrl=url;
-                activeSetecModel=ModelNameParser.normalizeModel(name);
+                activeSetecModel=cleanModel;
+                compareModel=cleanModel;
+                compareFacts=new ArrayList<>();
+                compareResearchBusy=true;
                 setecMatched=true;
                 setecStage=3;
-                setecStatus.setText("✓ Потврдена SETEC шифра "+sku+": "+name+
-                    ". Ги барам клучните спецификации на интернет.");
-                modelInput.setText(name);
+                modelInput.setText(cleanModel);
                 researchButton.setEnabled(false);
-                research(name,false);
-                // External research leaves the verified SKU and prices untouched.
-                StringBuilder details=new StringBuilder("SETEC.MK · ШИФРА И ЦЕНА\n"+name+
-                    "\nSetec шифра: "+sku);
+                StringBuilder details=new StringBuilder("SETEC.MK · МОДЕЛ, ШИФРА И ЦЕНА\n"+
+                    cleanModel+"\nSetec шифра: "+sku);
                 if(!compareClub.isEmpty())details.append("\nКлуб цена: ").append(compareClub).append(" ден.");
                 if(!compareRegular.isEmpty())details.append("\nРедовна цена: ").append(compareRegular).append(" ден.");
                 facts.setText(details.toString());
+                setecStatus.setText("✓ Потврдена SETEC шифра "+sku+". Модел: "+cleanModel+
+                    ". Прво ги прикажувам цените, па пребарувам на интернет.");
+                internetStatus.setText("✓ SETEC е проверен. По кратка пауза ќе ги барам спецификациите за: "+cleanModel);
+                googleStatus.setText("Google ќе го истражува само моделот „"+cleanModel+"“ за околу 4 секунди.");
+                // Wait AFTER Setec name/SKU/prices are on screen. Avoid concurrent
+                // Setec/WebView research and stale callbacks from a previous SKU.
+                final int confirmedSerial=setecSerial;
+                final int confirmedGeneration=lookupGeneration;
+                handler.postDelayed(()->{
+                    if(isFinishing()||isDestroyed()||!comparePicker||
+                        confirmedSerial!=setecSerial||confirmedGeneration!=lookupGeneration||
+                        !compareSkuRequested.equals(compareSku)||
+                        !cleanModel.equals(compareModel)||setecStage!=3)return;
+                    research(cleanModel,false);
+                },3800L);
             }catch(Exception ignored){}
         });
     }
