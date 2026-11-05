@@ -60,7 +60,7 @@ final class SetecKeySpecs {
                 offer(found,"Екран",line, "^(?:екран|дисплеј|screen|display)\\s*[:\\-]?\\s*(.{4,85})$", "screen");
                 // Screen lines are occasionally in compact list form:
                 // 15.6" FullHD (1920 x 1080) resolution.
-                if(!found.containsKey("Екран")&&up.matches(".*\\b\\d{1,2}(?:[.,]\\d)?\\s*[\u0022”″].*(?:FHD|FULL\\s*HD|IPS|RESOLUTION|1920|2560).*"))
+                if(!found.containsKey("Екран")&&up.matches(".*\\b\\d{1,2}(?:[.,]\\d)?\\s*[\\x22”″].*(?:FHD|FULL\\s*HD|IPS|RESOLUTION|1920|2560).*"))
                     found.put("Екран",line);
             }
             if(washer){
@@ -78,7 +78,7 @@ final class SetecKeySpecs {
             }
             if(!found.containsKey("Енергетска класа")){
                 Matcher energy=Pattern.compile(
-                    "(?iu)^(?:енергетска(?:\\s*класа|\\s*ефикасност)?|energy\\s*(?:class|rating))\\s*[:\\-]?\\s*([A-GА-Г]\\+{0,3})\\b|^([A-GА-Г]\\+{0,3})\\s+(?:енергетска\\s*класа|energy\\s*class)\\b")
+                    "(?iu)^(?:енергетска(?:\\s*класа|\\s*ефикасност)?|energy\\s*(?:class|rating))\\s*[:\\-]?\\s*([A-GА-Г]\\+{0,3})(?=\\s|$|[,;])|^([A-GА-Г]\\+{0,3})\\s+(?:енергетска\\s*класа|energy\\s*class)\\b")
                     .matcher(line);
                 if(energy.find()){
                     String value=energy.group(1)==null?energy.group(2):energy.group(1);
