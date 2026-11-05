@@ -761,30 +761,17 @@ public final class ModelScannerActivity extends ComponentActivity {
 
     private void readCompareSkuProduct(int serial,int generation){
         if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=7||setecBrowser==null)return;
-        String script="(function(){"+
-            "try{let body=document.body?.innerText||'';"+
-            "let name=(document.querySelector('h1')?.innerText||'').replace(/\\s+/g,' ').trim();"+
-            "let m=body.match(/(?:Шифра|SKU)\\s*:?\\s*(\\d{4,8})/i);"+
-            "let sku=m?m[1]:'';"+
-            "let price=label=>{let re=new RegExp(label+'\\\\s*:?\\\\s*([\\\\d., ]+)\\\\s*ден','i');let x=body.match(re);return x?x[1].replace(/\\s/g,''):'';};"+
-            "return JSON.stringify({name,sku,club:price('Клуб цена'),regular:price('Редовна цена')});"+
-            "}catch(e){return '{}'}})()";
-        setecBrowser.evaluateJavascript(script,encoded->{
+        setecBrowser.evaluateJavascript(SetecPageData.READ_PRODUCT_SCRIPT,encoded->{
             if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=7||setecMatched)return;
             try{
                 String raw=decodeJs(encoded);
                 if(raw==null)return;
                 JSONObject product=new JSONObject(raw);
                 String sku=product.optString("sku");
-                String rawName=product.optString("name").trim();
-                String cleanModel=SetecProductTitle.modelFromProductName(rawName);
+                String cleanModel=SetecProductTitle.modelFromProductName(product.optString("name"));
                 String url=setecBrowser.getUrl();
-                // Do not send a description, processor or unrelated specification
-                // to Google as if that whole text were the manufacturer model.
                 if(!compareSkuRequested.equals(sku)||cleanModel.length()<5||
-                    !isSetecProduct(url))return;
-                // SKU is confirmed from the actual Setec product page, not from
-                // a similar search result or a number in the price.
+                    !SetecPageData.isOfficialProductUrl(url))return;
                 compareSku=sku;
                 compareClub=product.optString("club");
                 compareRegular=product.optString("regular");
@@ -802,23 +789,59 @@ public final class ModelScannerActivity extends ComponentActivity {
                 if(!compareClub.isEmpty())details.append("\nКлуб цена: ").append(compareClub).append(" ден.");
                 if(!compareRegular.isEmpty())details.append("\nРедовна цена: ").append(compareRegular).append(" ден.");
                 facts.setText(details.toString());
-                setecStatus.setText("✓ Потврдена SETEC шифра "+sku+". Модел: "+cleanModel+
-                    ". Прво ги прикажувам цените, па пребарувам на интернет.");
-                internetStatus.setText("✓ SETEC е проверен. По кратка пауза ќе ги барам спецификациите за: "+cleanModel);
-                googleStatus.setText("Google ќе го истражува само моделот „"+cleanModel+"“ за околу 4 секунди.");
-                // Wait AFTER Setec name/SKU/prices are on screen. Avoid concurrent
-                // Setec/WebView research and stale callbacks from a previous SKU.
-                final int confirmedSerial=setecSerial;
-                final int confirmedGeneration=lookupGeneration;
-                handler.postDelayed(()->{
-                    if(isFinishing()||isDestroyed()||!comparePicker||
-                        confirmedSerial!=setecSerial||confirmedGeneration!=lookupGeneration||
-                        !compareSkuRequested.equals(compareSku)||
-                        !cleanModel.equals(compareModel)||setecStage!=3)return;
-                    research(cleanModel,false);
-                },3800L);
+                setecStatus.setText("✓ Потврдена SETEC шифра "+sku+" и модел "+cleanModel+".");
+                internetStatus.setText("✓ Се користат само спецификациите на истиот производ од Setec.mk.");
+                googleStatus.setText("Читам само најважни спецификации од Setec.mk…");
+                // The technical-tab content can load after opening the tab.
+                // No Google, Bing or other sources are contacted.
+                showSetecSpecs(cleanModel,url,product.optString("specs"));
+                if(compareFacts.isEmpty()){
+                    for(long delay:new long[]{700,1700,3000,4600})
+                        handler.postDelayed(()->readCompareSkuSpecs(serial,generation),delay);
+                    handler.postDelayed(()->{
+                        if(serial==setecSerial&&generation==lookupGeneration&&comparePicker&&compareResearchBusy){
+                            compareResearchBusy=false;
+                            googleStatus.setText("Setec не даде јасни технички спецификации. Може да се зачува моделот, без измислени податоци.");
+                        }
+                    },5600);
+                }
             }catch(Exception ignored){}
         });
+    }
+
+    private void readCompareSkuSpecs(int serial,int generation){
+        if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=3||
+           !comparePicker||!compareResearchBusy||setecBrowser==null)return;
+        setecBrowser.evaluateJavascript(SetecPageData.READ_PRODUCT_SCRIPT,encoded->{
+            if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=3||
+               !compareResearchBusy)return;
+            try{
+                String raw=decodeJs(encoded);
+                if(raw==null)return;
+                JSONObject p=new JSONObject(raw);
+                if(!compareSkuRequested.equals(p.optString("sku")))return;
+                if(!SetecPageData.isOfficialProductUrl(setecBrowser.getUrl()))return;
+                showSetecSpecs(compareModel,bestSetecUrl,p.optString("specs"));
+            }catch(Exception ignored){}
+        });
+    }
+
+    private void showSetecSpecs(String model,String url,String specs){
+        if(!SetecPageData.isOfficialProductUrl(url))return;
+        List<GoogleModelResearch.Fact> chosen=SetecKeySpecs.extract(model,url,specs);
+        if(chosen.isEmpty())return;
+        if(comparePicker&&model.equals(compareModel)){
+            compareFacts=new ArrayList<>(chosen);
+            compareResearchBusy=false;
+        }
+        StringBuilder summary=new StringBuilder("ТОП "+chosen.size()+
+            " СПЕЦИФИКАЦИИ ОД SETEC.MK\n");
+        for(GoogleModelResearch.Fact fact:chosen)
+            summary.append("• ").append(fact.label).append(": ").append(fact.value).append("\n");
+        googleFacts.setText(summary.toString());
+        googleStatus.setText("✓ Само избрани технички податоци од Setec.mk, без описи, реклами и цени.");
+        internetStatus.setText("Извор: технички спецификации на потврдениот Setec производ. Непотврдени детали се изоставени.");
+        googleSources.removeAllViews();
     }
 
     // One search per chosen model. Research stays inside this Activity.
