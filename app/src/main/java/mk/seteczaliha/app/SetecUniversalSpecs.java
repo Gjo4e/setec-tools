@@ -69,7 +69,7 @@ final class SetecUniversalSpecs {
             String value=data.get(name);
             if(value!=null&&!value.isEmpty())result.add(new GoogleModelResearch.Fact(name,value,url));
         }
-        if(result.size()<5){
+        if(result.size()<5 && kind==Kind.UNKNOWN){
             // For unknown categories, still surface only recognized, well-labelled
             // technical facts in original source order.
             for(Map.Entry<String,String> e:data.entrySet()){
@@ -207,9 +207,8 @@ final class SetecUniversalSpecs {
         if(line.matches("(?iu)^\\d{2,5}\\s*(?:W|В|ват[аи]?)\\b.*"))
             offer(f,"Моќност",line,"(?iu)^(\\d{2,5}\\s*(?:W|В|ват[аи]?))\\b");
         // Whole quoted product title may include 2x40W lamps: do not classify as motor power.
-        if(line.matches("(?iu).*\\b\\d+\\s*[x×]\\s*\\d+\\s*W.*")
-            &&!("Моќност".equals(firstLabel(line))))
-            f.remove("Моќност");
+        // Multi-lamp power (2x40W) is lighting, not motor power; the
+        // labelled/standalone power match above intentionally ignores it.
         offer(f,"Моќност",line,"(?iu)(?:моќност|снага|power)\\s*[:\\-]?\\s*"+
             "(\\d{1,2}(?:[.,]\\d+)?\\s*kW)\\b");
 
@@ -240,10 +239,6 @@ final class SetecUniversalSpecs {
         if(yes(line,"\\b(?:тајмер|timer)\\b"))f.putIfAbsent("Тајмер","Да");
         if(yes(line,"\\b(?:термостат|thermostat)\\b"))f.putIfAbsent("Термостат","Да");
         if(yes(line,"\\b(?:no\\s*frost)\\b"))f.putIfAbsent("No Frost","Да");
-    }
-
-    private static String firstLabel(String line){
-        return line.matches("(?iu)^моќност.*")?"Моќност":"";
     }
 
     private static void parseSpecific(Kind kind,Map<String,String> f,String line){
