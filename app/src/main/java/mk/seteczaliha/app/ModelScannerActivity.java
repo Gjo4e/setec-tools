@@ -513,7 +513,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             compareModel=query;compareFacts=new ArrayList<>();compareResearchBusy=true;
         }
         final int serial=++researchSerial;
-        facts.setText(""); // Setec section contains ONLY model, SKU and live prices.
+        if(lookUpModelOnSetec)facts.setText(""); // Preserve already-confirmed Setec model, SKU and prices when starting delayed web research.
         internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
         sources.removeAllViews();
         startGoogleResearch(query);
