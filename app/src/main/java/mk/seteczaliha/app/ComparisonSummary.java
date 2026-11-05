@@ -24,7 +24,8 @@ final class ComparisonSummary {
     private static final List<String> APPLIANCE = Arrays.asList(
         "Капацитет","Енергетска класа","No Frost","Димензии","Бучава");
     private static final List<String> TV = Arrays.asList(
-        "Дијагонала","Резолуција","Освежување","Технологија на екран","Smart TV");
+        "Дијагонала","Резолуција","Освежување","Технологија на екран",
+        "Smart TV","Оперативен систем","HDR","HDMI");
     private static final List<String> TOASTER=Arrays.asList(
         "Моќност","Број на парчиња","Степени на печење","Плочи",
         "Одмрзнување","Тацна за трошки","Автоматско исклучување","Термостат");
@@ -90,7 +91,11 @@ final class ComparisonSummary {
         if(available.contains("Капацитет на перење")||
             models.contains("WASHING")||models.contains("ПЕРЕЊЕ")||
             models.matches(".*\\b(?:TWM|MF110W|WN[A-Z]{2}\\d)\\b.*"))return WASHER;
-        if(models.contains("ТЕЛЕВИЗОР")||models.contains("TV ")||
+        if((available.contains("Дијагонала") &&
+            (available.contains("Технологија на екран")||
+             available.contains("Smart TV")||
+             available.contains("Оперативен систем")))||
+            models.contains("ТЕЛЕВИЗОР")||models.contains("TV ")||
             models.contains(" QLED")||models.contains(" OLED")||
             models.contains("МОНИТОР")||models.contains("MONITOR"))return TV;
         if(models.contains("FRIDGE")||models.contains("ФРИЖИДЕР")||
