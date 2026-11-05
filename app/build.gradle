@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.modelresearch42'
+        applicationId 'mk.setecsifri.whitegoods43'
         minSdk 26
         targetSdk 35
-        versionCode 42
-        versionName '4.2'
+        versionCode 43
+        versionName '4.3'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
