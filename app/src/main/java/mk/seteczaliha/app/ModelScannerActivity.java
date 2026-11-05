@@ -86,6 +86,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private int setecStage=0; // 0 idle, 1 catalog search, 2 exact product
     private int setecSerial=0;
     private boolean setecMatched=false;
+    private boolean homeSearchFallback=false,homeSearchSubmitted=false;
     private boolean scanning = false;
     private int researchSerial = 0;
     private ActivityResultLauncher<String> cameraPermission;
@@ -119,9 +120,14 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecBrowser.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
                 final int serial=setecSerial;
-                if(setecStage==1)for(long delay:new long[]{600,1500,3000,5200})
-                    handler.postDelayed(()->readSetecMatches(serial),delay);
-                else if(setecStage==2)for(long delay:new long[]{650,1350,2700})
+                if(setecStage==1){
+                    if(homeSearchFallback&&!homeSearchSubmitted&&(url.equals("https://www.setec.mk/")||url.equals("https://setec.mk/"))){
+                        for(long delay:new long[]{450,1100})
+                            handler.postDelayed(()->submitHomeSearch(serial),delay);
+                    }
+                    for(long delay:new long[]{650,1650,3050,5100})
+                        handler.postDelayed(()->readSetecMatches(serial),delay);
+                }else if(setecStage==2)for(long delay:new long[]{650,1350,2700})
                     handler.postDelayed(()->readSetecDetails(serial),delay);
             }
         });
@@ -385,7 +391,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecOptions.removeAllViews();
         activeSetecModel=ModelNameParser.normalizeModel(requestedModel);
         int serial=++setecSerial;
-        setecStage=1;setecMatched=false;
+        setecStage=1;setecMatched=false;homeSearchFallback=false;homeSearchSubmitted=false;
         setecStatus.setText("🔎 Пребарувам производи на Setec.mk…");
         String term=SetecModelMatcher.searchTerm(activeSetecModel);
         if(term.isEmpty()){setecStatus.setText("Внеси модел за пребарување на Setec.");return;}
@@ -395,9 +401,38 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecBrowser.loadUrl(target.toString());
         handler.postDelayed(()->{
             if(serial==setecSerial&&setecStage==1&&!setecMatched){
-                setecStatus.setText("Не најдов сигурно совпаѓање во каталогот на Setec. Пробај со точната ознака или отвори Setec пребарување.");
+                homeSearchFallback=true;
+                setecStatus.setText("Пробувам и преку официјалното пребарување на Setec…");
+                setecBrowser.loadUrl("https://www.setec.mk/");
             }
-        },10500);
+        },6300);
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&setecStage==1&&!setecMatched){
+                setecStatus.setText("Нема сигурно совпаѓање со точниот модел. Провери го текстот или избери понуден Setec производ.");
+            }
+        },16000);
+    }
+
+    private void submitHomeSearch(int serial){
+        if(serial!=setecSerial||setecStage!=1||homeSearchSubmitted)return;
+        String q=JSONObject.quote(SetecModelMatcher.searchTerm(activeSetecModel));
+        String js="(function(){"+
+            "let input=[...document.querySelectorAll('input')].find(x=>/пребарај|search/i.test(x.placeholder||'')||x.type==='search');"+
+            "if(!input)return 'missing';"+
+            "let setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,"+q+");"+
+            "input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:"+q+"}));"+
+            "input.dispatchEvent(new Event('change',{bubbles:true}));"+
+            "let form=input.closest('form');"+
+            "if(form){try{form.requestSubmit()}catch(e){}}else{let b=input.parentElement&&input.parentElement.querySelector('button');if(b)b.click();else input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}"+
+            "return 'submitted';})()";
+        setecBrowser.evaluateJavascript(js,callback->{
+            if(serial!=setecSerial||setecStage!=1)return;
+            if("submitted".equals(decodeJs(callback))){
+                homeSearchSubmitted=true;
+                for(long delay:new long[]{900,2000,3800,5600,8200})
+                    handler.postDelayed(()->readSetecMatches(serial),delay);
+            }
+        });
     }
 
     private static String decodeJs(String value){
