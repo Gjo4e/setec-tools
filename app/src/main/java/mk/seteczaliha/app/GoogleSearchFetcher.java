@@ -27,7 +27,7 @@ final class GoogleSearchFetcher {
         // Some manufacturers do not use the English word "specifications".
         String code=SetecModelMatcher.modelCode(model);
         String[] queries=code.length()>=5
-            ?new String[]{query, "\\""+code+"\\" specifications"}
+            ?new String[]{query, code+" specifications"}
             :new String[]{query, model};
         List<GoogleModelResearch.Result> all=new ArrayList<>();
         Set<String> seen=new HashSet<>();
