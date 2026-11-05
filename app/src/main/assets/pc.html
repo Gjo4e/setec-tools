@@ -172,7 +172,8 @@ function typeMatch(p,id){
 // only model codes (no "RTX", "DDR" or "SSD" in the name).
 function builderPart(p,id){
  const n=String(p?.name||'').normalize('NFKC').toUpperCase();
- if(!n||/ЛАПТОП|NOTEBOOK|ALL[\s-]*IN[\s-]*ONE|КОМПЛЕТЕН\s*КОМПЈУТЕР|PC\s*CONFIGURATION|ГОТОВА\s*КОНФИГУРАЦИЈА/.test(n))return false;
+ if(!n||/ALL[\s-]*IN[\s-]*ONE|КОМПЛЕТЕН\s*КОМПЈУТЕР|PC\s*CONFIGURATION|ГОТОВА\s*КОНФИГУРАЦИЈА/.test(n))return false;
+ if(id!=='storage'&&/ЛАПТОП|NOTEBOOK/.test(n))return false;
  const accessory=/\b(?:ADAPTER|ADAPTOR|CONVERTER|CABLE|SPLITTER|HOLDER|BRACKET|MOUNTING\s*KIT|EXTENSION\s*CABLE|DOCKING\s*STATION|HUB|ENCLOSURE|CASE\s*FOR\s*(?:SSD|HDD)|CARD\s*READER)\b|АДАПТЕР|КАБЕЛ|НОСАЧ|ДРЖАЧ|КОНВЕРТОР|КУТИЈА\s*ЗА\s*(?:SSD|HDD)|КУЌИШТЕ\s*ЗА\s*(?:SSD|HDD)|ЧИТАЧ\s*НА\s*КАРТИЧКИ/;
  switch(id){
   case 'storage':
