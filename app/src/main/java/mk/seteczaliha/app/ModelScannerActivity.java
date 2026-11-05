@@ -239,17 +239,17 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecOptions=new LinearLayout(this);
         setecOptions.setOrientation(LinearLayout.VERTICAL);
         content.addView(setecOptions);
-        googleStatus=label("Google: по SCAN ќе се појават најважните спецификации што може да се потврдат од јавни извори.",13,true,0xFF87551F);
-        topMargin(content,googleStatus,dp(17));
+        facts=label("",14,false,INK);
+        facts.setTextIsSelectable(true);
+        topMargin(content,facts,dp(8));
+        googleStatus=label("GOOGLE · Опис и технички податоци (од надворешни извори).",14,true,0xFF87551F);
+        topMargin(content,googleStatus,dp(20));
         googleFacts=label("",14,false,INK);
         googleFacts.setTextIsSelectable(true);
         topMargin(content,googleFacts,dp(6));
         googleSources=new LinearLayout(this);
         googleSources.setOrientation(LinearLayout.VERTICAL);
         content.addView(googleSources);
-        facts=label("",13,false,INK);
-        facts.setTextIsSelectable(true);
-        topMargin(content,facts,dp(18));
 
         LinearLayout links=new LinearLayout(this);
         links.setOrientation(LinearLayout.HORIZONTAL);
@@ -395,19 +395,35 @@ public final class ModelScannerActivity extends ComponentActivity {
         modelInput.setSelection(model.length());
         final String query=model;
         final int serial=++researchSerial;
-        facts.setText("ШТО Е ВАЖНО ЗА ОВОЈ ТИП ПРОИЗВОД\n"+checklist(query)+"\n\nПровери ја точната ревизија кај производителот.");
+        facts.setText(""); // Setec section contains ONLY model, SKU and live prices.
         internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
         sources.removeAllViews();
         startGoogleResearch(query);
         startSetecLookup(query);
         networkExecutor.execute(() -> {
-            List<Result> results=new ArrayList<>();
+            // Two independent Google paths: HTML response parsing and a WebView.
+            // Both are best-effort; if Google blocks both, use other public search.
+            List<GoogleModelResearch.Result> google=new ArrayList<>();
+            try{google=GoogleSearchFetcher.search(query);}catch(Exception ignored){}
+            final List<GoogleModelResearch.Result> directGoogle=google;
+            if(!directGoogle.isEmpty()){
+                runOnUiThread(()->{
+                    if(serial!=researchSerial||isFinishing()||googleHasResults)return;
+                    googleHasResults=true;
+                    showGoogleSources(query,directGoogle,"Google");
+                    internetStatus.setText("Google изворите се прикажани погоре. Линковите се за детална проверка.");
+                    sources.removeAllViews();
+                });
+                return;
+            }
+            List<Result> fallback=new ArrayList<>();
             String error="";
-            try{results=fetchPublicResults(query);}catch(Exception e){error="Пребарувачот не врати автоматски податоци.";}
-            final List<Result> received=results;
+            try{fallback=fetchPublicResults(query);}
+            catch(Exception e){error="Автоматските извори моментално не се достапни.";}
+            final List<Result> received=fallback;
             final String message=error;
-            runOnUiThread(() -> {
-                if(serial!=researchSerial||isFinishing())return;
+            runOnUiThread(()->{
+                if(serial!=researchSerial||isFinishing()||googleHasResults)return;
                 renderSources(query,received,message);
             });
         });
@@ -467,18 +483,30 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(found.isEmpty())return;
         googleStatus.setText("✓ "+provider+": "+found.size()+" извори поврзани со моделот. Подолу се достапните податоци и линкови за проверка.");
         List<GoogleModelResearch.Fact> values=GoogleModelResearch.extract(model,found);
-        if(values.isEmpty()){
-            googleFacts.setText("Не се најдени сигурни технички бројки во кратките извадоци. Погледни ги релевантните резултати подолу — нема да прикажам претпоставки како факти.");
-        }else{
-            StringBuilder summary=new StringBuilder("НАЈВАЖНИ ПОДАТОЦИ ОД "+provider.toUpperCase(Locale.ROOT)+"\n");
+        GoogleModelResearch.Result description=GoogleModelResearch.description(model,found);
+        StringBuilder summary=new StringBuilder();
+        if(description!=null){
+            Uri uri=Uri.parse(description.url);
+            String host=uri.getHost()==null?"извор":uri.getHost();
+            String excerpt=description.snippet.replaceAll("\\s+"," ").trim();
+            if(excerpt.length()>240)excerpt=excerpt.substring(0,240).trim()+"…";
+            summary.append("КРАТОК ОПИС ОД ").append(provider.toUpperCase(Locale.ROOT))
+                .append(" [").append(host).append("]\\n").append(excerpt).append("\\n\\n");
+        }
+        if(!values.isEmpty()){
+            summary.append("НАЈВАЖНИ СПЕЦИФИКАЦИИ\\n");
             for(GoogleModelResearch.Fact fact:values){
                 Uri source=Uri.parse(fact.url);
                 summary.append("• ").append(fact.label).append(": ").append(fact.value)
-                    .append("  [").append(source.getHost()).append("]\n");
+                    .append(" [").append(source.getHost()).append("]\\n");
             }
-            summary.append("\nОва се извадоци од јавни извори, не независно потврдени лабораториски мерења. Различни извори може да се разликуваат.");
-            googleFacts.setText(summary.toString());
+            summary.append("\\n");
         }
+        if(summary.length()==0)
+            summary.append("Има извори за моделот, но тие не дадоа проверлив опис или спецификации во кратките извадоци. Отвори извор подолу за детали.");
+        else
+            summary.append("Описи и вредности се од наведените извори, не од Setec. За важна одлука провери ги кај производителот.");
+        googleFacts.setText(summary.toString().replace("\\n","\n"));
         int limit=Math.min(found.size(),5);
         for(int i=0;i<limit;i++){
             GoogleModelResearch.Result hit=found.get(i);
@@ -499,30 +527,6 @@ public final class ModelScannerActivity extends ComponentActivity {
             card.addView(label((uri.getHost()==null?"Извор":uri.getHost())+" ↗",11,true,0xFFDE741D));
             card.setOnClickListener(v->openUri(hit.url));
         }
-    }
-
-    private String checklist(String model){
-        String m=model.toUpperCase(Locale.ROOT);
-        // White goods: useful characteristics are very different from PC compatibility.
-        if(m.matches(".*(?:MF110W|MF205W|WASH(?:ING)?|ПЕРЕЊЕ|ПЕРАЛНА|МАШИНА ЗА АЛИШТА).*"))
-            return "• Капацитет на перење (kg)\\n• Центрифуга (врт./мин.)\\n• Програми и брзо перење\\n• Енергетска класа и потрошувачка\\n• Димензии (В×Ш×Д) и бучава\\n• Гаранција и сервиси".replace("\\n","\n");
-        if(m.matches(".*(?:FRIDGE|REFRIGERATOR|NO\\s*FROST|ФРИЖИДЕР|ЗАМРЗНУВАЧ).*"))
-            return "• Корисен волумен (литри)\\n• No Frost / начин на ладење\\n• Енергетска класа\\n• Димензии и бучава\\n• Гаранција".replace("\\n","\n");
-        if(m.matches(".*(?:DISHWASH|МАШИНА ЗА САДОВИ|МИЈАЛНА).*"))
-            return "• Број на комплети\\n• Програми и времетраење\\n• Потрошувачка на вода и струја\\n• Бучава, димензии и гаранција".replace("\\n","\n");
-        if(m.matches(".*(?:КЛИМА|AIR\\s*CONDITIONER|INVERTER\\s*AC).*"))
-            return "• BTU и моќност\\n• Погодна површина (m²)\\n• SEER/SCOP и енергетска класа\\n• Бучава и тип на фреон\\n• Гаранција".replace("\\n","\n");
-        if(m.matches(".*(?:B[45678]\\d{2}|Z[456789]\\d{2}|X[3578]\\d{2}|H[45678]\\d{2}|MOTHERBOARD|MAINBOARD|MATIČNA).*"))
-            return "• Socket i kompatibilen procesor\n• DDR4/DDR5 i max RAM\n• M.2/SATA portovi\n• ATX/mATX/ITX format\n• BIOS i Wi‑Fi";
-        if(m.matches(".*(?:RYZEN|INTEL|CORE\\s*I[3579]|PROCESSOR|CPU).*"))
-            return "• Generacija i socket\n• Broj jadra/nitki\n• TDP/potrošuvačka\n• RAM podrška\n• Integrirana grafika";
-        if(m.matches(".*(?:RTX|GTX|RADEON|RX\\s*\\d{4}|ARC\\s*[AB]\\d{3}).*"))
-            return "• VRAM i tip\n• Potrošuvačka i potrebno PSU\n• Dolžina na kartičkata\n• Video priklučoci\n• Performansi i driveri";
-        if(m.matches(".*(?:SSD|NVME|HDD|SNV|MZ-|SATA).*"))
-            return "• Kapacitet\n• NVMe ili SATA\n• M.2/2.5-inch format\n• Čitanje i zapišuvanje\n• Garancija i trajnost";
-        if(m.matches(".*(?:DDR[345]|DIMM|RAM|FURY|VENGEANCE).*"))
-            return "• DDR tip i kapacitet\n• DIMM ili SO-DIMM\n• MHz/MT/s i latencija\n• Broj moduli\n• Kompatibilnost so matična";
-        return "• Točen model i proizveduvač\n• Najvažni tehnički specifikacii\n• Kompatibilnost i konektori\n• Garancija i dokumentacija\n• Cena i dostapnost vo Setec";
     }
 
     // One search per chosen model. Research stays inside this Activity.
