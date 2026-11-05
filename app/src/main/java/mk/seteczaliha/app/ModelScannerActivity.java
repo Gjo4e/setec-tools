@@ -103,6 +103,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private java.util.List<String> setecQueries=new java.util.ArrayList<>();
     private int setecQueryIndex=0,lookupGeneration=0,slugHostIndex=0;
     private String officialSlug="";
+    private int setecSpecAttempts=0;
     private boolean scanning = false;
     private int researchSerial = 0;
     private ActivityResultLauncher<String> cameraPermission;
@@ -853,6 +854,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecMatched=false;homeSearchFallback=false;homeSearchSubmitted=false;
         setecQueries=SetecModelMatcher.searchTerms(activeSetecModel);
         setecQueryIndex=0;slugHostIndex=0;lookupGeneration++;
+        setecSpecAttempts=0;
         officialSlug=SetecModelMatcher.possibleOfficialSlug(activeSetecModel);
         if(!officialSlug.isEmpty()){
             // A guessed slug is ONLY a lookup candidate. It is never displayed as
@@ -1024,44 +1026,43 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
 
     private void readSetecDetails(int serial){
-        if(serial!=setecSerial||setecStage!=2||setecBrowser==null)return;
-        String js="(function(){\n try{\n  const body=document.body?.innerText||'';\n  const name=(document.querySelector('h1')?.innerText||'').replace(/\\s+/g,' ').trim();\n  const sku=(body.match(/(?:Шифра|SKU)\\s*:?\\s*(\\d{4,8})/i)||[])[1]||'';\n  const price=label=>{\n   const match=body.match(new RegExp(label+'\\\\s*:?\\\\s*([\\\\d., ]+)\\\\s*ден','i'));\n   return match?match[1].replace(/\\s/g,''):'';\n  };\n  return JSON.stringify({name,sku,club:price('Клуб цена'),regular:price('Редовна цена')});\n }catch(e){return '{}'}\n})()";
-        setecBrowser.evaluateJavascript(js,encoded->{
-            if(serial!=setecSerial||setecStage!=2)return;
+        if(serial!=setecSerial||(setecStage!=2&&setecStage!=3)||
+            setecBrowser==null||comparePicker)return;
+        setecBrowser.evaluateJavascript(SetecPageData.READ_PRODUCT_SCRIPT,encoded->{
+            if(serial!=setecSerial||(setecStage!=2&&setecStage!=3))return;
             try{
                 String raw=decodeJs(encoded);
                 if(raw==null)return;
                 JSONObject product=new JSONObject(raw);
-                String name=product.optString("name");
+                String name=SetecProductTitle.modelFromProductName(product.optString("name"));
                 if(SetecModelMatcher.score(activeSetecModel,name)<100)return;
+                String url=setecBrowser.getUrl();
+                if(!SetecPageData.isOfficialProductUrl(url))return;
                 String code=product.optString("sku");
                 String club=product.optString("club");
                 String regular=product.optString("regular");
-                if(activeSetecModel.equals(ModelNameParser.normalizeModel(compareModel))){
-                    compareSku=code;
-                    compareClub=club;
-                    compareRegular=regular;
-                }
-                StringBuilder lines=new StringBuilder();
-                lines.append("SETEC.MK · МОДЕЛ, ШИФРА И ЦЕНА\n").append(name);
+                bestSetecUrl=url;
+                StringBuilder lines=new StringBuilder("SETEC.MK · МОДЕЛ, ШИФРА И ЦЕНА\n");
+                lines.append(name);
                 lines.append("\nSetec шифра: ").append(code.isEmpty()?"не е пронајдена":code);
                 lines.append("\nКлуб цена: ").append(club.isEmpty()?"не е пронајдена":club+" ден.");
                 lines.append("\nРедовна цена: ").append(regular.isEmpty()?"не е пронајдена":regular+" ден.");
                 facts.setText(lines.toString());
                 if(!code.isEmpty()&&(!club.isEmpty()||!regular.isEmpty())){
                     setecStage=3;
-                    setecStatus.setText("✓ Потврдени модел, шифра и цена од Setec.mk. Описот е само од Google и други независни извори.");
+                    setecStatus.setText("✓ Модел, шифра и цена од потврден Setec производ.");
                 }else{
-                    setecStatus.setText("✓ Пронајден е моделот, се проверуваат преостанатите шифра и цени.");
+                    setecStatus.setText("✓ Точниот модел е пронајден. Се проверуваат шифрата и цените.");
+                }
+                showSetecSpecs(name,url,product.optString("specs"));
+                if(googleFacts.getText().length()==0&&setecSpecAttempts++<4){
+                    handler.postDelayed(()->readSetecDetails(serial),1000);
+                }else if(googleFacts.getText().length()==0&&setecSpecAttempts>=4){
+                    googleStatus.setText("Setec.mk не прикажа сигурни технички податоци за овој модел.");
                 }
             }catch(Exception ignored){}
         });
-        handler.postDelayed(()->{
-            if(serial==setecSerial&&setecStage==2)
-                setecStatus.setText("Setec не ги прикажа сите податоци автоматски. Можеш да го отвориш точниот производ за проверка.");
-        },6600);
     }
-
     private void openExactSetec(){
         String model=modelInput.getText().toString().trim();
         if(model.length()<3){setStatus("Прво внеси или скенирај модел.");return;}
