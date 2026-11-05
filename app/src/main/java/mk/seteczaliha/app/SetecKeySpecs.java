@@ -109,11 +109,11 @@ final class SetecKeySpecs {
         if(laptop||phone||!washer&&!tv&&!fridge){
             offer(facts,"RAM",line,
                 "(?iu)(?:^|\\s)(?:рам|ram|memory|меморија)(?:\\s*меморија)?"+
-                "\\s*[:\\-]?\\s*(\\d{1,3}\\s*(?:GB|ГБ)(?:\\s*(?:LP?DDR[345](?:X)?)(?:\\s*\\d{3,5}\\s*MHz)?)?)");
+                "\\s*[:\\-]?\\s*(\\d{1,3}\\s*(?:GB|ГБ)(?:\\s*(?:(?:LP?DDR|DDR)[345](?:X)?)(?:\\s*\\d{3,5}\\s*MHz)?)?)");
             offer(facts,"RAM",line,
-                "(?iu)\\b(\\d{1,3}\\s*(?:GB|ГБ)(?:\\s*(?:LP?DDR[345](?:X)?))?)\\s*(?:RAM|РАМ)\\b");
+                "(?iu)\\b(\\d{1,3}\\s*(?:GB|ГБ)(?:\\s*(?:(?:LP?DDR|DDR)[345](?:X)?))?)\\s*(?:RAM|РАМ)\\b");
             offer(facts,"RAM",line,
-                "(?iu)\\b(\\d{1,3}\\s*(?:GB|ГБ)\\s*(?:LP?DDR[345](?:X)?))\\b");
+                "(?iu)\\b(\\d{1,3}\\s*(?:GB|ГБ)\\s*(?:(?:LP?DDR|DDR)[345](?:X)?))\\b");
             offer(facts,"Диск",line,
                 "(?iu)(?:^|\\s)(?:ssd|hdd|диск|storage|диск\\s*меморија|"+
                 "внатрешна\\s*меморија)\\s*[:\\-]?\\s*"+
