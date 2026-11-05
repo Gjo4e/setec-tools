@@ -1,6 +1,7 @@
 package mk.seteczaliha.app;
 
-import android.net.Uri;
+import java.net.URI;
+import java.net.URLDecoder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -76,21 +77,28 @@ final class GoogleSearchFetcher {
     private static String externalUrl(String value){
         if(value==null||value.trim().isEmpty())return "";
         try{
-            Uri u=Uri.parse(value.trim());
-            if(value.startsWith("/url?"))u=Uri.parse("https://www.google.com"+value);
+            URI u=new URI(value.startsWith("/url?")?"https://www.google.com"+value:value.trim());
             String host=u.getHost();
             if(host!=null&&host.toLowerCase().endsWith("google.com")&&"/url".equals(u.getPath())){
-                String target=u.getQueryParameter("q");
-                if(target==null||target.isEmpty())target=u.getQueryParameter("url");
-                if(target==null)return "";
-                u=Uri.parse(target);
+                String query=u.getRawQuery();
+                if(query==null)return "";
+                String target="";
+                for(String field:query.split("&")){
+                    String[] pair=field.split("=",2);
+                    if(pair.length==2&&(pair[0].equals("q")||pair[0].equals("url"))){
+                        target=URLDecoder.decode(pair[1],"UTF-8");
+                        break;
+                    }
+                }
+                if(target.isEmpty())return "";
+                u=new URI(target);
                 host=u.getHost();
             }
             if(!"https".equalsIgnoreCase(u.getScheme())||host==null||host.isEmpty())return "";
             String lower=host.toLowerCase();
             if(lower.equals("google.com")||lower.endsWith(".google.com")||
-                lower.equals("googleusercontent.com")||lower.endsWith(".googleusercontent.com")||
-                lower.contains("youtube.com")||lower.equals("youtu.be"))return "";
+               lower.equals("googleusercontent.com")||lower.endsWith(".googleusercontent.com")||
+               lower.contains("youtube.com")||lower.equals("youtu.be"))return "";
             return u.toString();
         }catch(Exception e){return "";}
     }
