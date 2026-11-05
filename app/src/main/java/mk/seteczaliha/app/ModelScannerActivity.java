@@ -412,6 +412,95 @@ public final class ModelScannerActivity extends ComponentActivity {
             });
         });
     }
+    private void startGoogleResearch(String model){
+        googleHasResults=false;
+        googleFacts.setText("");
+        googleSources.removeAllViews();
+        googleStatus.setText("🔎 Google: барам податоци за точниот модел и независни извори…");
+        if(googleBrowser==null)return;
+        final int serial=researchSerial;
+        String query=GoogleModelResearch.searchQuery(model);
+        Uri url=Uri.parse("https://www.google.com/search").buildUpon()
+            .appendQueryParameter("q",query)
+            .appendQueryParameter("hl","en").appendQueryParameter("num","10").build();
+        googleBrowser.stopLoading();
+        googleBrowser.loadUrl(url.toString());
+        handler.postDelayed(()->{
+            if(serial==researchSerial&&!googleHasResults&&!isFinishing()){
+                googleStatus.setText("Google не врати автоматски читливи резултати. Ќе користам други јавни извори ако се достапни; копчето „Веб резултати“ останува за рачна проверка.");
+            }
+        },10500);
+    }
+
+    private void readGoogleResults(int serial){
+        if(serial!=researchSerial||googleHasResults||googleBrowser==null||isFinishing())return;
+        String script="(function(){\n try{\n   const found=[],seen=new Set();\n   for(const h of document.querySelectorAll('h3')){\n     const a=h.closest('a[href]');\n     if(!a)continue;\n     let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}\n     if(u.protocol!=='https:'||u.hostname.endsWith('google.com')||u.hostname.endsWith('googleusercontent.com')||seen.has(u.href))continue;\n     const title=(h.innerText||h.textContent||'').replace(/\\s+/g,' ').trim();\n     if(title.length<5||title.length>220)continue;\n     const container=h.closest('div.MjjYud,div.g,article,div[data-hveid]')||h.parentElement?.parentElement?.parentElement;\n     let snippet=container?.querySelector('.VwiC3b,.IsZvec,.yXK7lf,[data-sncf]')?.innerText||'';\n     if(snippet.length<15){\n       let all=(container?.innerText||'').replace(/\\s+/g,' ').trim();\n       snippet=all.startsWith(title)?all.substring(title.length).trim():all;\n     }\n     snippet=snippet.replace(/\\s+/g,' ').replace(/^[-–·|:, ]+/,'').trim().slice(0,550);\n     seen.add(u.href);\n     found.push({title,snippet,url:u.href});\n     if(found.length>=9)break;\n   }\n   return JSON.stringify(found);\n }catch(e){return '[]';}\n})()";
+        googleBrowser.evaluateJavascript(script,encoded->{
+            if(serial!=researchSerial||googleHasResults||isFinishing())return;
+            try{
+                String value=decodeJs(encoded);
+                if(value==null)return;
+                JSONArray items=new JSONArray(value);
+                String model=modelInput.getText().toString().trim();
+                List<GoogleModelResearch.Result> list=new ArrayList<>();
+                java.util.HashSet<String> urls=new java.util.HashSet<>();
+                for(int i=0;i<items.length();i++){
+                    JSONObject item=items.optJSONObject(i);
+                    if(item==null)continue;
+                    String url=checkResultUrl(item.optString("url"));
+                    if(url.isEmpty()||!urls.add(url))continue;
+                    GoogleModelResearch.Result hit=new GoogleModelResearch.Result(
+                        item.optString("title"),item.optString("snippet"),url);
+                    if(GoogleModelResearch.relevant(model,hit))list.add(hit);
+                    if(list.size()>=7)break;
+                }
+                if(!list.isEmpty()){
+                    googleHasResults=true;
+                    showGoogleSources(model,list,"Google");
+                }
+            }catch(Exception ignored){}
+        });
+    }
+
+    private void showGoogleSources(String model,List<GoogleModelResearch.Result> found,String provider){
+        googleSources.removeAllViews();
+        if(found.isEmpty())return;
+        googleStatus.setText("✓ "+provider+": "+found.size()+" извори поврзани со моделот. Подолу се достапните податоци и линкови за проверка.");
+        List<GoogleModelResearch.Fact> values=GoogleModelResearch.extract(model,found);
+        if(values.isEmpty()){
+            googleFacts.setText("Не се најдени сигурни технички бројки во кратките извадоци. Погледни ги релевантните резултати подолу — нема да прикажам претпоставки како факти.");
+        }else{
+            StringBuilder summary=new StringBuilder("НАЈВАЖНИ ПОДАТОЦИ ОД "+provider.toUpperCase(Locale.ROOT)+"\n");
+            for(GoogleModelResearch.Fact fact:values){
+                Uri source=Uri.parse(fact.url);
+                summary.append("• ").append(fact.label).append(": ").append(fact.value)
+                    .append("  [").append(source.getHost()).append("]\n");
+            }
+            summary.append("\nОва се извадоци од јавни извори, не независно потврдени лабораториски мерења. Различни извори може да се разликуваат.");
+            googleFacts.setText(summary.toString());
+        }
+        int limit=Math.min(found.size(),5);
+        for(int i=0;i<limit;i++){
+            GoogleModelResearch.Result hit=found.get(i);
+            LinearLayout card=new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(12),dp(11),dp(12),dp(12));
+            GradientDrawable bg=new GradientDrawable();
+            bg.setColor(Color.WHITE);
+            bg.setCornerRadius(dp(9));
+            bg.setStroke(dp(1),0xFFE0E5EC);
+            card.setBackground(bg);
+            LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);
+            layout.topMargin=dp(7);
+            googleSources.addView(card,layout);
+            card.addView(label(hit.title,13,true,INK));
+            if(!hit.snippet.isEmpty())card.addView(label(hit.snippet,12,false,0xFF596574));
+            Uri uri=Uri.parse(hit.url);
+            card.addView(label((uri.getHost()==null?"Извор":uri.getHost())+" ↗",11,true,0xFFDE741D));
+            card.setOnClickListener(v->openUri(hit.url));
+        }
+    }
+
     private String checklist(String model){
         String m=model.toUpperCase(Locale.ROOT);
         // White goods: useful characteristics are very different from PC compatibility.
