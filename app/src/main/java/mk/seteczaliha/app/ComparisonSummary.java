@@ -20,7 +20,7 @@ final class ComparisonSummary {
         "Бучава","Заштита од протекување","Одложен почеток");
     private static final List<String> ELECTRONICS = Arrays.asList(
         "Процесор","RAM","Диск","Графичка","Екран",
-        "Резолуција","Батерија","Камера");
+        "Капацитет","Резолуција","Димензии","Бучава","Батерија","Камера");
     private static final List<String> APPLIANCE = Arrays.asList(
         "Капацитет","Енергетска класа","No Frost","Димензии","Бучава");
     private static final List<String> TV = Arrays.asList(
