@@ -79,6 +79,10 @@ public final class ModelScannerActivity extends ComponentActivity {
     private Button scanButton, researchButton, compareButton;
     private boolean comparePicker=false;
     private int compareSlot=1;
+    private String compareSkuRequested="";
+    private final List<String> compareSkuCandidateUrls=new ArrayList<>();
+    private int compareSkuCandidateIndex=0;
+    private boolean compareSkuSearchFallback=false;
     private String compareModel="",compareSku="",compareClub="",compareRegular="";
     private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
     private boolean compareResearchBusy=false;
@@ -107,6 +111,8 @@ public final class ModelScannerActivity extends ComponentActivity {
         super.onCreate(state);
         comparePicker=getIntent().getBooleanExtra("compare_pick",false);
         compareSlot=getIntent().getIntExtra("compare_slot",1);
+        compareSkuRequested=getIntent().getStringExtra("compare_sku");
+        if(compareSkuRequested==null||!compareSkuRequested.matches("[0-9]{4,8}"))compareSkuRequested="";
         getWindow().setStatusBarColor(0xFF1C1C21);
         getWindow().setNavigationBarColor(Color.BLACK);
 
@@ -143,7 +149,16 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecBrowser.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
                 final int serial=setecSerial,generation=lookupGeneration;
-                if(setecStage==4){
+                if(setecStage==5){
+                    for(long delay:new long[]{450,1150,2100})
+                        handler.postDelayed(()->submitCompareSkuSearch(serial,generation),delay);
+                }else if(setecStage==6){
+                    for(long delay:new long[]{550,1600,3100,4600,6200})
+                        handler.postDelayed(()->readCompareSkuMatches(serial,generation),delay);
+                }else if(setecStage==7){
+                    for(long delay:new long[]{650,1700,2900})
+                        handler.postDelayed(()->readCompareSkuProduct(serial,generation),delay);
+                }else if(setecStage==4){
                     for(long delay:new long[]{450,1250,2500,3500})
                         handler.postDelayed(()->readDirectSetecModel(serial,generation),delay);
                 }else if(setecStage==1){
@@ -181,7 +196,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         Button back = button("‹ Назад",0xFF3C3C43);
         header.addView(back,new LinearLayout.LayoutParams(dp(92),dp(44)));
         back.setOnClickListener(v -> finish());
-        TextView title = label("SETEC · Скенирај модел",19,true,Color.WHITE);
+        TextView title = label(comparePicker?"SETEC · Шифра за споредба":"SETEC · Скенирај модел",19,true,Color.WHITE);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0,-2,1);
         titleParams.leftMargin=dp(12);
         header.addView(title,titleParams);
@@ -210,6 +225,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         scanButton = button("▣ SCAN · Сними модел",ORANGE);
         captureRow.addView(scanButton,new LinearLayout.LayoutParams(-1,dp(53)));
         scanButton.setOnClickListener(v -> scanOnce());
+        if(comparePicker){
+            cameraPanel.setVisibility(View.GONE);
+            scanButton.setVisibility(View.GONE);
+        }
         compareButton=button(comparePicker
             ?"✓ Зачувај модел "+compareSlot+" за споредба"
             :"⚖ СПОРЕДИ ДВА МОДЕЛИ",0xFF36475B);
@@ -230,10 +249,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content);
 
-        status = label("Сликај го моделот или ЦЕЛАТА ЦЕНА. Притисни SCAN — ќе го извлечам само моделот, не цените и шифрите.",13,false,0xFF5B6270);
+        status = label(comparePicker?"Ја проверувам SETEC шифрата и го наоѓам точниот модел. Потоа ќе ги истражам спецификациите на интернет.":"Сликај го моделот или ЦЕЛАТА ЦЕНА. Притисни SCAN — ќе го извлечам само моделот, не цените и шифрите.",13,false,0xFF5B6270);
         content.addView(status);
 
-        selectedLabel = label("Модел за пребарување",15,true,INK);
+        selectedLabel = label(comparePicker?"SETEC шифра / пронајден модел":"Модел за пребарување",15,true,INK);
         topMargin(content,selectedLabel,dp(18));
         modelInput = new EditText(this);
         modelInput.setSingleLine(true);
@@ -243,9 +262,12 @@ public final class ModelScannerActivity extends ComponentActivity {
         modelInput.setSelectAllOnFocus(true);
         modelInput.setPadding(dp(12),dp(9),dp(12),dp(9));
         content.addView(modelInput,new LinearLayout.LayoutParams(-1,dp(52)));
-        researchButton=button("⌕ Истражи го моделот",ORANGE);
+        researchButton=button(comparePicker?"⌕ Провери SETEC шифра":"⌕ Истражи го моделот",ORANGE);
         topMargin(content,researchButton,dp(8));
-        researchButton.setOnClickListener(v -> research(modelInput.getText().toString()));
+        researchButton.setOnClickListener(v -> {
+            if(comparePicker)startCompareSkuLookup(compareSkuRequested);
+            else research(modelInput.getText().toString());
+        });
 
         TextView suggestionsTitle = label("Препознаени модели · допри за избор",13,true,INK);
         topMargin(content,suggestionsTitle,dp(18));
@@ -286,7 +308,13 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.addView(sources);
 
         activePreview=preview;
-        if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) startCamera(preview);
+        if(comparePicker){
+            modelInput.setText(compareSkuRequested);
+            modelInput.setEnabled(false);
+            suggestions.removeAllViews();
+            suggestions.addView(label("Во споредба се чита само бројот до „Шифра:“. Нема читање букви од етикетата.",13,false,0xFF55606E));
+            handler.postDelayed(()->startCompareSkuLookup(compareSkuRequested),320);
+        }else if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) startCamera(preview);
         else cameraPermission.launch(Manifest.permission.CAMERA);
     }
 
@@ -431,8 +459,16 @@ public final class ModelScannerActivity extends ComponentActivity {
             return;
         }
         if(!displayed.equals(compareModel)){
+            if(comparePicker){
+                setStatus("Шифрата сѐ уште не е поврзана со сигурен SETEC модел. Пробај повторно со друга шифра.");
+                return;
+            }
             research(displayed);
             setStatus("Прво ги проверувам податоците за моделот. Потоа притисни „Зачувај“.");
+            return;
+        }
+        if(comparePicker&&!compareSkuRequested.equals(compareSku)){
+            setStatus("Не е потврдена точната SETEC шифра. Не можам да го зачувам производот.");
             return;
         }
         if(compareResearchBusy&&compareFacts.size()<3){
@@ -464,20 +500,24 @@ public final class ModelScannerActivity extends ComponentActivity {
         }
     }
 
-    private void research(String input){
+    private void research(String input){research(input,true);}
+    private void research(String input,boolean lookUpModelOnSetec){
         String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
         if(model.length()<4){setStatus("Внеси го точниот модел (барем 4 знаци).");return;}
         if(model.length()>100)model=model.substring(0,100);
         modelInput.setText(model);
         modelInput.setSelection(model.length());
         final String query=model;
-        clearComparisonData(query);
+        if(lookUpModelOnSetec)clearComparisonData(query);
+        else{
+            compareModel=query;compareFacts=new ArrayList<>();compareResearchBusy=true;
+        }
         final int serial=++researchSerial;
         facts.setText(""); // Setec section contains ONLY model, SKU and live prices.
         internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
         sources.removeAllViews();
         startGoogleResearch(query);
-        startSetecLookup(query);
+        if(lookUpModelOnSetec)startSetecLookup(query);
         networkExecutor.execute(() -> {
             // Enrich exact-model public results by reading the product details,
             // not only the one-line Google preview. Setec is NEVER a spec source.
