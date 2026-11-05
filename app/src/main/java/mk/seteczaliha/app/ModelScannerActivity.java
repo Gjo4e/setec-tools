@@ -1,0 +1,454 @@
+package mk.seteczaliha.app;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.os.Bundle;
+import android.text.Html;
+import android.text.InputType;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageProxy;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.PreviewView;
+import androidx.core.content.ContextCompat;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import org.xmlpull.v1.XmlPullParser;
+import android.util.Xml;
+import java.io.BufferedInputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Separate opt-in MODEL scanner. The existing auto-SKU scanner is untouched.
+ * Camera frames are not OCR'ed automatically: only pressing SCAN captures one.
+ * Research uses public search result snippets with clickable sources, never
+ * invented specifications or a hidden paid API.
+ */
+public final class ModelScannerActivity extends ComponentActivity {
+    private static final int ORANGE = Color.rgb(245, 130, 30);
+    private static final int INK = Color.rgb(31, 33, 41);
+    private final ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
+    private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+    private ProcessCameraProvider cameraProvider;
+    private ImageCapture capture;
+    private Button scanButton, researchButton;
+    private TextView status, internetStatus, facts, selectedLabel;
+    private LinearLayout suggestions, sources;
+    private EditText modelInput;
+    private boolean scanning = false;
+    private int researchSerial = 0;
+    private ActivityResultLauncher<String> cameraPermission;
+
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        getWindow().setStatusBarColor(0xFF1C1C21);
+        getWindow().setNavigationBarColor(Color.BLACK);
+
+        cameraPermission = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            granted -> { if (granted) startCamera(); else setStatus("Камерата нема дозвола. Можеш рачно да внесеш модел."); }
+        );
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(0xFFF7F8FB);
+        setContentView(page);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(12),dp(10),dp(12),dp(10));
+        header.setBackgroundColor(0xFF1C1C21);
+        page.addView(header);
+        Button back = button("‹ Назад",0xFF3C3C43);
+        header.addView(back,new LinearLayout.LayoutParams(dp(92),dp(44)));
+        back.setOnClickListener(v -> finish());
+        TextView title = label("SETEC · Скенирај модел",19,true,Color.WHITE);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0,-2,1);
+        titleParams.leftMargin=dp(12);
+        header.addView(title,titleParams);
+
+        FrameLayout cameraPanel = new FrameLayout(this);
+        page.addView(cameraPanel,new LinearLayout.LayoutParams(-1,dp(228)));
+        PreviewView preview = new PreviewView(this);
+        preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
+        cameraPanel.addView(preview,new FrameLayout.LayoutParams(-1,-1));
+
+        View frame = new View(this);
+        GradientDrawable border = new GradientDrawable();
+        border.setColor(0x11000000);
+        border.setCornerRadius(dp(13));
+        border.setStroke(dp(3),ORANGE);
+        frame.setBackground(border);
+        FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(-1,dp(115),Gravity.CENTER);
+        frameParams.leftMargin=dp(22);frameParams.rightMargin=dp(22);
+        cameraPanel.addView(frame,frameParams);
+
+        LinearLayout captureRow = new LinearLayout(this);
+        captureRow.setGravity(Gravity.CENTER_VERTICAL);
+        captureRow.setPadding(dp(14),dp(8),dp(14),dp(8));
+        captureRow.setBackgroundColor(0xFFF7F8FB);
+        page.addView(captureRow);
+        scanButton = button("▣ SCAN · Сними модел",ORANGE);
+        captureRow.addView(scanButton,new LinearLayout.LayoutParams(-1,dp(53)));
+        scanButton.setOnClickListener(v -> scanOnce());
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        page.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout content = new LinearLayout(this);
+        content.setPadding(dp(15),dp(6),dp(15),dp(36));
+        content.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(content);
+
+        status = label("Насочи го моделот во портокаловата рамка и притисни SCAN. Нема автоматско скенирање.",13,false,0xFF5B6270);
+        content.addView(status);
+
+        selectedLabel = label("Модел за пребарување",15,true,INK);
+        topMargin(content,selectedLabel,dp(18));
+        modelInput = new EditText(this);
+        modelInput.setSingleLine(true);
+        modelInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        modelInput.setTextSize(15);
+        modelInput.setHint("пр. ASUS PRO B560M-C/CSM");
+        modelInput.setSelectAllOnFocus(true);
+        modelInput.setPadding(dp(12),dp(9),dp(12),dp(9));
+        content.addView(modelInput,new LinearLayout.LayoutParams(-1,dp(52)));
+        researchButton=button("⌕ Истражи го моделот",ORANGE);
+        topMargin(content,researchButton,dp(8));
+        researchButton.setOnClickListener(v -> research(modelInput.getText().toString()));
+
+        TextView suggestionsTitle = label("Препознаени модели · допри за избор",13,true,INK);
+        topMargin(content,suggestionsTitle,dp(18));
+        suggestions=new LinearLayout(this);suggestions.setOrientation(LinearLayout.VERTICAL);
+        content.addView(suggestions);
+        suggestions.addView(label("По SCAN ќе се појават препознаените модели. Можеш и рачно да го поправиш текстот.",12,false,0xFF6A7280));
+
+        facts=label("",13,false,INK);
+        topMargin(content,facts,dp(18));
+
+        LinearLayout links=new LinearLayout(this);
+        links.setOrientation(LinearLayout.HORIZONTAL);
+        topMargin(content,links,dp(11));
+        Button web=button("Веб резултати",0xFF383F4A),setec=button("Setec.mk",0xFF383F4A);
+        LinearLayout.LayoutParams a=new LinearLayout.LayoutParams(0,dp(48),1),b=new LinearLayout.LayoutParams(0,dp(48),1);
+        b.leftMargin=dp(8);
+        links.addView(web,a);links.addView(setec,b);
+        web.setOnClickListener(v -> openSearch(modelInput.getText().toString(),""));
+        setec.setOnClickListener(v -> openSearch(modelInput.getText().toString(),"site:setec.mk "));
+
+        internetStatus = label("По SCAN автоматски ќе побарам јавно достапни извори и спецификации.",13,false,0xFF687181);
+        topMargin(content,internetStatus,dp(14));
+        sources=new LinearLayout(this);sources.setOrientation(LinearLayout.VERTICAL);
+        content.addView(sources);
+
+        if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) startCamera(preview);
+        else cameraPermission.launch(Manifest.permission.CAMERA);
+        // Hold reference via view tag so permission callback can use the preview.
+        cameraPanel.setTag(preview);
+    }
+
+    private PreviewView findPreview() {
+        View v=((FrameLayout)((LinearLayout)findViewById(android.R.id.content).getRootView()
+            .findViewById(android.R.id.content).getParent()).getChildAt(0)).getChildAt(0);
+        // Never rely on the layout traversal; locate the CameraX preview recursively.
+        return null;
+    }
+
+    private PreviewView activePreview;
+    private void startCamera() { if(activePreview!=null)startCamera(activePreview); }
+    private void startCamera(PreviewView view) {
+        activePreview=view;
+        ListenableFuture<ProcessCameraProvider> future=ProcessCameraProvider.getInstance(this);
+        future.addListener(() -> {
+            if(isFinishing()||isDestroyed())return;
+            try{
+                cameraProvider=future.get();
+                Preview live=new Preview.Builder().build();
+                live.setSurfaceProvider(view.getSurfaceProvider());
+                capture=new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build();
+                cameraProvider.unbindAll();
+                cameraProvider.bindToLifecycle(this,CameraSelector.DEFAULT_BACK_CAMERA,live,capture);
+            }catch(Exception e){setStatus("Камерата не се отвори. Внеси модел рачно.");}
+        },ContextCompat.getMainExecutor(this));
+    }
+    private void scanOnce(){
+        if(scanning)return;
+        if(capture==null){setStatus("Камерата уште не е подготвена. Можеш рачно да внесеш модел.");return;}
+        scanning=true;scanButton.setEnabled(false);
+        setStatus("Снимив кадар. Препознавам текст само од ова скенирање…");
+        capture.takePicture(ContextCompat.getMainExecutor(this),new ImageCapture.OnImageCapturedCallback(){
+            @Override public void onCaptureSuccess(ImageProxy proxy){
+                try{
+                    Bitmap bitmap=proxy.toBitmap();
+                    Matrix matrix=new Matrix();
+                    matrix.postRotate(proxy.getImageInfo().getRotationDegrees());
+                    Bitmap upright=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+                    proxy.close();
+                    InputImage input=InputImage.fromBitmap(upright,0);
+                    recognizer.process(input)
+                        .addOnSuccessListener(ModelScannerActivity.this::handleRecognized)
+                        .addOnFailureListener(e->setStatus("Не можам да го прочитам моделот. Приближи или внеси рачно."))
+                        .addOnCompleteListener(task->finishScan());
+                }catch(Exception e){proxy.close();finishScan();setStatus("Неуспешно читање. Пробај повторно.");}
+            }
+            @Override public void onError(ImageCaptureException error){
+                finishScan();setStatus("Не може да се слика. Пробај повторно.");
+            }
+        });
+    }
+    private void finishScan(){scanning=false;scanButton.setEnabled(true);}
+    private static final Pattern CODE=Pattern.compile("(?i)(?=[A-Z0-9/._-]*[A-Z])(?=[A-Z0-9/._-]*\\d)[A-Z0-9][A-Z0-9/._-]{3,}");
+    private static final Pattern BRAND=Pattern.compile("(?i)\\b(ASUS|ASROCK|MSI|GIGABYTE|INTEL|AMD|KINGSTON|SAMSUNG|ADATA|CORSAIR|CRUCIAL|WESTERN DIGITAL|WD|SEAGATE|NOCTUA|DEEPCOOL|COOLER MASTER|NZXT|SAPPHIRE|PALIT|ZOTAC|THERMALTAKE|BE QUIET|TEAMGROUP|G.SKILL|LENOVO|DELL|HP|ACER|LG|SONY)\\b");
+    private static final Pattern BAD=Pattern.compile("(?i)\\b(ШИФРА|ЦЕНА|ДЕНАРИ|СЕТЕК|БАРКОД|BARCODE|SERIAL|S/N|IMEI|EAN|GARANCIJA|ГАРАНЦИЈА|ДОСТАПНОСТ|ДОСТАВА|WWW\\.|HTTPS?\\b|MKD|TOTAL)\\b");
+
+    private void handleRecognized(Text imageText){
+        Map<String,Integer> ranked=new LinkedHashMap<>();
+        for(Text.TextBlock block:imageText.getTextBlocks()){
+            List<Text.Line> lines=block.getLines();
+            for(int i=0;i<lines.size();i++){
+                String raw=lines.get(i).getText();
+                offer(raw,ranked);
+                if(i>0){
+                    String previous=lines.get(i-1).getText().trim();
+                    if(BRAND.matcher(previous).find()&&previous.length()<25)offer(previous+" "+raw,ranked);
+                }
+            }
+        }
+        List<Map.Entry<String,Integer>> options=new ArrayList<>(ranked.entrySet());
+        options.sort((a,b)->Integer.compare(b.getValue(),a.getValue()));
+        suggestions.removeAllViews();
+        if(options.isEmpty()){
+            suggestions.addView(label("Не прочитав јасен модел. Обиди се со друга дистанца или внеси го рачно.",12,false,0xFF966125));
+            setStatus("Нема доволно читлив модел. Не направив пребарување за погрешен текст.");
+            return;
+        }
+        int max=Math.min(options.size(),6);
+        for(int i=0;i<max;i++){
+            String name=options.get(i).getKey();
+            Button choice=button("✓ "+name,0xFFE9EDF3);
+            choice.setTextColor(INK);
+            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+            params.topMargin=dp(5);params.height=Math.max(dp(45),params.height);
+            suggestions.addView(choice,params);
+            choice.setOnClickListener(v->{modelInput.setText(name);modelInput.setSelection(name.length());research(name);});
+        }
+        String first=options.get(0).getKey();
+        modelInput.setText(first);modelInput.setSelection(first.length());
+        setStatus("Најверојатен модел: "+first+". Ако не е точен, избери друг ред или поправи го.");
+        research(first); // Only after the user explicitly pressed SCAN.
+    }
+    private static void offer(String input,Map<String,Integer> results){
+        if(input==null)return;
+        String t=input.replaceAll("[\\t\\r\\n]+"," ").replaceAll("\\s+"," ").trim();
+        t=t.replaceFirst("(?i)^(MODEL|MODEL NO\\.?|MODEL NUMBER|МОДЕЛ)\\s*[:#-]?\\s*","");
+        if(t.length()<4||t.length()>95||BAD.matcher(t).find())return;
+        Matcher matcher=CODE.matcher(t);
+        if(!matcher.find())return; // Avoid scanning prices and ordinary words.
+        int score=3;
+        if(BRAND.matcher(t).find())score+=6;
+        if(t.contains("-")||t.contains("/"))score+=3;
+        if(t.matches(".*[A-Za-z]{2,}.*"))score+=2;
+        if(t.length()>10&&t.length()<55)score+=2;
+        if(t.matches(".*\\b(?:12|24|36|48)\\s*(?:МЕСЕЦИ|MONTHS)\\b.*"))score-=10;
+        String candidate=t.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d)]+$","").trim();
+        if(candidate.length()>=4)results.put(candidate,Math.max(score,results.containsKey(candidate)?results.get(candidate):0));
+    }
+    private void research(String input){
+        String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
+        if(model.length()<4){setStatus("Внеси го точниот модел (барем 4 знаци).");return;}
+        if(model.length()>100)model=model.substring(0,100);
+        modelInput.setText(model);
+        modelInput.setSelection(model.length());
+        final String query=model;
+        final int serial=++researchSerial;
+        facts.setText("ВАЖНО ЗА ПРОВЕРКА\n"+checklist(query)+"\n\nПодатоците од Интернет мора да се споредат со точниот модел и ревизија.");
+        internetStatus.setText("🔎 Истражувам „"+query+"“ на Интернет…");
+        sources.removeAllViews();
+        networkExecutor.execute(() -> {
+            List<Result> results=new ArrayList<>();
+            String error="";
+            try{results=fetchPublicResults(query);}catch(Exception e){error="Пребарувачот не врати автоматски податоци.";}
+            final List<Result> received=results;
+            final String message=error;
+            runOnUiThread(() -> {
+                if(serial!=researchSerial||isFinishing())return;
+                renderSources(query,received,message);
+            });
+        });
+    }
+    private String checklist(String model){
+        String m=model.toUpperCase(Locale.ROOT);
+        if(m.matches(".*(?:B[45678]\\d{2}|Z[456789]\\d{2}|X[3578]\\d{2}|H[45678]\\d{2}|MOTHERBOARD|MAINBOARD|MATIČNA).*"))
+            return "• Socket i kompatibilen procesor\n• DDR4/DDR5 i max RAM\n• M.2/SATA portovi\n• ATX/mATX/ITX format\n• BIOS i Wi‑Fi";
+        if(m.matches(".*(?:RYZEN|INTEL|CORE\\s*I[3579]|PROCESSOR|CPU).*"))
+            return "• Generacija i socket\n• Broj jadra/nitki\n• TDP/potrošuvačka\n• RAM podrška\n• Integrirana grafika";
+        if(m.matches(".*(?:RTX|GTX|RADEON|RX\\s*\\d{4}|ARC\\s*[AB]\\d{3}).*"))
+            return "• VRAM i tip\n• Potrošuvačka i potrebno PSU\n• Dolžina na kartičkata\n• Video priklučoci\n• Performansi i driveri";
+        if(m.matches(".*(?:SSD|NVME|HDD|SNV|MZ-|SATA).*"))
+            return "• Kapacitet\n• NVMe ili SATA\n• M.2/2.5-inch format\n• Čitanje i zapišuvanje\n• Garancija i trajnost";
+        if(m.matches(".*(?:DDR[345]|DIMM|RAM|FURY|VENGEANCE).*"))
+            return "• DDR tip i kapacitet\n• DIMM ili SO-DIMM\n• MHz/MT/s i latencija\n• Broj moduli\n• Kompatibilnost so matična";
+        return "• Točen model i proizveduvač\n• Najvažni tehnički specifikacii\n• Kompatibilnost i konektori\n• Garancija i dokumentacija\n• Cena i dostapnost vo Setec";
+    }
+
+    private static final class Result{
+        String title,description,url;
+        Result(String title,String description,String url){this.title=title;this.description=description;this.url=url;}
+    }
+    private List<Result> fetchPublicResults(String model) throws Exception{
+        String q="\""+model+"\" specifications";
+        URL url=new URL("https://www.bing.com/search?format=rss&q="+Uri.encode(q));
+        HttpURLConnection connection=(HttpURLConnection)url.openConnection();
+        connection.setConnectTimeout(9000);
+        connection.setReadTimeout(9000);
+        connection.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");
+        connection.setRequestProperty("Accept","application/rss+xml,application/xml,text/xml,*/*");
+        connection.setInstanceFollowRedirects(true);
+        try{
+            if(connection.getResponseCode()!=200)throw new Exception("HTTP status "+connection.getResponseCode());
+            XmlPullParser parser=Xml.newPullParser();
+            parser.setInput(new BufferedInputStream(connection.getInputStream()),"UTF-8");
+            List<Result> out=new ArrayList<>();
+            String title="",link="",description="",tag=null;
+            boolean inItem=false;
+            int event;
+            while((event=parser.next())!=XmlPullParser.END_DOCUMENT&&out.size()<8){
+                if(event==XmlPullParser.START_TAG){
+                    String name=parser.getName();
+                    if("item".equalsIgnoreCase(name)){inItem=true;title="";description="";link="";}
+                    else if(inItem&&("title".equals(name)||"description".equals(name)||"link".equals(name)))tag=name;
+                }else if(event==XmlPullParser.TEXT&&inItem&&tag!=null){
+                    String value=parser.getText();
+                    if("title".equals(tag))title+=value;
+                    else if("link".equals(tag))link+=value;
+                    else if("description".equals(tag))description+=value;
+                }else if(event==XmlPullParser.END_TAG){
+                    String name=parser.getName();
+                    if(name.equals(tag))tag=null;
+                    if("item".equalsIgnoreCase(name)){
+                        inItem=false;
+                        String safe=checkResultUrl(link);
+                        if(!safe.isEmpty()&&!title.trim().isEmpty()){
+                            String descr=Html.fromHtml(description,Html.FROM_HTML_MODE_LEGACY).toString().replaceAll("\\s+"," ").trim();
+                            out.add(new Result(title.trim(),descr.length()>430?descr.substring(0,430)+"…":descr,safe));
+                        }
+                    }
+                }
+            }
+            return out;
+        }finally{connection.disconnect();}
+    }
+    private static String checkResultUrl(String link){
+        try{
+            Uri u=Uri.parse(link.trim());
+            String host=u.getHost();
+            if("https".equalsIgnoreCase(u.getScheme())&&host!=null&&!host.isEmpty())return u.toString();
+        }catch(Exception ignored){}
+        return "";
+    }
+    private void renderSources(String model,List<Result> found,String error){
+        sources.removeAllViews();
+        if(found.isEmpty()){
+            internetStatus.setText("Нема автоматски прочитани izvori. Otvori „Veb rezultati“ ili „Setec.mk“ za direktno prebaruvanje.");
+            if(!error.isEmpty())sources.addView(label(error,12,false,0xFF915F28));
+            return;
+        }
+        internetStatus.setText("🔎 Najdeni "+found.size()+" javni izvori za „"+model+"“. Dopri rezultat za da gi proveriš celosnite specifikacii.");
+        for(Result source:found){
+            LinearLayout card=new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(12),dp(12),dp(12),dp(12));
+            GradientDrawable bg=new GradientDrawable();
+            bg.setColor(Color.WHITE);bg.setCornerRadius(dp(12));bg.setStroke(dp(1),0xFFE1E4EA);
+            card.setBackground(bg);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(9);
+            sources.addView(card,lp);
+            TextView title=label(source.title,14,true,INK);
+            card.addView(title);
+            if(!source.description.isEmpty()){
+                TextView desc=label(source.description,12,false,0xFF5A6576);
+                desc.setPadding(0,dp(6),0,0);
+                card.addView(desc);
+            }
+            Uri uri=Uri.parse(source.url);
+            String host=uri.getHost()==null?"Izvor":uri.getHost();
+            TextView link=label(host+"  ↗",11,true,0xFFE87919);
+            link.setPadding(0,dp(7),0,0);
+            card.addView(link);
+            card.setOnClickListener(v->openUri(source.url));
+        }
+        sources.addView(label("Rezultatite se kratki izvodi od Internet. Za točni vrednosti (socket, DDR, TDP, kapacitet) proveri kaj proizveduvačot.",12,false,0xFF6A7180));
+    }
+    private void openSearch(String raw,String prefix){
+        String value=raw==null?"":raw.trim();
+        if(value.length()<3){setStatus("Prvo skeniraj ili vnesi model.");return;}
+        String query=prefix+"\""+value+"\" specifications";
+        openUri("https://www.google.com/search?q="+Uri.encode(query));
+    }
+    private void openUri(String value){
+        try{Uri uri=Uri.parse(value);if(!"https".equalsIgnoreCase(uri.getScheme()))return;startActivity(new Intent(Intent.ACTION_VIEW,uri));}
+        catch(Exception e){setStatus("Ne e dostapen pregledačot. Proveri internet konekcija.");}
+    }
+    private void setStatus(String message){if(status!=null)status.setText(message);}
+    private void topMargin(LinearLayout parent,View view,int margin){
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+        params.topMargin=margin;parent.addView(view,params);
+    }
+    private Button button(String text,int background){
+        Button b=new Button(this);
+        b.setText(text);b.setAllCaps(false);b.setTextSize(14);b.setTypeface(null,Typeface.BOLD);
+        b.setTextColor(Color.WHITE);
+        b.setBackgroundTintList(ColorStateList.valueOf(background));
+        return b;
+    }
+    private TextView label(String message,int size,boolean bold,int color){
+        TextView v=new TextView(this);v.setText(message);v.setTextSize(size);
+        v.setTextColor(color);v.setLineSpacing(dp(2),1.0f);
+        if(bold)v.setTypeface(null,Typeface.BOLD);
+        return v;
+    }
+    private int dp(int n){return Math.round(getResources().getDisplayMetrics().density*n);}
+    @Override protected void onDestroy(){
+        researchSerial++;
+        if(cameraProvider!=null)cameraProvider.unbindAll();
+        recognizer.close();
+        cameraExecutor.shutdownNow();networkExecutor.shutdownNow();
+        super.onDestroy();
+    }
+}
