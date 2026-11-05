@@ -88,12 +88,12 @@ final class SetecDescriptionFallback {
                 String key=line.toLowerCase(Locale.ROOT);
                 if(key.equals(pureModel)||key.equals(pureTitle))continue;
                 if(!seen.add(key))continue;
-                boolean technical=TECH.matcher(line).find();
+                boolean isTech=TECH.matcher(line).find();
                 boolean meaningful=FEATURE.matcher(line).find();
                 boolean labeled=LABELED.matcher(line).matches();
-                int quality=(technical?8:0)+(meaningful?4:0)+(labeled?2:0)
+                int quality=(isTech?8:0)+(meaningful?4:0)+(labeled?2:0)
                     +(source==0?3:source==1?1:0);
-                if(!technical&&!meaningful&&!labeled && source==2)continue;
+                if(!isTech&&!meaningful&&!labeled && source==2)continue;
                 if(line.length()>135)quality-=5;
                 if(line.length()>180)quality-=5;
                 if(quality<2)continue;
