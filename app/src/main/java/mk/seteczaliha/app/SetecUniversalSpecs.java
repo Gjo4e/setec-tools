@@ -132,7 +132,7 @@ final class SetecUniversalSpecs {
             return Kind.PHONE;
         if(has(t,"ТЕЛЕВИЗОР","ТЕЛЕВИЗОРИ","ТВ ","SMART TV"," QLED"," OLED",
                 "MINI-LED","ULTRAHD","GOOGLE TV","ANDROID TV",
-                "TELEVISION","TV\\N","LED TV","МОНИТОР","MONITOR"))
+                "TELEVISION","LED TV"," 4K TV"," TV","МОНИТОР","MONITOR"))
             return Kind.TV;
         return Kind.UNKNOWN;
     }
@@ -429,52 +429,52 @@ final class SetecUniversalSpecs {
     private static void parseTv(Map<String,String> f,String line){
         // Limit standalone inch values to plausible display diagonals.
         offer(f,"Дијагонала",line,
-            "(?iu)(?:дијагонала|screen\s*size|големина\s*на\s*екран)\s*[:\-]?\s*"+
-            "(\d{2,3}(?:[.,]\d)?\s*(?:\"|”|″|inch|инч(?:и)?))");
+            "(?iu)(?:дијагонала|screen\\s*size|големина\\s*на\\s*екран)\\s*[:\\-]?\\s*"+
+            "(\\d{2,3}(?:[.,]\\d)?\\s*(?:\"|”|″|inch|инч(?:и)?))");
         offer(f,"Дијагонала",line,
-            "(?iu)(?<![\p{Alnum}])(\d{2,3}(?:[.,]\d)?\s*(?:\"|”|″))(?=\s|$|\()");
+            "(?iu)(?<![\\p{Alnum}])(\\d{2,3}(?:[.,]\\d)?\\s*(?:\"|”|″))(?=\\s|$|\\()");
         // English "Resolution 4K 3840x2160" and dotted thousands (3.840 x 2.160).
         if(!f.containsKey("Резолуција")){
             Matcher resolution=Pattern.compile(
-                "(?iu)(?:resolution|резолуција|ultrahd\s+resolution)"+
-                "[^;\n]{0,34}?"+
-                "((?:[1-9][.,]\d{3}|\d{3,4})\s*[x×]\s*(?:[1-9][.,]\d{3}|\d{3,4}))")
+                "(?iu)(?:resolution|резолуција|ultrahd\\s+resolution)"+
+                "[^;\\n]{0,34}?"+
+                "((?:[1-9][.,]\\d{3}|\\d{3,4})\\s*[x×]\\s*(?:[1-9][.,]\\d{3}|\\d{3,4}))")
                 .matcher(line);
             if(!resolution.find()){
                 resolution=Pattern.compile(
-                    "(?iu)(?<!\d)((?:[1-9][.,]\d{3}|\d{3,4})\s*[x×]\s*"+
-                    "(?:[1-9][.,]\d{3}|\d{3,4}))(?!\d)").matcher(line);
+                    "(?iu)(?<!\\d)((?:[1-9][.,]\\d{3}|\\d{3,4})\\s*[x×]\\s*"+
+                    "(?:[1-9][.,]\\d{3}|\\d{3,4}))(?!\\d)").matcher(line);
                 if(!resolution.find())resolution=null;
             }
             if(resolution!=null){
                 String value=resolution.group(1).replace(".","")
-                    .replace(",","").replaceAll("\s*[x×]\s*","×");
+                    .replace(",","").replaceAll("\\s*[x×]\\s*","×");
                 if(value.matches("(?:1280×720|1366×768|1920×1080|2560×1440|"+
                         "3840×2160|4096×2160|7680×4320)"))
                     f.put("Резолуција",value);
             }
         }
         if(!f.containsKey("Резолуција")){
-            if(Pattern.compile("(?iu)\b(?:4K\s*(?:ULTRA\s*HD|UHD)|ULTRA\s*HD\s*4K)\b")
+            if(Pattern.compile("(?iu)\\b(?:4K\\s*(?:ULTRA\\s*HD|UHD)|ULTRA\\s*HD\\s*4K)\\b")
                     .matcher(line).find())f.put("Резолуција","4K UHD");
-            else if(Pattern.compile("(?iu)\b(?:FULL\s*HD|FHD)\b")
+            else if(Pattern.compile("(?iu)\\b(?:FULL\\s*HD|FHD)\\b")
                     .matcher(line).find())f.put("Резолуција","Full HD");
-            else if(Pattern.compile("(?iu)\b(?:HD\s*READY)\b")
+            else if(Pattern.compile("(?iu)\\b(?:HD\\s*READY)\\b")
                     .matcher(line).find())f.put("Резолуција","HD Ready");
         }
         // Highest precedence to true native/VRR tagged frequency. Avoid
         // interpreting "Game Accelerator 120Hz" as native panel refresh.
         offer(f,"Освежување",line,
-            "(?iu)(?:refresh\s*rate|освежување(?:\s*на\s*екран)?|"+
-            "panel\s*frequency|фреквенција\s*на\s*екран)\s*[:\-]?\s*"+
-            "(\d{2,3}\s*Hz)\b");
+            "(?iu)(?:refresh\\s*rate|освежување(?:\\s*на\\s*екран)?|"+
+            "panel\\s*frequency|фреквенција\\s*на\\s*екран)\\s*[:\\-]?\\s*"+
+            "(\\d{2,3}\\s*Hz)\\b");
         offer(f,"Освежување",line,
-            "(?iu)^\s*(\d{2,3}\s*Hz)(?=\s*\(\s*VRR\s*\)|\s*$)");
+            "(?iu)^\\s*(\\d{2,3}\\s*Hz)(?=\\s*\\(\\s*VRR\\s*\\)|\\s*$)");
         // 'Mini-LED' contains LED, 'QLED' contains LED. Rank more specific first.
         if(!f.containsKey("Технологија на екран")){
             Matcher tech=Pattern.compile(
-                "(?iu)(?<![A-Z])(?:MINI[\s-]*LED|NEO\s*QLED|QLED|OLED|"+
-                "QNED|NANO\s*CELL|LED|LCD)(?![A-Z])").matcher(line);
+                "(?iu)(?<![A-Z])(?:MINI[\\s-]*LED|NEO\\s*QLED|QLED|OLED|"+
+                "QNED|NANO\\s*CELL|LED|LCD)(?![A-Z])").matcher(line);
             if(tech.find()){
                 String raw=tech.group().toUpperCase(Locale.ROOT).replace(" ","");
                 if(raw.contains("MINI"))f.put("Технологија на екран","Mini-LED");
@@ -487,26 +487,26 @@ final class SetecUniversalSpecs {
             }
         }
         // Smart and OS are intentionally separate facts: smart does not mean Android.
-        if(yes(line,"(?iu)\b(?:SMART\s*(?:TV)?|GOOGLE\s*TV|ANDROID\s*TV|"+
-                "VIDAA|TIZEN|WEBOS|TITAN\s*OS|SAPHI)\b"))
+        if(yes(line,"(?iu)\\b(?:SMART\\s*(?:TV)?|GOOGLE\\s*TV|ANDROID\\s*TV|"+
+                "VIDAA|TIZEN|WEBOS|TITAN\\s*OS|SAPHI)\\b"))
             f.putIfAbsent("Smart TV","Да");
         offer(f,"Оперативен систем",line,
-            "(?iu)\bOS\s*[:\-]\s*(TITAN|VIDAA|TIZEN|WEBOS|ANDROID\s*TV|GOOGLE\s*TV|SAPHI)\b");
-        if(Pattern.compile("(?iu)\bGOOGLE\s*TV\b").matcher(line).find())
+            "(?iu)\\bOS\\s*[:\\-]\\s*(TITAN|VIDAA|TIZEN|WEBOS|ANDROID\\s*TV|GOOGLE\\s*TV|SAPHI)\\b");
+        if(Pattern.compile("(?iu)\\bGOOGLE\\s*TV\\b").matcher(line).find())
             f.putIfAbsent("Оперативен систем","Google TV");
-        if(Pattern.compile("(?iu)\bVIDAA(?:\s*(?:OS|U\d+))?\b").matcher(line).find())
+        if(Pattern.compile("(?iu)\\bVIDAA(?:\\s*(?:OS|U\\d+))?\\b").matcher(line).find())
             f.putIfAbsent("Оперативен систем","VIDAA");
-        if(Pattern.compile("(?iu)\b(?:TIZEN|WEBOS|TITAN\s*OS)\b").matcher(line).find()){
+        if(Pattern.compile("(?iu)\\b(?:TIZEN|WEBOS|TITAN\\s*OS)\\b").matcher(line).find()){
             if(!f.containsKey("Оперативен систем"))
                 f.put("Оперативен систем",line.trim().length()<25?line.trim():"Tizen/webOS/Titan");
         }
-        if(Pattern.compile("(?iu)\bHDR\s*10\s*\+?\b").matcher(line).find())
-            f.putIfAbsent("HDR",line.replaceAll("(?iu)^.*?(HDR\s*10\s*\+?).*$","$1").trim());
-        if(Pattern.compile("(?iu)\bDOLBY\s*VISION\b").matcher(line).find())
+        if(Pattern.compile("(?iu)\\bHDR\\s*10\\s*\\+?\\b").matcher(line).find())
+            f.putIfAbsent("HDR",line.replaceAll("(?iu)^.*?(HDR\\s*10\\s*\\+?).*$","$1").trim());
+        if(Pattern.compile("(?iu)\\bDOLBY\\s*VISION\\b").matcher(line).find())
             f.putIfAbsent("HDR","Dolby Vision");
-        offer(f,"HDMI",line,"(?iu)(?:connections?\s*[:\-]?\s*)?(\d)\s*x\s*HDMI\b");
-        offer(f,"HDMI",line,"(?iu)\bHDMI\s*x\s*(\d)\b");
-        if(f.containsKey("HDMI")&&f.get("HDMI").matches("\d"))
+        offer(f,"HDMI",line,"(?iu)(?:connections?\\s*[:\\-]?\\s*)?(\\d)\\s*x\\s*HDMI\\b");
+        offer(f,"HDMI",line,"(?iu)\\bHDMI\\s*x\\s*(\\d)\\b");
+        if(f.containsKey("HDMI")&&f.get("HDMI").matches("\\d"))
             f.put("HDMI",f.get("HDMI")+" порти");
     }
 
