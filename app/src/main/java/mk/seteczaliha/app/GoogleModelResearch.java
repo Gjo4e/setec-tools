@@ -54,13 +54,29 @@ final class GoogleModelResearch {
     };
     private GoogleModelResearch(){}
 
+    static String formattedModelCode(String model){
+        String normalized=ModelNameParser.normalizeModel(model).toUpperCase(Locale.ROOT);
+        Matcher m=Pattern.compile("(?i)\\b[A-Z]{1,6}\\d[A-Z0-9]{1,}(?:[-/][A-Z0-9]+)+\\b")
+            .matcher(normalized);
+        String best="";
+        while(m.find()){
+            String part=m.group();
+            if(part.length()>best.length())best=part;
+        }
+        return best;
+    }
+
     static String searchQuery(String model){
         String normalized=ModelNameParser.normalizeModel(model);
         String code=SetecModelMatcher.modelCode(normalized);
         if(code.length()>=5) {
             String[] words=normalized.toUpperCase(Locale.ROOT).split("\\s+");
             String brand=words.length>0?words[0]:"";
-            return (brand+" "+code+" technical specifications").trim();
+            // Keep manufacturer punctuation: AG15-42P-R844 searches much better
+            // than the collapsed AG1542PR844 returned by the matcher.
+            String originalCode=formattedModelCode(normalized);
+            return (brand+" "+(originalCode.isEmpty()?code:originalCode)+
+                " technical specifications").trim();
         }
         return normalized+" technical specifications";
     }
