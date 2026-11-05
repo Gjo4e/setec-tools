@@ -160,7 +160,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
         }
         handler.postDelayed(() -> {
             if (id == searchSerial) send("window.pcSearchTimeout();");
-        }, 16000);
+        }, 20000);
     }
 
     private static String categoryPageUrl(String base, int page) {
@@ -254,7 +254,7 @@ public final class PcConfiguratorActivity extends ComponentActivity {
             "let price=(key)=>{let m=body.match(new RegExp(key+'\\\\s*:\\\\s*([0-9][0-9., ]*)\\\\s*ден','i'));return m?m[1].trim().replace(/\\s/g,''):''};"+
             "let image=(function(){\nlet candidates=[...a.querySelectorAll('img,picture source'),...p.querySelectorAll('img,picture source')];\nfor(let im of candidates){\n  let sets=[im.getAttribute('data-srcset'),im.getAttribute('srcset')].filter(Boolean);\n  let opts=[im.getAttribute('data-src'),im.getAttribute('data-original'),im.getAttribute('data-lazy-src'),im.getAttribute('data-image')];\n  for(let set of sets)opts.push(set.split(',').pop().trim().split(/\\s+/)[0]);\n  opts.push(im.getAttribute('src'),im.currentSrc);\n  for(let raw of opts){\n    if(!raw||/^(data:|blob:|about:|javascript:)/i.test(raw))continue;\n    let u;try{u=new URL(raw,location.href)}catch(e){continue}\n    if(u.protocol!=='https:'||/logo|icon|badge|placeholder|spinner|cart|compare|sprite/i.test(u.pathname))continue;\n    return u.href;\n  }\n}\nreturn '';\n})();"+
             "out.set(u.href,{name:name,url:u.href,sku:sku,image:image,clubPrice:price('Клуб цена'),regularPrice:price('Редовна цена')});"+
-            "if(out.size>=70)break;}return JSON.stringify([...out.values()]);})()";
+            "if(out.size>=250)break;}return JSON.stringify([...out.values()]);})()";
         catalog.evaluateJavascript(script, output -> {
             if (serial != searchSerial) return;
             String result = decode(output);
