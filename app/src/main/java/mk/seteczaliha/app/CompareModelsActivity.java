@@ -35,7 +35,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private static final int INK=0xFF202531, ORANGE=0xFFF58220;
     private final Product[] products=new Product[2];
     private final Button[] scanButtons=new Button[2];
-    private ActivityResultLauncher<Intent> picker;
+    private ActivityResultLauncher<Intent> picker, skuScanner;
     private LinearLayout content,table;
     private TextView overview;
     private int editingSlot=0;
@@ -79,6 +79,19 @@ public final class CompareModelsActivity extends ComponentActivity {
         super.onCreate(state);
         getWindow().setStatusBarColor(0xFF1B1C21);
         getWindow().setNavigationBarColor(Color.BLACK);
+        skuScanner=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
+            if(result.getResultCode()!=RESULT_OK||result.getData()==null)return;
+            String code=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
+            if(code==null||!code.matches("[0-9]{4,8}")){
+                overview.setText("Не се прочита валидна SETEC шифра. Пробај повторно.");
+                return;
+            }
+            Intent intent=new Intent(this,ModelScannerActivity.class);
+            intent.putExtra("compare_pick",true);
+            intent.putExtra("compare_slot",editingSlot+1);
+            intent.putExtra("compare_sku",code);
+            picker.launch(intent);
+        });
         picker=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
             if(result.getResultCode()!=RESULT_OK||result.getData()==null)return;
             Product model=Product.parse(result.getData().getStringExtra("compare_result"));
@@ -116,7 +129,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         content.setPadding(dp(13),dp(16),dp(13),dp(32));
         scroll.addView(content);
 
-        overview=text("Скенирај два модели еден по еден. Ќе ги прикажам само најважните разлики.",13,false,0xFF626B78);
+        overview=text("Скенирај две SETEC шифри. Апликацијата сама ќе ги најде моделите и ќе ги спореди најважните податоци од интернет.",13,false,0xFF626B78);
         content.addView(overview);
 
         LinearLayout buttons=new LinearLayout(this);
@@ -126,7 +139,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         content.addView(buttons,bp);
         for(int i=0;i<2;i++){
             final int slot=i;
-            Button b=button("▣ Скенирај модел "+(i+1),ORANGE);
+            Button b=button("▣ Скенирај шифра "+(i+1),ORANGE);
             scanButtons[i]=b;
             LinearLayout.LayoutParams bParams=new LinearLayout.LayoutParams(0,dp(58),1);
             if(i>0)bParams.leftMargin=dp(8);
@@ -157,22 +170,21 @@ public final class CompareModelsActivity extends ComponentActivity {
 
     private void openScanner(int slot){
         editingSlot=slot;
-        Intent intent=new Intent(this,ModelScannerActivity.class);
-        intent.putExtra("compare_pick",true);
-        intent.putExtra("compare_slot",slot+1);
-        picker.launch(intent);
+        // Reuse the existing dedicated SETEC number scanner. It reads only
+        // 4–8 digit retail codes, not the surrounding model text or prices.
+        skuScanner.launch(new Intent(this,ScannerActivity.class));
     }
 
     private void render(){
         table.removeAllViews();
         for(int i=0;i<2;i++){
             scanButtons[i].setText(products[i]==null
-                ?"▣ Скенирај модел "+(i+1)
-                :"↻ Замени модел "+(i+1));
+                ?"▣ Скенирај шифра "+(i+1)
+                :"↻ Замени шифра "+(i+1));
         }
         Product left=products[0],right=products[1];
         if(left==null&&right==null){
-            table.addView(text("Прво скенирај го левиот модел, потоа десниот.",13,false,0xFF657081));
+            table.addView(text("Прво скенирај ја SETEC шифрата за левиот производ, па за десниот.",13,false,0xFF657081));
             return;
         }
         overview.setText(left!=null&&right!=null
