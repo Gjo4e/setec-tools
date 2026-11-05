@@ -23,17 +23,34 @@ final class GoogleSearchFetcher {
     static List<GoogleModelResearch.Result> search(String model) throws Exception {
         String query=GoogleModelResearch.searchQuery(model);
         if(query.trim().isEmpty())return new ArrayList<>();
-        String url="https://www.google.com/search?q="+
-            java.net.URLEncoder.encode(query,"UTF-8")+"&num=10&hl=en&gbv=1";
-        Document doc=Jsoup.connect(url)
-            .userAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-            .header("Accept-Language","en-US,en;q=0.8")
-            .referrer("https://www.google.com/")
-            .followRedirects(true)
-            .timeout(8500)
-            .maxBodySize(850000)
-            .get();
-        return parseHtml(doc.html(),model);
+        // Exact model first, then the original phrase without extra words.
+        // Some manufacturers do not use the English word "specifications".
+        String code=SetecModelMatcher.modelCode(model);
+        String[] queries=code.length()>=5
+            ?new String[]{query, "\\""+code+"\\" specifications"}
+            :new String[]{query, model};
+        List<GoogleModelResearch.Result> all=new ArrayList<>();
+        Set<String> seen=new HashSet<>();
+        for(String term:queries){
+            try{
+                String url="https://www.google.com/search?q="+
+                    java.net.URLEncoder.encode(term,"UTF-8")+"&num=10&hl=en";
+                Document doc=Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Accept-Language","en-US,en;q=0.8")
+                    .referrer("https://www.google.com/")
+                    .followRedirects(true)
+                    .timeout(7500)
+                    .maxBodySize(850000)
+                    .get();
+                for(GoogleModelResearch.Result hit:parseHtml(doc.html(),model)){
+                    if(seen.add(hit.url))all.add(hit);
+                    if(all.size()>=8)return all;
+                }
+                if(!all.isEmpty()&&all.stream().anyMatch(x->x.snippet.length()>50))break;
+            }catch(Exception ignored){ /* Try next query or the existing Bing fallback. */ }
+        }
+        return all;
     }
 
     static List<GoogleModelResearch.Result> parseHtml(String html,String model) {
