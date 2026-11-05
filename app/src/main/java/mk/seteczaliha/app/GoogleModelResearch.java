@@ -37,15 +37,20 @@ final class GoogleModelResearch {
         }
     }
     private static final FactPattern[] FACTS = {
-        new FactPattern("Капацитет на перење", "(?:washing\\s*capacity|wash\\s*load|load\\s*capacity|kapacitet\\s*(?:za\\s*)?pranja|капацитет\\s*(?:за|на)\\s*перење|washing\\s*load)[^\\n.;]{0,35}?(\\d{1,2}(?:[.,]\\d+)?)\\s*(?:kg|кг)"),
-        new FactPattern("Центрифуга", "(?:spin\\s*speed|maximum\\s*spin|centrifug\\w*|центрифуг\\w*|брзина\\s*на\\s*центрифуг\\w*|обртаи|obrata)[^\\n.;]{0,35}?(\\d{3,4})\\s*(?:rpm|r/min|vrt|врт|обр|\\b)"),
+        new FactPattern("Капацитет на перење", "(?:(?:washing\\s*capacity|wash\\s*load|load\\s*capacity|kapacitet\\s*(?:za\\s*)?pranja|капацитет\\s*(?:за|на)\\s*перење)[^\\n.;]{0,35}?)?(\\d{1,2}(?:[.,]\\d+)?)\\s*(?:kg|кг)\\b"),
+        new FactPattern("Центрифуга", "(?:(?:spin\\s*speed|maximum\\s*spin|centrifug\\w*|центрифуг\\w*|брзина\\s*на\\s*центрифуг\\w*|obrata)[^\\n.;]{0,35}?)?(\\d{3,4})\\s*(?:rpm|r/min|vrt|врт(?:ежи)?|обр(?:таи)?(?:/мин)?)\\b"),
         new FactPattern("Програми", "(?:\\b(\\d{1,2})\\s*(?:programmes|programs|programi|програми)\\b)|(?:(?:programmes|programs|programi|програми)\\s*:?\\s*(\\d{1,2})\\b)"),
-        new FactPattern("Енергетска класа", "(?:energy\\s*(?:efficiency\\s*)?(?:class|rating)|енергетска\\s*(?:класа|ефикасност)|energetska\\s*klasa)\\s*[:\\-]?\\s*(A\\+\\+\\+|A\\+\\+|A\\+|[A-G])\\b"),
+        new FactPattern("Енергетска класа", "(?:(?:energy\\s*(?:efficiency\\s*)?(?:class|rating)|енергетска\\s*(?:класа|ефикасност)|energetska\\s*klasa)\\s*[:\\-]?\\s*([A-GА-Г]\\+{0,3})|([A-GА-Г]\\+{0,3})\\s*(?:енергетска\\s*класа|energy\\s*(?:efficiency\\s*)?class))"),
         new FactPattern("Димензии", "(?:dimensions|dimenzije|dimenzii|димензии|size\\s*\\(\\s*W\\s*[x×]\\s*H)[^\\n.;]{0,65}?(\\d{2,3}(?:[.,]\\d+)?\\s*[x×]\\s*\\d{2,3}(?:[.,]\\d+)?\\s*[x×]\\s*\\d{2,3}(?:[.,]\\d+)?\\s*(?:cm|mm)?)"),
         new FactPattern("Бучава", "(?:noise\\s*(?:level)?|buka|бучава)[^\\n.;]{0,25}?([3-9]\\d)\\s*dB\\b"),
         new FactPattern("Капацитет", "(?:storage\\s*capacity|capacity|kapacitet|капацитет)[^\\n.;]{0,22}?(\\d+(?:[.,]\\d+)?)\\s*(GB|TB|l|литри|litres|liters)\\b"),
         new FactPattern("RAM", "(?:RAM|memory|меморија)[^\\n.;]{0,20}?(\\d{1,3})\\s*(GB)\\b"),
-        new FactPattern("Резолуција", "(?:resolution|резолуција)[^\\n.;]{0,20}?(\\d{3,4}\\s*[x×]\\s*\\d{3,4})\\b")
+        new FactPattern("Резолуција", "(?:resolution|резолуција)[^\\n.;]{0,20}?(\\d{3,4}\\s*[x×]\\s*\\d{3,4})\\b"),
+        new FactPattern("LED дисплеј", "(?:LED|ЛЕД)\\s*(?:display|дисплеј)"),
+        new FactPattern("Одложен почеток", "(?:тајмер\\s*за\\s*одложено\\s*перење|одложен(?:о|\\s*почеток|\\s*старт)|delay(?:ed)?\\s*(?:start|timer))"),
+        new FactPattern("Предперење", "(?:предперење|prewash|pre-wash)"),
+        new FactPattern("Заштита од протекување", "(?:заштита\\s*од\\s*протекување|anti-?leak|overflow\\s*protection)"),
+        new FactPattern("Пареа", "(?:steamtech|steam\\s*function|функција\\s*пареа)")
     };
     private GoogleModelResearch(){}
 
@@ -60,8 +65,24 @@ final class GoogleModelResearch {
         return normalized+" technical specifications";
     }
 
+    static boolean blockedSource(String url) {
+        if(url==null||url.isEmpty())return true;
+        try{
+            java.net.URI uri=new java.net.URI(url.trim());
+            String h=uri.getHost();
+            if(h==null||!"https".equalsIgnoreCase(uri.getScheme()))return true;
+            h=h.toLowerCase(Locale.ROOT);
+            for(String domain:new String[]{"setec.mk","set.mk","reddit.com","tiktok.com",
+                    "facebook.com","instagram.com","pinterest.com","youtube.com",
+                    "deals.mk","pazarluk.mk"}){
+                if(h.equals(domain)||h.endsWith("."+domain))return true;
+            }
+            return false;
+        }catch(Exception e){return true;}
+    }
+
     static boolean relevant(String model,Result result){
-        if(result==null||result.title.isEmpty())return false;
+        if(result==null||result.title.isEmpty()||blockedSource(result.url))return false;
         String normalized=ModelNameParser.normalizeModel(model);
         String expectedCode=SetecModelMatcher.modelCode(normalized);
         if(expectedCode.length()>=5) {
@@ -101,23 +122,35 @@ final class GoogleModelResearch {
         Map<String,Fact> facts=new LinkedHashMap<>();
         if(results==null)return new ArrayList<>();
         for(Result r:results){
-            if(facts.size()>=7)break;
+            if(facts.size()>=12)break;
             if(!relevant(model,r)||!r.url.startsWith("https://"))continue;
             String text=(r.title+" . "+r.snippet).replaceAll("\\s+"," ");
+            boolean washing=java.util.regex.Pattern.compile("(?iu)машина\\s+за\\s+(?:перење|прање)|washing\\s*machine|washer|машина\\s+за\\s+алишта|twm\\s*\\d+").matcher(text).find();
             for(FactPattern spec:FACTS){
                 if(facts.containsKey(spec.label))continue;
+                if(spec.label.equals("Капацитет на перење")&&!washing)continue;
                 Matcher m=spec.regex.matcher(text);
                 if(m.find()){
-                    String value=m.group(1);
-                    if(value==null&&m.groupCount()>=2)value=m.group(2);
-                    if(value==null||value.trim().isEmpty())continue;
+                    String value=null;
+                    for(int g=1;g<=m.groupCount();g++){
+                        if(m.group(g)!=null&&!m.group(g).trim().isEmpty()){
+                            value=m.group(g).trim();
+                            break;
+                        }
+                    }
+                    if(value==null){
+                        // Clearly named features are boolean facts, not guessed technical values.
+                        if(m.groupCount()!=0)continue;
+                        value="Да";
+                    }
                     if(spec.label.equals("Капацитет")&&m.groupCount()>=2&&m.group(2)!=null)value+=" "+m.group(2);
                     if(spec.label.equals("Центрифуга"))value+=" rpm";
                     if(spec.label.equals("Капацитет на перење"))value+=" kg";
                     if(spec.label.equals("Бучава"))value+=" dB";
                     if(spec.label.equals("RAM"))value+=" GB";
+                    if(spec.label.equals("Енергетска класа"))value=value.replace('А','A').replace('В','B').replace('С','C');
                     facts.put(spec.label,new Fact(spec.label,value.trim(),r.url));
-                    if(facts.size()>=7)break;
+                    if(facts.size()>=12)break;
                 }
             }
         }
