@@ -561,7 +561,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         Result(String title,String description,String url){this.title=title;this.description=description;this.url=url;}
     }
     private List<Result> fetchPublicResults(String model) throws Exception{
-        String q="\""+model+"\" specifications";
+        String q=SetecModelMatcher.searchTerm(model)+" technical specifications";
         URL url=new URL("https://www.bing.com/search?format=rss&q="+Uri.encode(q));
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
         connection.setConnectTimeout(9000);
@@ -647,7 +647,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private void openSearch(String raw,String prefix){
         String value=raw==null?"":raw.trim();
         if(value.length()<3){setStatus("Prvo skeniraj ili vnesi model.");return;}
-        String query=prefix+"\""+value+"\" specifications";
+        String query=prefix+SetecModelMatcher.searchTerm(value)+" technical specifications";
         openUri("https://www.google.com/search?q="+Uri.encode(query));
     }
     private void openUri(String value){
@@ -674,7 +674,8 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
     private int dp(int n){return Math.round(getResources().getDisplayMetrics().density*n);}
     @Override protected void onDestroy(){
-        researchSerial++;
+        researchSerial++;setecSerial++;handler.removeCallbacksAndMessages(null);
+        if(setecBrowser!=null){setecBrowser.stopLoading();setecBrowser.destroy();setecBrowser=null;}
         if(cameraProvider!=null)cameraProvider.unbindAll();
         recognizer.close();
         cameraExecutor.shutdownNow();networkExecutor.shutdownNow();
