@@ -22,6 +22,8 @@ jobs:
           gradle-version: '8.9'
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Test model recognition
+        run: gradle --no-daemon :app:testDebugUnitTest --stacktrace
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
