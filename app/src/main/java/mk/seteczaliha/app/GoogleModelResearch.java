@@ -37,10 +37,10 @@ final class GoogleModelResearch {
         }
     }
     private static final FactPattern[] FACTS = {
-        new FactPattern("Капацитет на перење", "(?:washing\\s*capacity|wash\\s*load|load\\s*capacity|kapacitet\\s*pranja|капацитет\\s*на\\s*перење|washing\\s*load)[^\\n.;]{0,35}?(\\d{1,2}(?:[.,]\\d+)?)\\s*kg\\b"),
-        new FactPattern("Центрифуга", "(?:spin\\s*speed|maximum\\s*spin|centrifug\\w*|центрифуг\\w*|обртаи|obrata)[^\\n.;]{0,35}?(\\d{3,4})\\s*(?:rpm|r/min|vrt|врт|обр|\\b)"),
+        new FactPattern("Капацитет на перење", "(?:washing\\s*capacity|wash\\s*load|load\\s*capacity|kapacitet\\s*(?:za\\s*)?pranja|капацитет\\s*(?:за|на)\\s*перење|washing\\s*load)[^\\n.;]{0,35}?(\\d{1,2}(?:[.,]\\d+)?)\\s*(?:kg|кг)"),
+        new FactPattern("Центрифуга", "(?:spin\\s*speed|maximum\\s*spin|centrifug\\w*|центрифуг\\w*|брзина\\s*на\\s*центрифуг\\w*|обртаи|obrata)[^\\n.;]{0,35}?(\\d{3,4})\\s*(?:rpm|r/min|vrt|врт|обр|\\b)"),
         new FactPattern("Програми", "(?:\\b(\\d{1,2})\\s*(?:programmes|programs|programi|програми)\\b)|(?:(?:programmes|programs|programi|програми)\\s*:?\\s*(\\d{1,2})\\b)"),
-        new FactPattern("Енергетска класа", "(?:energy\\s*(?:efficiency\\s*)?(?:class|rating)|енергетска\\s*класа|energetska\\s*klasa)\\s*[:\\-]?\\s*(A\\+\\+\\+|A\\+\\+|A\\+|[A-G])\\b"),
+        new FactPattern("Енергетска класа", "(?:energy\\s*(?:efficiency\\s*)?(?:class|rating)|енергетска\\s*(?:класа|ефикасност)|energetska\\s*klasa)\\s*[:\\-]?\\s*(A\\+\\+\\+|A\\+\\+|A\\+|[A-G])\\b"),
         new FactPattern("Димензии", "(?:dimensions|dimenzije|dimenzii|димензии|size\\s*\\(\\s*W\\s*[x×]\\s*H)[^\\n.;]{0,65}?(\\d{2,3}(?:[.,]\\d+)?\\s*[x×]\\s*\\d{2,3}(?:[.,]\\d+)?\\s*[x×]\\s*\\d{2,3}(?:[.,]\\d+)?\\s*(?:cm|mm)?)"),
         new FactPattern("Бучава", "(?:noise\\s*(?:level)?|buka|бучава)[^\\n.;]{0,25}?([3-9]\\d)\\s*dB\\b"),
         new FactPattern("Капацитет", "(?:storage\\s*capacity|capacity|kapacitet|капацитет)[^\\n.;]{0,22}?(\\d+(?:[.,]\\d+)?)\\s*(GB|TB|l|литри|litres|liters)\\b"),
@@ -75,6 +75,23 @@ final class GoogleModelResearch {
             return true;
         }
         return SetecModelMatcher.score(normalized,result.title)>=80;
+    }
+
+    /** Short, attributed search-description excerpt; never generated or guessed. */
+    static Result description(String model,List<Result> results){
+        if(results==null)return null;
+        Result first=null;
+        for(Result r:results){
+            if(!relevant(model,r)||r.snippet.length()<28||!r.url.startsWith("https://"))continue;
+            if(first==null)first=r;
+            String host=r.url.toLowerCase(Locale.ROOT);
+            // A manufacturer's own pages take priority over retailer blurbs.
+            if(host.contains("gorenje.")||host.contains("bosch-home.")||
+               host.contains("midea.")||host.contains("samsung.")||
+               host.contains("apple.com")||host.contains("asus.com")||
+               host.contains("lg.com")||host.contains("whirlpool."))return r;
+        }
+        return first;
     }
 
     static List<Fact> extract(String model,List<Result> results){
