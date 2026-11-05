@@ -34,6 +34,14 @@ public final class SetecProductTitleTest {
                 "TELEFUNKEN TWM 1059V - Цена: 17.000 ден."));
     }
 
+    @Test public void googleSearchUsesFormattedManufacturerCode(){
+        String model=SetecProductTitle.modelFromProductName(
+            "Лаптоп ACER Aspire Go 15 (AG15-42P-R844) - Процесор AMD Ryzen 7 5825U");
+        assertEquals("AG15-42P-R844",GoogleModelResearch.formattedModelCode(model));
+        assertEquals("ACER AG15-42P-R844 technical specifications",
+            GoogleModelResearch.searchQuery(model));
+    }
+
     @Test public void neverReturnUnboundedSpecDescription(){
         assertEquals("",SetecProductTitle.modelFromProductName(
             "Лаптоп "+new String(new char[120]).replace('\0','A')));
