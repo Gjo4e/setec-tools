@@ -41,7 +41,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private int editingSlot=0;
 
     private static final class Product {
-        String name,club,regular,sku;
+        String name,club,regular,sku,description="",source="";
         Map<String,String> facts=new LinkedHashMap<>();
         Map<String,String> sourceByLabel=new LinkedHashMap<>();
         static Product parse(String json){
@@ -53,6 +53,13 @@ public final class CompareModelsActivity extends ComponentActivity {
                 p.club=obj.optString("club").trim();
                 p.regular=obj.optString("regular").trim();
                 p.sku=obj.optString("sku").trim();
+                String source=obj.optString("source").trim();
+                if(safeSource(source)){
+                    p.source=source;
+                    p.description=obj.optString("description").trim();
+                    if(p.description.length()>750)
+                        p.description=p.description.substring(0,750);
+                }
                 JSONArray arr=obj.optJSONArray("facts");
                 if(arr!=null)for(int i=0;i<arr.length();i++){
                     JSONObject f=arr.optJSONObject(i);
@@ -204,15 +211,31 @@ public final class CompareModelsActivity extends ComponentActivity {
         List<String> rows=ComparisonSummary.topSpecs(
             left.name,left.facts,right.name,right.facts);
         if(rows.isEmpty()){
-            TextView empty=text("За овие модели не се најдени проверени технички спецификации. "+
-                "Пробај повторно да ги скенираш или внеси ја точната ознака.",13,false,0xFF835A2D);
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
-            p.topMargin=dp(13);
-            table.addView(empty,p);
+            if(!left.description.isEmpty()||!right.description.isEmpty()){
+                row("Оригинален опис од Setec.mk",
+                    left.description.isEmpty()?"Нема технички опис":left.description,
+                    right.description.isEmpty()?"Нема технички опис":right.description,false);
+                LinearLayout references=new LinearLayout(this);
+                references.setOrientation(LinearLayout.HORIZONTAL);
+                table.addView(references);
+                addSource(references,left,false);
+                addSource(references,right,true);
+            }else{
+                TextView empty=text("За овие модели не се најдени проверени технички спецификации. "+
+                    "Пробај повторно да ги скенираш или внеси ја точната ознака.",13,false,0xFF835A2D);
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
+                p.topMargin=dp(13);
+                table.addView(empty,p);
+            }
             return;
         }
         for(String key:rows){
             row(key,known(left.facts.get(key)),known(right.facts.get(key)),true);
+        }
+        if(rows.size()<5&&(!left.description.isEmpty()||!right.description.isEmpty())){
+            row("Дополнителен технички опис од Setec.mk",
+                left.description.isEmpty()?"Не е наведен":left.description,
+                right.description.isEmpty()?"Не е наведен":right.description,false);
         }
         TextView count=text("Прикажани "+rows.size()+" најважни спецификации (најмногу 5). "+
                 "Ознаката ≠ покажува различни пријавени вредности, не автоматски победник.",
@@ -290,7 +313,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
 
     private void addSource(LinearLayout host,Product product,boolean second){
-        String source=null;
+        String source=safeSource(product.source)?product.source:null;
         for(String url:product.sourceByLabel.values()){
             if(safeSource(url)){source=url;break;}
         }
