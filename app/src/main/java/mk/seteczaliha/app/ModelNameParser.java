@@ -92,7 +92,21 @@ final class ModelNameParser {
                 offer(found, combined.toString(), n + 1);
             }
         }
-        List<Candidate> results = new ArrayList<>(found.values());
+        // A small manufacturer caption (e.g. "Gorenje") is not a model.
+        // If OCR returns both the bold model line and a merged caption+model,
+        // keep only the strongest canonical model identity.
+        Map<String,Candidate> identities=new LinkedHashMap<>();
+        for(Candidate candidate:found.values()){
+            Matcher code=CODE.matcher(candidate.model.toUpperCase(Locale.ROOT));
+            String identity=code.find()?code.group().replaceAll("[^A-Z0-9]",""):candidate.model.toUpperCase(Locale.ROOT);
+            Candidate previous=identities.get(identity);
+            if(previous==null || (BRAND.matcher(candidate.model).find()&&!BRAND.matcher(previous.model).find())
+                || (BRAND.matcher(candidate.model).find()==BRAND.matcher(previous.model).find()
+                    && (candidate.score>previous.score ||
+                    (candidate.score==previous.score&&candidate.model.length()<previous.model.length()))))
+                identities.put(identity,candidate);
+        }
+        List<Candidate> results = new ArrayList<>(identities.values());
         Collections.sort(results, (a,b) -> {
             int compare = Integer.compare(b.score, a.score);
             return compare != 0 ? compare : Integer.compare(b.model.length(), a.model.length());
