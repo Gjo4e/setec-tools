@@ -55,8 +55,32 @@ final class SetecProductTitle {
         title=DUPLICATE_START.matcher(title).replaceFirst("$1");
         title=title.replaceAll("^[\\s\\-–—|,:;]+|[\\s\\-–—|,:;]+$","").trim();
         if(title.length()>110) {
-            // Prevent sending huge product descriptions as search queries.
-            // Long unstructured titles are uncertain, not complete model IDs.
+            // Some air conditioners and large appliances have giant marketing
+            // titles, yet begin with a precise manufacturer model code.
+            // Preserve ONLY the leading brand+code when that identity is clear.
+            String[] tokens=title.split("\\s+");
+            int lastCode=-1;
+            for(int i=0;i<Math.min(tokens.length,10);i++){
+                String token=tokens[i].replaceAll("^[()]+|[(),;:.]+$","");
+                String upper=token.toUpperCase(Locale.ROOT);
+                if(upper.matches(".*(?:BTU|RPM|MAH|MHZ|GHZ|KW|GB|TB|W|КГ|ЛИТРИ)$")||
+                   upper.matches(".*(?:КОМПРЕСОР|КЛИМА|ЛАДЕЊЕ|ГРЕЕЊЕ|ИНВЕРТЕР).*"))break;
+                if(token.length()>=5&&token.matches("(?iu).*[A-Z].*")&&
+                    token.matches(".*\\d.*")&&
+                    token.matches("(?iu)[A-Z0-9/()._-]+")){
+                    lastCode=i;
+                    break;
+                }
+            }
+            if(lastCode>=1){
+                StringBuilder exact=new StringBuilder();
+                for(int i=0;i<=lastCode;i++){
+                    if(i>0)exact.append(' ');
+                    exact.append(tokens[i]);
+                }
+                if(exact.length()<=110)return exact.toString();
+            }
+            // Unknown oversized product title: reject rather than guess model.
             return "";
         }
         return title;
