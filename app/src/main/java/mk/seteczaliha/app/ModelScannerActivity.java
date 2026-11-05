@@ -348,10 +348,36 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
 
     private void handleRecognized(Text imageText){
-        List<String> lines=new ArrayList<>();
+        List<Text.Line> detected=new ArrayList<>();
         for(Text.TextBlock block:imageText.getTextBlocks())
-            for(Text.Line line:block.getLines())lines.add(line.getText());
-
+            detected.addAll(block.getLines());
+        // Small brand captions are often printed above a MUCH larger bold
+        // product title. Remove only captions whose brand is repeated in a
+        // larger model line. Keep the large title (and all model suffixes).
+        int largest=0;
+        for(Text.Line line:detected){
+            android.graphics.Rect bounds=line.getBoundingBox();
+            if(bounds!=null&&line.getText().matches(".*\\\\d.*"))
+                largest=Math.max(largest,bounds.height());
+        }
+        List<String> lines=new ArrayList<>();
+        for(Text.Line line:detected){
+            String value=line.getText().trim();
+            android.graphics.Rect bounds=line.getBoundingBox();
+            boolean small=bounds!=null&&largest>0&&bounds.height()*100<largest*83;
+            boolean caption=value.matches("(?i)^(?:GORENJE|MIDEA|BEKO|BOSCH|WHIRLPOOL|CANDY|HISENSE|AEG|ELECTROLUX|SAMSUNG|LG|TESLA|HAIER|VOX|APPLE|ASUS|LENOVO|DELL|HP)$");
+            boolean repeated=false;
+            if(small&&caption){
+                for(Text.Line other:detected){
+                    if(other==line)continue;
+                    String upper=other.getText().toUpperCase(Locale.ROOT);
+                    if(upper.contains(value.toUpperCase(Locale.ROOT))&&upper.matches(".*\\\\d.*")){
+                        repeated=true;break;
+                    }
+                }
+            }
+            if(!repeated)lines.add(value);
+        }
         List<ModelNameParser.Candidate> options=ModelNameParser.rank(lines);
         suggestions.removeAllViews();
         if(options.isEmpty()){
