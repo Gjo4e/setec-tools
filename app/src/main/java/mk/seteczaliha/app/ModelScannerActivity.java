@@ -512,7 +512,7 @@ public final class ModelScannerActivity extends ComponentActivity {
 
     private void readSetecMatches(int serial){
         if(serial!=setecSerial||setecStage!=1||setecMatched||setecBrowser==null)return;
-        String js="(function(){\n try{\n  let result=new Map();\n  for(const a of document.querySelectorAll('a[href*=\"/products/\"]')){\n   let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}\n   if(!['www.setec.mk','setec.mk'].includes(u.hostname)||result.has(u.href))continue;\n   let card=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;\n   let heading=card.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');\n   let name=(heading?.innerText||a.title||a.innerText||'').replace(/\\s+/g,' ').trim();\n   if(name.length<5||name.length>210)continue;\n   result.set(u.href,{url:u.href,name:name});\n   if(result.size>=100)break;\n  }\n  return JSON.stringify([...result.values()]);\n }catch(e){return '[]'}\n})()";
+        String js="(function(){\n try{\n  let result=new Map();\n  for(const a of document.querySelectorAll('a[href*=\"/products/\"]')){\n   let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}\n   if(!['www.setec.mk','setec.mk','set.mk','www.set.mk'].includes(u.hostname)||result.has(u.href))continue;\n   let card=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;\n   let heading=card.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');\n   let name=(heading?.innerText||a.title||a.innerText||'').replace(/\\s+/g,' ').trim();\n   if(name.length<5||name.length>210)continue;\n   result.set(u.href,{url:u.href,name:name});\n   if(result.size>=100)break;\n  }\n  return JSON.stringify([...result.values()]);\n }catch(e){return '[]'}\n})()";
         setecBrowser.evaluateJavascript(js,encoded->{
             if(serial!=setecSerial||setecStage!=1||setecMatched)return;
             try{
@@ -540,6 +540,7 @@ public final class ModelScannerActivity extends ComponentActivity {
                 if(best>=100 && best-second>=4){
                     selectSetecProduct(top.optString("url"),top.optString("name"));
                 }else{
+                    setecMatched=true; // Pause navigation until the user selects the exact variant.
                     setecOptions.removeAllViews();
                     setecStatus.setText("Пронајдов слични производи. Избери го точниот модел/боја за да ги видиш спецификациите:");
                     for(int i=0;i<Math.min(5,matches.size());i++){
@@ -569,7 +570,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         try{
             Uri u=Uri.parse(link);
             return "https".equalsIgnoreCase(u.getScheme())
-                &&("setec.mk".equalsIgnoreCase(u.getHost())||"www.setec.mk".equalsIgnoreCase(u.getHost()))
+                &&("setec.mk".equalsIgnoreCase(u.getHost())||"www.setec.mk".equalsIgnoreCase(u.getHost())||"set.mk".equalsIgnoreCase(u.getHost())||"www.set.mk".equalsIgnoreCase(u.getHost()))
                 &&u.getPath()!=null&&u.getPath().startsWith("/products/");
         }catch(Exception e){return false;}
     }
