@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'mk.setecsifri.ai54'
+        applicationId 'mk.setecsifri.setecfix55'
         minSdk 26
         targetSdk 35
-        versionCode 54
-        versionName '5.4'
+        versionCode 55
+        versionName '5.5'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
