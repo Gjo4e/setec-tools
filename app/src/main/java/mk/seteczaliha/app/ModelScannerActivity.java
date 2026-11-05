@@ -794,7 +794,7 @@ public final class ModelScannerActivity extends ComponentActivity {
                 setecStatus.setText("✓ Потврдена SETEC шифра "+sku+" и модел "+cleanModel+".");
                 googleStatus.setText("Читам краток опис и технички спецификации од Setec.mk…");
                 showSetecSpecs(cleanModel,url,p.optString("specs"),
-                    p.optString("short"),fullTitle);
+                    p.optString("short"),fullTitle,p.optString("category"));
                 // Setec can populate the technical tab a few seconds later.
                 // Keep retrying for more details even if the H1 already gave 1 fact.
                 for(long delay:new long[]{850,1800,3100,4700,6200})
@@ -830,16 +830,16 @@ public final class ModelScannerActivity extends ComponentActivity {
                 if(!compareSkuRequested.equals(p.optString("sku")))return;
                 if(!bestSetecUrl.equals(setecBrowser.getUrl()))return;
                 showSetecSpecs(compareModel,bestSetecUrl,p.optString("specs"),
-                    p.optString("short"),p.optString("name"));
+                    p.optString("short"),p.optString("name"),p.optString("category"));
             }catch(Exception ignored){}
         });
     }
 
     private void showSetecSpecs(String model,String url,String technical,
-                                String shortDescription,String fullTitle){
+                                String shortDescription,String fullTitle,String category){
         if(!SetecPageData.isOfficialProductUrl(url))return;
         List<GoogleModelResearch.Fact> chosen=SetecKeySpecs.extract(
-            model,url,technical,shortDescription,fullTitle);
+            model,url,technical,shortDescription,fullTitle,category);
         if(chosen.isEmpty()){
             if(googleFacts.getText().length()==0){
                 googleStatus.setText("Се вчитуваат спецификациите од Setec.mk…");
@@ -1080,7 +1080,8 @@ public final class ModelScannerActivity extends ComponentActivity {
                     setecStatus.setText("✓ Точниот модел е пронајден. Се проверуваат шифрата и цените.");
                 }
                 showSetecSpecs(name,url,product.optString("specs"),
-                    product.optString("short"),product.optString("name"));
+                    product.optString("short"),product.optString("name"),
+                    product.optString("category"));
                 if(setecSpecAttempts++<5){
                     handler.postDelayed(()->readSetecDetails(serial),1000);
                 }else if(googleFacts.getText().length()==0){
