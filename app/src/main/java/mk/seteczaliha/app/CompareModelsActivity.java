@@ -129,7 +129,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         content.setPadding(dp(13),dp(16),dp(13),dp(32));
         scroll.addView(content);
 
-        overview=text("Скенирај две SETEC шифри. Апликацијата сама ќе ги најде моделите и ќе ги спореди најважните податоци од интернет.",13,false,0xFF626B78);
+        overview=text("Скенирај две SETEC шифри. Апликацијата ги наоѓа моделите и ги споредува најважните спецификации само од Setec.mk.",13,false,0xFF626B78);
         content.addView(overview);
 
         LinearLayout buttons=new LinearLayout(this);
@@ -158,8 +158,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         tp.topMargin=dp(8);
         content.addView(table,tp);
 
-        TextView note=text("Податоците се од независни веб извори за точниот модел. "+
-            "Цените и шифрите, кога се достапни, се од Setec. "+
+        TextView note=text("Моделите, шифрите, цените и прикажаните спецификации се исклучиво од Setec.mk. "+
             "Непотврдено значи дека не е најдена сигурна вредност, не дека производот ја нема функцијата.",
             12,false,0xFF687180);
         LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);
