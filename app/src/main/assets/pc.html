@@ -41,7 +41,7 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
  <p class="small">Се отвора официјалната категорија од „Компјутери и Компјутерски Делови“ на Setec.mk. Полето подолу е само за дополнителен филтер по модел или бренд.</p>
  <form class="inputrow" onsubmit="event.preventDefault();runSearch(1)"><input type="search" id="term" placeholder="Бренд, модел или Setec шифра" autocomplete="off"><button class="btn" type="submit">Филтрирај</button></form>
  <div class="row wrap"><span id="searchStatus" class="small" aria-live="polite">Избери пребарување</span><span id="pageInfo" class="small"></span></div>
- <label class="small" style="display:flex;gap:7px;align-items:center;margin:10px 0"><input id="compatibleOnly" type="checkbox" checked onchange="renderCandidates()"> Прикажи само делови без утврдена некомпатибилност</label>
+ <label class="small" style="display:flex;gap:7px;align-items:center;margin:10px 0"><input id="compatibleOnly" type="checkbox" onchange="renderCandidates()"> Скриј некомпатибилни делови (стандардно се прикажуваат сите)</label>
  <div class="bar"><div id="progressFill" class="fill"></div></div><div id="stockStatus" class="small" aria-live="polite"></div>
  <div id="results"></div>
  <div id="nextPage" class="small" role="status" aria-live="polite" style="text-align:center;padding:12px;margin-top:9px">Автоматски ги вчитувам сите страници…</div><div class="row" style="margin-top:15px"><button class="ghost" onclick="goHome()">← Назад</button><button class="ghost" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Горе</button></div>
@@ -67,7 +67,7 @@ let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=fals
 // Catalog pages are fetched one after another without user interaction.
 // All stock verifications run independently in Java as the list grows.
 const MAX_AUTO_PAGES=75;
-let scanActive=false,scanComplete=false,scanEpoch=0,scanTimer=null,pageRetries=0;
+let scanActive=false,scanComplete=false,scanEpoch=0,scanTimer=null,pageRetries=0,unchangedSnapshots=0;
 let allCatalogUrls=new Set(),renderTimer=null;
 function scheduleRender(){if(renderTimer!==null)return;renderTimer=setTimeout(()=>{renderTimer=null;renderCandidates()},95)}
 function stopPageScan(message){
@@ -168,35 +168,32 @@ function typeMatch(p,id){
 }
 // Keep only components that physically belong in a desktop PC build.
 // Product-page specs may contain entire store navigation; classify only by the model name.
+// The category from Setec determines component type. Many genuine parts have
+// only model codes (no "RTX", "DDR" or "SSD" in the name).
 function builderPart(p,id){
  const n=String(p?.name||'').normalize('NFKC').toUpperCase();
  if(!n||/ЛАПТОП|NOTEBOOK|ALL[\s-]*IN[\s-]*ONE|КОМПЛЕТЕН\s*КОМПЈУТЕР|PC\s*CONFIGURATION|ГОТОВА\s*КОНФИГУРАЦИЈА/.test(n))return false;
  const accessory=/\b(?:ADAPTER|ADAPTOR|CONVERTER|CABLE|SPLITTER|HOLDER|BRACKET|MOUNTING\s*KIT|EXTENSION\s*CABLE|DOCKING\s*STATION|HUB|ENCLOSURE|CASE\s*FOR\s*(?:SSD|HDD)|CARD\s*READER)\b|АДАПТЕР|КАБЕЛ|НОСАЧ|ДРЖАЧ|КОНВЕРТОР|КУТИЈА\s*ЗА\s*(?:SSD|HDD)|КУЌИШТЕ\s*ЗА\s*(?:SSD|HDD)|ЧИТАЧ\s*НА\s*КАРТИЧКИ/;
  switch(id){
   case 'storage':
-   // External SSDs/HDDs, USB sticks, SD cards, NAS and enclosures aren't PC build disks.
-   if(/\b(?:EXTERNAL|EXTERN|PORTABLE|PORTATIV|FLASH\s*(?:DRIVE|DISK)|USB\s*(?:FLASH|STICK|MEMORY|DRIVE)|THUMB\s*DRIVE|PENDRIVE|MICRO[\s-]?SD|SD[\s-]*CARD|MEMORY\s*CARD|CARD\s*READER|NAS|DAS|MY\s*PASSPORT|MY\s*BOOK|STOREJET|T7\s*SHIELD|SE\d{3}\s+\d+(?:GB|TB)\s+USB)\b|НАДВОРЕШ|ЕКСТЕРН|ПРЕНОСЕН\s*ДИСК|ПРЕНОСНА\s*МЕМОРИЈА|USB\s*МЕМОРИЈА|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
+   if(/\b(?:EXTERNAL|EXTERN|PORTABLE|PORTATIV|FLASH\s*(?:DRIVE|DISK)|USB\s*(?:FLASH|STICK|MEMORY|DRIVE)|THUMB\s*DRIVE|PENDRIVE|MICRO[\s-]?SD|SD[\s-]*CARD|MEMORY\s*CARD|CARD\s*READER|NAS|DAS|MY\s*PASSPORT|MY\s*BOOK|STOREJET|T7\s*SHIELD|DATATRAVELER|CRUZER|JETFLASH|FLASH\s*MEMORY|FLASH\s*STICK)\b|НАДВОРЕШ|ЕКСТЕРН|ПРЕНОСЕН\s*ДИСК|ПРЕНОСНА\s*МЕМОРИЈА|USB\s*МЕМОРИЈА|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
    if(accessory.test(n)||/\b(?:M\.2|SATA)\s*(?:TO|2)\s*USB\b|\bUSB[\s-]*C\b|\bUSB\s*3[.]?[012]?\b/.test(n))return false;
-   return /\b(?:SSD|HDD|NVME|M\.?2|SATA|HARD\s*DISK|HARD\s*DRIVE)\b|ТВРД\s*ДИСК|ХАРД\s*ДИСК/.test(n);
+   return true;
   case 'ram':
    if(ramFormFactor(p)==='SO-DIMM')return false;
-   if(/\b(?:FLASH|USB\s*MEMORY|SD[\s-]*CARD|CARD\s*READER|EXTERNAL|PORTABLE)\b|ФЛЕШ|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
-   return !accessory.test(n)&&/\bDDR[345]\b|\bDIMM\b|\bUDIMM\b|\bRAM\b|РАМ\s*МЕМОРИЈА|\b(?:FURY|VENGEANCE|TRIDENT|RIPJAWS)\b/.test(n);
-  case 'cooler':return cpuCooler(p);
+   if(/\b(?:FLASH|USB\s*MEMORY|SD[\s-]*CARD|CARD\s*READER|EXTERNAL|PORTABLE|DATATRAVELER|CRUZER|JETFLASH)\b|ФЛЕШ|МЕМОРИСКА\s*КАРТИЧКА/.test(n))return false;
+   return !accessory.test(n);
+  case 'cooler':return cpuCooler(p); // Only CPU coolers.
   case 'gpu':
-   if(accessory.test(n)||/\b(?:RISER|VERTICAL\s*MOUNT|GRAPHICS\s*CARD\s*STAND|GPU\s*SUPPORT|EGPU\s*ENCLOSURE|GPU\s*BACKPLATE)\b|РАЈЗЕР/.test(n))return false;
-   return /\b(?:RTX|GTX|GT\s*\d{3,4}|RX\s*[56789]\d{3}|RADEON|GEFORCE|ARC\s*[AB]\d{3}|QUADRO)\b|ГРАФИЧКА\s*КАРТИЧКА/.test(n);
+   return !accessory.test(n)&&!/\b(?:RISER|VERTICAL\s*MOUNT|GRAPHICS\s*CARD\s*STAND|GPU\s*SUPPORT|EGPU\s*ENCLOSURE|GPU\s*BACKPLATE)\b|РАЈЗЕР/.test(n);
   case 'cpu':
-   if(accessory.test(n)||/\b(?:COOLER|CPU\s*FAN|THERMAL\s*PASTE|HEATSINK|WATER\s*BLOCK)\b|КУЛЕР|ЛАДИЛНИК|ТЕРМАЛНА\s*ПАСТА/.test(n))return false;
-   return true; // Official processor category; allow model-only names.
+   return !accessory.test(n)&&!/\b(?:COOLER|CPU\s*FAN|THERMAL\s*PASTE|HEATSINK|WATER\s*BLOCK)\b|КУЛЕР|ЛАДИЛНИК|ТЕРМАЛНА\s*ПАСТА/.test(n);
   case 'board':
    return !accessory.test(n)&&!/\b(?:EXPANSION\s*CARD|SOUND\s*CARD|WIFI\s*CARD|NETWORK\s*CARD|RISER)\b/.test(n);
   case 'psu':
-   if(accessory.test(n)||/\b(?:UPS|CHARGER|POWER\s*BANK|LAPTOP\s*POWER|AC[\s-]*DC\s*ADAPTER)\b|ПОЛНАЧ|ПРОДОЛЖЕН\s*КАБЕЛ/.test(n))return false;
-   return true;
+   return !accessory.test(n)&&!/\b(?:UPS|CHARGER|POWER\s*BANK|LAPTOP\s*POWER|AC[\s-]*DC\s*ADAPTER)\b|ПОЛНАЧ|ПРОДОЛЖЕН\s*КАБЕЛ/.test(n);
   case 'case':
-   if(accessory.test(n)||/\b(?:HDD|SSD|EXTERNAL|NAS\s*ENCLOSURE|LAPTOP\s*BAG|PHONE\s*CASE|TABLET\s*CASE|RACK\s*SHELF)\b|НАДВОРЕШ|ЕКСТЕРН|ТОРБА/.test(n))return false;
-   return true;
+   return !accessory.test(n)&&!/\b(?:HDD|SSD|EXTERNAL|NAS\s*ENCLOSURE|LAPTOP\s*BAG|PHONE\s*CASE|TABLET\s*CASE|RACK\s*SHELF)\b|НАДВОРЕШ|ЕКСТЕРН|ТОРБА/.test(n);
  }
  return false;
 }
@@ -285,7 +282,7 @@ function runSearch(page,retry=false){
   $('stockStatus').textContent='Залихата ќе се проверува додека се вчитуваат производите.';
   $('catCount').textContent='';
  }
- if(!retry)pageRetries=0;
+ if(!retry){pageRetries=0;unchangedSnapshots=0}
  searchPage=page;loadingMore=page>1;searching=true;candidateAccepted=false;
  $('nextPage').classList.remove('hidden');
  $('nextPage').textContent='Автоматски вчитувам страница '+page+'…';
@@ -347,25 +344,41 @@ function renderCandidates(){
   fragment.appendChild(row);
  }
  if(catalogProducts.length&&!shownCount){
-  fragment.appendChild(el('div','warning','Нема прикажани соодветни компоненти засега. Останатите страници се пребаруваат автоматски.'));
+  fragment.appendChild(el('div','warning',scanActive?'Нема прикажани компоненти засега. Останатите страници се пребаруваат автоматски.':'Нема компоненти so tekovniot filter. Iskluci go filterot za nekompatibilni delovi.'));
  }
  host.replaceChildren(fragment);
- $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
+ $('catCount').textContent=shownCount+' прикажани · '+incompatibleCount+' со некомпатибилност · '+catalogProducts.length+' пронајдени';
 }
 window.pcCandidates=json=>{
  if(!scanActive||!searching||candidateAccepted)return;
  let raw=[];
  try{raw=JSON.parse(json);if(!Array.isArray(raw))return}catch(e){return}
- candidateAccepted=true;searching=false;loadingMore=false;
  // Test the complete raw page, not only products matching the active filter.
  // Otherwise a page consisting of accessories could falsely stop the scan.
  const valid=raw.filter(p=>p&&safe(p.url));
  const unseen=valid.filter(p=>!allCatalogUrls.has(p.url));
- for(const p of valid)allCatalogUrls.add(p.url);
- if(searchPage>1&&unseen.length===0){
-  stopPageScan('Сите достапни страници се пребарани · '+currentPage+' страници · '+catalogProducts.length+' соодветни производи.');
+ if(valid.length===0){
+  unchangedSnapshots++;
+  if(unchangedSnapshots<4){
+   $('searchStatus').textContent='Чекам производи од страница '+searchPage+' ('+unchangedSnapshots+'/4)…';
+   return;
+  }
+  stopPageScan(searchPage===1?'Setec не прикажа производи во оваа категорија.':'Каталогот нема повеќе производи · '+currentPage+' страници.');
   scheduleRender();return;
  }
+ for(const p of valid)allCatalogUrls.add(p.url);
+ if(searchPage>1&&unseen.length===0){
+  // A freshly navigated page can briefly show the previous page before React
+  // finishes updating. Wait for four staggered snapshots (native WebView).
+  unchangedSnapshots++;
+  if(unchangedSnapshots<4){
+   $('searchStatus').textContent='Чекам да се освежи страница '+searchPage+' ('+unchangedSnapshots+'/4)…';
+   return;
+  }
+  stopPageScan('Нема нови модели на страница '+searchPage+'. Вчитани '+currentPage+' страници · '+catalogProducts.length+' компоненти.');
+  scheduleRender();return;
+ }
+ candidateAccepted=true;searching=false;loadingMore=false;
  currentPage=searchPage;
  const filter=$('term').value.toLowerCase().trim();
  const accepted=valid.filter(p=>builderPart(p,category)&&
