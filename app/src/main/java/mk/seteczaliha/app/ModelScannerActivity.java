@@ -81,6 +81,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private int compareSlot=1;
     private String compareModel="",compareSku="",compareClub="",compareRegular="";
     private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
+    private boolean compareResearchBusy=false;
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
     private LinearLayout suggestions, sources, setecOptions;
     private EditText modelInput;
@@ -434,6 +435,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
     private void clearComparisonData(String model){
         compareModel=model;
+        compareResearchBusy=!model.isEmpty();
         compareSku="";compareClub="";compareRegular="";
         compareFacts=new ArrayList<>();
     }
@@ -447,6 +449,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(!displayed.equals(compareModel)){
             research(displayed);
             setStatus("Прво ги проверувам податоците за моделот. Потоа притисни „Зачувај“.");
+            return;
+        }
+        if(compareResearchBusy&&compareFacts.size()<3){
+            setStatus("Сѐ уште ги барам спецификациите од независни извори. Пробај „Зачувај“ повторно кога ќе заврши пребарувањето.");
             return;
         }
         try{
@@ -525,6 +531,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             final List<GoogleModelResearch.Result> safe=rich;
             runOnUiThread(()->{
                 if(serial!=researchSerial||isFinishing())return;
+                compareResearchBusy=false;
                 int factCount=GoogleModelResearch.extract(query,safe).size();
                 if(factCount>=3&&factCount>bestFactCount){
                     googleHasResults=true;
@@ -849,7 +856,7 @@ public final class ModelScannerActivity extends ComponentActivity {
                 String code=product.optString("sku");
                 String club=product.optString("club");
                 String regular=product.optString("regular");
-                if(activeSetecModel.equals(compareModel)){
+                if(activeSetecModel.equals(ModelNameParser.normalizeModel(compareModel))){
                     compareSku=code;
                     compareClub=club;
                     compareRegular=regular;
