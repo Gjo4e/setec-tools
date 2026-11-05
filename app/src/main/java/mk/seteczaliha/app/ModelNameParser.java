@@ -90,7 +90,10 @@ final class ModelNameParser {
         String clean = raw.replaceAll("[\\r\\n\\t]+", " ").replaceAll("\\s+", " ").trim()
             .replaceFirst("(?iu)^(?:MODEL(?:\\s+NO\\.?|\\s+NUMBER)?|МОДЕЛ)\\s*[:#-]?\\s*", "");
         clean = GENERIC_START.matcher(clean).replaceFirst("").trim();
-        clean = clean.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d)]+$", "").trim();
+        // Camera text often includes decorative quotes and wrapped parentheses.
+        // These make an exact model search unreliable; keep part-number hyphens/slashes.
+        clean = clean.replaceAll("[“”″‘’()\\[\\]]", " ").replaceAll("\\s+", " ").trim();
+        clean = clean.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d]+$", "").trim();
         if (clean.length() < 4 || clean.length() > 90) return;
         String upper = clean.toUpperCase(Locale.ROOT);
         boolean brand = BRAND.matcher(upper).find();
