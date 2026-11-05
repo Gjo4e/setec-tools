@@ -106,6 +106,6 @@ public final class SetecKeySpecsTest {
 
     @Test public void technicalTabIsOnlyOpenedOnce(){
         assertTrue(SetecPageData.READ_PRODUCT_SCRIPT.contains("window.__setecSpecsOpened"));
-        assertTrue(SetecPageData.READ_PRODUCT_SCRIPT.contains("short:short"));
+        assertTrue(SetecPageData.READ_PRODUCT_SCRIPT.contains("short, category"));
     }
 }
