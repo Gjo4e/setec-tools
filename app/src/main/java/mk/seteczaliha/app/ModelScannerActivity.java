@@ -87,6 +87,9 @@ public final class ModelScannerActivity extends ComponentActivity {
     private int setecSerial=0;
     private boolean setecMatched=false;
     private boolean homeSearchFallback=false,homeSearchSubmitted=false;
+    private java.util.List<String> setecQueries=new java.util.ArrayList<>();
+    private int setecQueryIndex=0,lookupGeneration=0,slugHostIndex=0;
+    private String officialSlug="";
     private boolean scanning = false;
     private int researchSerial = 0;
     private ActivityResultLauncher<String> cameraPermission;
@@ -119,16 +122,24 @@ public final class ModelScannerActivity extends ComponentActivity {
         appRoot.addView(page,new FrameLayout.LayoutParams(-1,-1));
         setecBrowser.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
-                final int serial=setecSerial;
-                if(setecStage==1){
-                    if(homeSearchFallback&&!homeSearchSubmitted&&(url.equals("https://www.setec.mk/")||url.equals("https://setec.mk/"))){
-                        for(long delay:new long[]{450,1100})
+                final int serial=setecSerial,generation=lookupGeneration;
+                if(setecStage==4){
+                    for(long delay:new long[]{450,1250,2500,3500})
+                        handler.postDelayed(()->readDirectSetecModel(serial,generation),delay);
+                }else if(setecStage==1){
+                    if(homeSearchFallback&&!homeSearchSubmitted&&
+                        (url.equals("https://www.setec.mk/")||url.equals("https://setec.mk/"))){
+                        for(long delay:new long[]{500,1300})
                             handler.postDelayed(()->submitHomeSearch(serial),delay);
                     }
-                    for(long delay:new long[]{650,1650,3050,5100})
-                        handler.postDelayed(()->readSetecMatches(serial),delay);
-                }else if(setecStage==2)for(long delay:new long[]{650,1350,2700})
-                    handler.postDelayed(()->readSetecDetails(serial),delay);
+                    for(long delay:new long[]{550,1400,2450,3650})
+                        handler.postDelayed(()->{
+                            if(generation==lookupGeneration)readSetecMatches(serial);
+                        },delay);
+                }else if(setecStage==2){
+                    for(long delay:new long[]{650,1550,2900,4500})
+                        handler.postDelayed(()->readSetecDetails(serial),delay);
+                }
             }
         });
 
@@ -391,26 +402,82 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecOptions.removeAllViews();
         activeSetecModel=ModelNameParser.normalizeModel(requestedModel);
         int serial=++setecSerial;
-        setecStage=1;setecMatched=false;homeSearchFallback=false;homeSearchSubmitted=false;
-        setecStatus.setText("🔎 Пребарувам производи на Setec.mk…");
-        String term=SetecModelMatcher.searchTerm(activeSetecModel);
-        if(term.isEmpty()){setecStatus.setText("Внеси модел за пребарување на Setec.");return;}
+        setecMatched=false;homeSearchFallback=false;homeSearchSubmitted=false;
+        setecQueries=SetecModelMatcher.searchTerms(activeSetecModel);
+        setecQueryIndex=0;slugHostIndex=0;lookupGeneration++;
+        officialSlug=SetecModelMatcher.possibleOfficialSlug(activeSetecModel);
+        if(!officialSlug.isEmpty()){
+            // A guessed slug is ONLY a lookup candidate. It is never displayed as
+            // verified until the product page h1 matches the full scanned model.
+            trySetecSlug(serial);
+        }else tryNextSetecSearch(serial);
+    }
+
+    private void trySetecSlug(int serial){
+        if(serial!=setecSerial||setecMatched)return;
+        if(officialSlug.isEmpty()||slugHostIndex>=2){
+            tryNextSetecSearch(serial);return;
+        }
+        int generation=++lookupGeneration;
+        setecStage=4;
+        String host=slugHostIndex++==0?"setec.mk":"set.mk";
+        setecStatus.setText("🔎 Проверувам точна ознака на "+host+"…");
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl("https://"+host+"/products/"+officialSlug);
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&setecStage==4&&generation==lookupGeneration&&!setecMatched)
+                trySetecSlug(serial);
+        },4600);
+    }
+
+    private void tryNextSetecSearch(int serial){
+        if(serial!=setecSerial||setecMatched)return;
+        if(setecQueryIndex>=Math.min(4,setecQueries.size())){
+            tryHomeSearch(serial);return;
+        }
+        String term=setecQueries.get(setecQueryIndex++);
+        int generation=++lookupGeneration;
+        setecStage=1;
+        setecStatus.setText("🔎 Пребарувам Setec по модел: "+term);
         Uri target=Uri.parse("https://www.setec.mk/search-result").buildUpon()
             .appendQueryParameter("q",term).build();
         setecBrowser.stopLoading();
         setecBrowser.loadUrl(target.toString());
         handler.postDelayed(()->{
-            if(serial==setecSerial&&setecStage==1&&!setecMatched){
-                homeSearchFallback=true;
-                setecStatus.setText("Пробувам и преку официјалното пребарување на Setec…");
-                setecBrowser.loadUrl("https://www.setec.mk/");
+            if(serial==setecSerial&&setecStage==1&&generation==lookupGeneration&&!setecMatched){
+                tryNextSetecSearch(serial);
             }
-        },6300);
+        },4900);
+    }
+
+    private void tryHomeSearch(int serial){
+        if(serial!=setecSerial||setecMatched||homeSearchFallback)return;
+        int generation=++lookupGeneration;
+        setecStage=1;homeSearchFallback=true;homeSearchSubmitted=false;
+        setecStatus.setText("🔎 Пробувам и преку пребарувањето на официјалната Setec страница…");
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl("https://www.setec.mk/");
         handler.postDelayed(()->{
-            if(serial==setecSerial&&setecStage==1&&!setecMatched){
-                setecStatus.setText("Нема сигурно совпаѓање со точниот модел. Провери го текстот или избери понуден Setec производ.");
+            if(serial==setecSerial&&setecStage==1&&generation==lookupGeneration&&!setecMatched){
+                setecStatus.setText("Не најдов доволно сигурно совпаѓање. За повеќе податоци отвори го официјалното пребарување.");
             }
-        },16000);
+        },9500);
+    }
+
+    private void readDirectSetecModel(int serial,int generation){
+        if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=4||setecMatched)return;
+        String js="(function(){return document.querySelector('h1')?.innerText||''})()";
+        setecBrowser.evaluateJavascript(js,result->{
+            if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=4||setecMatched)return;
+            String name=decodeJs(result);
+            if(name==null||SetecModelMatcher.score(activeSetecModel,name)<100)return;
+            String actualUrl=setecBrowser.getUrl();
+            if(!isSetecProduct(actualUrl))return;
+            setecMatched=true;setecStage=2;bestSetecUrl=actualUrl;
+            setecStatus.setText("✓ Проверен модел: "+name.trim()+"\nГи читам техничките спецификации…");
+            for(long delay:new long[]{100,800,1650,3200})
+                handler.postDelayed(()->readSetecDetails(serial),delay);
+        });
     }
 
     private void submitHomeSearch(int serial){
