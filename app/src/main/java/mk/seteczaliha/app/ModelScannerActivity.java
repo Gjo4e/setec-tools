@@ -84,6 +84,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private int compareSkuCandidateIndex=0;
     private boolean compareSkuSearchFallback=false;
     private String compareModel="",compareSku="",compareClub="",compareRegular="";
+    private String compareDescription="";
     private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
     private boolean compareResearchBusy=false;
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
@@ -429,6 +430,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         compareModel=model;
         compareResearchBusy=!model.isEmpty();
         compareSku="";compareClub="";compareRegular="";
+        compareDescription="";
         compareFacts=new ArrayList<>();
     }
 
@@ -461,6 +463,8 @@ public final class ModelScannerActivity extends ComponentActivity {
             record.put("sku",compareSku);
             record.put("club",compareClub);
             record.put("regular",compareRegular);
+            record.put("source",SetecPageData.isOfficialProductUrl(bestSetecUrl)?bestSetecUrl:"");
+            record.put("description",compareDescription);
             JSONArray arr=new JSONArray();
             for(GoogleModelResearch.Fact fact:compareFacts){
                 if(fact==null||!SetecPageData.isOfficialProductUrl(fact.url))continue;
@@ -803,14 +807,13 @@ public final class ModelScannerActivity extends ComponentActivity {
                     if(serial!=setecSerial||generation!=lookupGeneration||
                        !comparePicker||!compareSkuRequested.equals(compareSku))return;
                     compareResearchBusy=false;
-                    if(compareFacts.isEmpty()){
+                    if(compareFacts.isEmpty()&&compareDescription.isEmpty()){
                         googleStatus.setText("Setec.mk нема доволно јасни технички податоци за овој производ.");
                         if(googleFacts.getText().length()==0)
                             googleFacts.setText("Моделот и цената се потврдени, но недостига сигурен опис. "+
                                 "Отвори го производот на Setec.mk за проверка.");
                     }else{
-                        googleStatus.setText("✓ Извлечени "+compareFacts.size()+
-                            " најважни технички податоци од истиот Setec производ.");
+                        googleStatus.setText("✓ Прочитан е описот на истиот Setec производ.");
                     }
                 },7000);
             }catch(Exception ignored){}
@@ -840,33 +843,64 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(!SetecPageData.isOfficialProductUrl(url))return;
         List<GoogleModelResearch.Fact> chosen=SetecKeySpecs.extract(
             model,url,technical,shortDescription,fullTitle,category);
-        if(chosen.isEmpty()){
-            if(googleFacts.getText().length()==0){
-                googleStatus.setText("Се вчитуваат спецификациите од Setec.mk…");
-                String shortText=shortDescription==null?"":shortDescription
-                    .replaceAll("[\r\n\t]+"," ").replaceAll("\\s+"," ").trim();
-                if(shortText.length()>20&&shortText.length()<2500&&
-                   !shortText.matches("(?iu).*(?:клуб цена|редовна цена|кошничка|рати).*")){
-                    if(shortText.length()>300)shortText=shortText.substring(0,300).trim()+"…";
-                    googleFacts.setText("КРАТОК ОПИС ОД SETEC.MK\n"+shortText+
-                        "\n\nТехничките вредности се проверуваат одделно.");
-                }
-            }
-            return;
-        }
+        List<String> original=SetecDescriptionFallback.select(
+            model,technical,shortDescription,fullTitle,5);
+        String rawSummary=SetecDescriptionFallback.summary(
+            model,technical,shortDescription,fullTitle);
         if(comparePicker&&model.equals(compareModel)){
-            if(chosen.size()<compareFacts.size())return;
-            compareFacts=new ArrayList<>(chosen);
+            // Don't lose previously found details when the site re-renders its
+            // accordion on a later read.
+            if(chosen.size()>=compareFacts.size())
+                compareFacts=new ArrayList<>(chosen);
+            if(rawSummary.length()>compareDescription.length())
+                compareDescription=rawSummary.length()>750
+                    ?rawSummary.substring(0,750):rawSummary;
             if(chosen.size()>=5)compareResearchBusy=false;
         }
-        StringBuilder summary=new StringBuilder("НАЈВАЖНИ СПЕЦИФИКАЦИИ ОД SETEC.MK\n");
-        for(GoogleModelResearch.Fact fact:chosen)
-            summary.append("• ").append(fact.label).append(": ").append(fact.value).append("\n");
-        googleFacts.setText(summary.toString());
-        googleStatus.setText("✓ Пронајдени "+chosen.size()+
-            " важни технички податоци. Се прикажуваат само вредности од Setec.mk.");
-        internetStatus.setText("Извор: истиот проверен производ на Setec.mk. "+
-            "Нејасните вредности се изоставени.");
+        if(chosen.isEmpty()&&original.isEmpty()){
+            if(googleFacts.getText().length()==0)
+                googleStatus.setText("Се отвораат техничките спецификации од Setec.mk…");
+            return;
+        }
+        StringBuilder summary=new StringBuilder();
+        if(!chosen.isEmpty()){
+            summary.append("НАЈВАЖНИ ТЕХНИЧКИ ПОДАТОЦИ ОД SETEC.MK\n");
+            for(GoogleModelResearch.Fact fact:chosen)
+                summary.append("• ").append(fact.label).append(": ")
+                    .append(fact.value).append("\n");
+        }
+        // Every Setec product type benefits from a *real* description, even
+        // if a new category has no dedicated regex. Never invent 5 values.
+        int extra=Math.max(0,5-chosen.size());
+        int shown=0;
+        for(String line:original){
+            if(extra<=0)break;
+            boolean duplicate=false;
+            String normalized=line.toLowerCase(Locale.ROOT).replaceAll("\\s+","");
+            for(GoogleModelResearch.Fact fact:chosen){
+                String value=fact.value.toLowerCase(Locale.ROOT).replaceAll("\\s+","");
+                if(value.length()>=4&&normalized.contains(value)){
+                    duplicate=true;break;
+                }
+            }
+            if(duplicate)continue;
+            if(shown==0){
+                if(summary.length()>0)summary.append("\n");
+                summary.append("ОРИГИНАЛЕН ТЕХНИЧКИ ОПИС ОД SETEC.MK\n");
+            }
+            summary.append("• ").append(line).append("\n");
+            shown++;extra--;
+        }
+        if(summary.length()==0)return;
+        // Do not overwrite a better result with a weaker asynchronous read.
+        if(!comparePicker || chosen.size()>=compareFacts.size() ||
+           summary.length()>googleFacts.getText().length())
+            googleFacts.setText(summary.toString());
+        int available=Math.min(5,chosen.size()+shown);
+        googleStatus.setText("✓ "+available+
+            " вистински детали од истиот Setec производ.");
+        internetStatus.setText("Извор: техничкиот опис на потврдениот производ на Setec.mk."+
+            " Непотврдени вредности не се измислуваат.");
         googleSources.removeAllViews();
     }
 
