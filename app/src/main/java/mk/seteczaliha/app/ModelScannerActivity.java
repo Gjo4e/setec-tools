@@ -782,7 +782,8 @@ public final class ModelScannerActivity extends ComponentActivity {
         Result(String title,String description,String url){this.title=title;this.description=description;this.url=url;}
     }
     private List<Result> fetchPublicResults(String model) throws Exception{
-        String q=GoogleModelResearch.searchQuery(model);
+        String code=SetecModelMatcher.modelCode(model);
+        String q=code.length()>=5?"\""+code+"\" "+model.split("\\s+")[0]+" specifications":GoogleModelResearch.searchQuery(model);
         URL url=new URL("https://www.bing.com/search?format=rss&q="+Uri.encode(q));
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
         connection.setConnectTimeout(9000);
@@ -834,48 +835,25 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
     private void renderSources(String model,List<Result> found,String error){
         sources.removeAllViews();
-        if(found.isEmpty()){
-            internetStatus.setText(googleHasResults
-                ?"Други извори не се достапни; Google резултатите се прикажани погоре."
-                :"Резервното пребарување не врати извори. Проверка може да се направи преку „Веб резултати“.");
-            if(!error.isEmpty()&&!googleHasResults)sources.addView(label(error,12,false,0xFF915F28));
+        if(googleHasResults)return;
+        // Never display raw fallback results. Public search providers sometimes
+        // return completely unrelated TikTok/Reddit links for exact model queries.
+        List<GoogleModelResearch.Result> verified=new ArrayList<>();
+        java.util.HashSet<String> seen=new java.util.HashSet<>();
+        for(Result r:found){
+            if(!seen.add(r.url))continue;
+            GoogleModelResearch.Result candidate=new GoogleModelResearch.Result(r.title,r.description,r.url);
+            if(GoogleModelResearch.relevant(model,candidate))verified.add(candidate);
+        }
+        if(verified.isEmpty()){
+            internetStatus.setText("Нема потврдени интернет резултати за овој точен модел. Нема да прикажувам нерелевантни линкови.");
+            googleStatus.setText("Google не дозволи автоматско читање, а резервниот извор нема потврдени податоци. Користи „Веб резултати“ за рачна проверка.");
+            if(!error.isEmpty())sources.addView(label(error,12,false,0xFF915F28));
             return;
         }
-        if(!googleHasResults){
-            // When Google prevents automated reading, present other public snippets
-            // with EXACTLY the same source-checking and fact extraction rules.
-            List<GoogleModelResearch.Result> fallback=new ArrayList<>();
-            for(Result r:found){
-                GoogleModelResearch.Result item=new GoogleModelResearch.Result(r.title,r.description,r.url);
-                if(GoogleModelResearch.relevant(model,item))fallback.add(item);
-            }
-            if(!fallback.isEmpty())showGoogleSources(model,fallback,"Други јавни извори");
-        }
-        internetStatus.setText("🔎 Пронајдени "+found.size()+" дополнителни јавни извори за „"+model+"“. Допри резултат за деталите.");
-        for(Result source:found){
-            LinearLayout card=new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(12),dp(12),dp(12),dp(12));
-            GradientDrawable bg=new GradientDrawable();
-            bg.setColor(Color.WHITE);bg.setCornerRadius(dp(12));bg.setStroke(dp(1),0xFFE1E4EA);
-            card.setBackground(bg);
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(9);
-            sources.addView(card,lp);
-            TextView title=label(source.title,14,true,INK);
-            card.addView(title);
-            if(!source.description.isEmpty()){
-                TextView desc=label(source.description,12,false,0xFF5A6576);
-                desc.setPadding(0,dp(6),0,0);
-                card.addView(desc);
-            }
-            Uri uri=Uri.parse(source.url);
-            String host=uri.getHost()==null?"Izvor":uri.getHost();
-            TextView link=label(host+"  ↗",11,true,0xFFE87919);
-            link.setPadding(0,dp(7),0,0);
-            card.addView(link);
-            card.setOnClickListener(v->openUri(source.url));
-        }
-        sources.addView(label("Rezultatite se kratki izvodi od Internet. Za točni vrednosti (socket, DDR, TDP, kapacitet) proveri kaj proizveduvačot.",12,false,0xFF6A7180));
+        googleHasResults=true;
+        internetStatus.setText("Пронајдени "+verified.size()+" проверени извори за моделот.");
+        showGoogleSources(model,verified,"Проверени јавни извори");
     }
     private void openSearch(String raw,String prefix){
         String value=raw==null?"":raw.trim();
