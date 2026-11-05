@@ -444,7 +444,9 @@ final class SetecUniversalSpecs {
         offer(f,"Дијагонала",line,
             "(?iu)(?<![\\p{Alnum}])(\\d{2,3}(?:[.,]\\d)?\\s*(?:\"|”|″))(?=\\s|$|\\()");
         // English "Resolution 4K 3840x2160" and dotted thousands (3.840 x 2.160).
-        if(!f.containsKey("Резолуција")){
+        // A vague "4K UHD" title must not block a later exact 3840x2160 value.
+        if(!f.containsKey("Резолуција")||
+           !f.get("Резолуција").contains("×")){
             Matcher resolution=Pattern.compile(
                 "(?iu)(?:resolution|резолуција|ultrahd\\s+resolution)"+
                 "[^;\\n]{0,34}?"+
