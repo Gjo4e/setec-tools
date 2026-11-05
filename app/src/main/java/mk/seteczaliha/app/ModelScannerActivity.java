@@ -76,7 +76,11 @@ public final class ModelScannerActivity extends ComponentActivity {
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private ProcessCameraProvider cameraProvider;
     private ImageCapture capture;
-    private Button scanButton, researchButton;
+    private Button scanButton, researchButton, compareButton;
+    private boolean comparePicker=false;
+    private int compareSlot=1;
+    private String compareModel="",compareSku="",compareClub="",compareRegular="";
+    private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
     private LinearLayout suggestions, sources, setecOptions;
     private EditText modelInput;
@@ -100,6 +104,8 @@ public final class ModelScannerActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        comparePicker=getIntent().getBooleanExtra("compare_pick",false);
+        compareSlot=getIntent().getIntExtra("compare_slot",1);
         getWindow().setStatusBarColor(0xFF1C1C21);
         getWindow().setNavigationBarColor(Color.BLACK);
 
@@ -203,6 +209,17 @@ public final class ModelScannerActivity extends ComponentActivity {
         scanButton = button("▣ SCAN · Сними модел",ORANGE);
         captureRow.addView(scanButton,new LinearLayout.LayoutParams(-1,dp(53)));
         scanButton.setOnClickListener(v -> scanOnce());
+        compareButton=button(comparePicker
+            ?"✓ Зачувај модел "+compareSlot+" за споредба"
+            :"⚖ СПОРЕДИ ДВА МОДЕЛИ",0xFF36475B);
+        LinearLayout.LayoutParams compareParams=new LinearLayout.LayoutParams(-1,dp(48));
+        compareParams.topMargin=dp(6);
+        captureRow.setOrientation(LinearLayout.VERTICAL);
+        captureRow.addView(compareButton,compareParams);
+        compareButton.setOnClickListener(v->{
+            if(comparePicker)saveForComparison();
+            else startActivity(new Intent(this,CompareModelsActivity.class));
+        });
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -293,6 +310,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(scanning)return;
         if(capture==null){setStatus("Камерата уште не е подготвена. Можеш рачно да внесеш модел.");return;}
         scanning=true;scanButton.setEnabled(false);
+        clearComparisonData("");
         // Invalidate any previous search: never present an old model's data as new.
         researchSerial++;
         sources.removeAllViews();
@@ -414,6 +432,48 @@ public final class ModelScannerActivity extends ComponentActivity {
             setStatus("Можно име: "+best.model+". Провери го текстот и притисни „Истражи го моделот“.");
         }
     }
+    private void clearComparisonData(String model){
+        compareModel=model;
+        compareSku="";compareClub="";compareRegular="";
+        compareFacts=new ArrayList<>();
+    }
+
+    private void saveForComparison(){
+        String displayed=modelInput.getText().toString().trim();
+        if(displayed.length()<4){
+            setStatus("Прво скенирај или внеси точен модел.");
+            return;
+        }
+        if(!displayed.equals(compareModel)){
+            research(displayed);
+            setStatus("Прво ги проверувам податоците за моделот. Потоа притисни „Зачувај“.");
+            return;
+        }
+        try{
+            JSONObject record=new JSONObject();
+            record.put("name",compareModel);
+            record.put("sku",compareSku);
+            record.put("club",compareClub);
+            record.put("regular",compareRegular);
+            JSONArray arr=new JSONArray();
+            for(GoogleModelResearch.Fact fact:compareFacts){
+                if(fact==null||GoogleModelResearch.blockedSource(fact.url))continue;
+                JSONObject data=new JSONObject();
+                data.put("label",fact.label);
+                data.put("value",fact.value);
+                data.put("url",fact.url);
+                arr.put(data);
+            }
+            record.put("facts",arr);
+            Intent result=new Intent();
+            result.putExtra("compare_result",record.toString());
+            setResult(RESULT_OK,result);
+            finish();
+        }catch(Exception error){
+            setStatus("Не можам да го зачувам моделот. Пробај повторно.");
+        }
+    }
+
     private void research(String input){
         String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
         if(model.length()<4){setStatus("Внеси го точниот модел (барем 4 знаци).");return;}
@@ -421,6 +481,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         modelInput.setText(model);
         modelInput.setSelection(model.length());
         final String query=model;
+        clearComparisonData(query);
         final int serial=++researchSerial;
         facts.setText(""); // Setec section contains ONLY model, SKU and live prices.
         internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
@@ -547,6 +608,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             return;
         }
         bestFactCount=Math.max(bestFactCount,values.size());
+        if(model.equals(compareModel))compareFacts=new ArrayList<>(values);
         googleHasResults=true;
         GoogleModelResearch.Result description=GoogleModelResearch.description(model,found);
         StringBuilder summary=new StringBuilder();
@@ -787,6 +849,11 @@ public final class ModelScannerActivity extends ComponentActivity {
                 String code=product.optString("sku");
                 String club=product.optString("club");
                 String regular=product.optString("regular");
+                if(activeSetecModel.equals(compareModel)){
+                    compareSku=code;
+                    compareClub=club;
+                    compareRegular=regular;
+                }
                 StringBuilder lines=new StringBuilder();
                 lines.append("SETEC.MK · МОДЕЛ, ШИФРА И ЦЕНА\n").append(name);
                 lines.append("\nSetec шифра: ").append(code.isEmpty()?"не е пронајдена":code);
