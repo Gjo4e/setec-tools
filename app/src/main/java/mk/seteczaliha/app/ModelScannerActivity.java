@@ -81,7 +81,10 @@ public final class ModelScannerActivity extends ComponentActivity {
     private LinearLayout suggestions, sources, setecOptions;
     private EditText modelInput;
     private final Handler handler=new Handler(Looper.getMainLooper());
-    private WebView setecBrowser;
+    private WebView setecBrowser, googleBrowser;
+    private TextView googleStatus, googleFacts;
+    private LinearLayout googleSources;
+    private boolean googleHasResults=false;
     private String bestSetecUrl="",activeSetecModel="";
     private int setecStage=0; // 0 idle, 1 catalog search, 2 exact product
     private int setecSerial=0;
@@ -119,6 +122,15 @@ public final class ModelScannerActivity extends ComponentActivity {
         settings.setLoadsImagesAutomatically(false);
         settings.setBlockNetworkImage(true);
         appRoot.addView(setecBrowser,new FrameLayout.LayoutParams(-1,-1));
+        googleBrowser=new WebView(this);
+        googleBrowser.setAlpha(0.01f);
+        googleBrowser.setClickable(false);
+        WebSettings googleSettings=googleBrowser.getSettings();
+        googleSettings.setJavaScriptEnabled(true);
+        googleSettings.setDomStorageEnabled(true);
+        googleSettings.setLoadsImagesAutomatically(false);
+        googleSettings.setBlockNetworkImage(true);
+        appRoot.addView(googleBrowser,new FrameLayout.LayoutParams(-1,-1));
         appRoot.addView(page,new FrameLayout.LayoutParams(-1,-1));
         setecBrowser.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
@@ -139,6 +151,16 @@ public final class ModelScannerActivity extends ComponentActivity {
                 }else if(setecStage==2){
                     for(long delay:new long[]{650,1550,2900,4500})
                         handler.postDelayed(()->readSetecDetails(serial),delay);
+                }
+            }
+        });
+
+        googleBrowser.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView view,String url){
+                if(!url.startsWith("https://www.google.com/search")&&!url.startsWith("https://google.com/search"))return;
+                final int serial=researchSerial;
+                for(long delay:new long[]{600,1500,3100,5200,7600}){
+                    handler.postDelayed(()->readGoogleResults(serial),delay);
                 }
             }
         });
@@ -217,6 +239,14 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecOptions=new LinearLayout(this);
         setecOptions.setOrientation(LinearLayout.VERTICAL);
         content.addView(setecOptions);
+        googleStatus=label("Google: по SCAN ќе се појават најважните спецификации што може да се потврдат од јавни извори.",13,true,0xFF87551F);
+        topMargin(content,googleStatus,dp(17));
+        googleFacts=label("",14,false,INK);
+        googleFacts.setTextIsSelectable(true);
+        topMargin(content,googleFacts,dp(6));
+        googleSources=new LinearLayout(this);
+        googleSources.setOrientation(LinearLayout.VERTICAL);
+        content.addView(googleSources);
         facts=label("",13,false,INK);
         facts.setTextIsSelectable(true);
         topMargin(content,facts,dp(18));
@@ -365,9 +395,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         modelInput.setSelection(model.length());
         final String query=model;
         final int serial=++researchSerial;
-        facts.setText("ВАЖНО ЗА ПРОВЕРКА\n"+checklist(query)+"\n\nГи барам проверените спецификации од официјалниот производ.");
+        facts.setText("ШТО Е ВАЖНО ЗА ОВОЈ ТИП ПРОИЗВОД\n"+checklist(query)+"\n\nПровери ја точната ревизија кај производителот.");
         internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
         sources.removeAllViews();
+        startGoogleResearch(query);
         startSetecLookup(query);
         networkExecutor.execute(() -> {
             List<Result> results=new ArrayList<>();
@@ -638,7 +669,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         Result(String title,String description,String url){this.title=title;this.description=description;this.url=url;}
     }
     private List<Result> fetchPublicResults(String model) throws Exception{
-        String q=SetecModelMatcher.searchTerm(model)+" technical specifications";
+        String q=GoogleModelResearch.searchQuery(model);
         URL url=new URL("https://www.bing.com/search?format=rss&q="+Uri.encode(q));
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
         connection.setConnectTimeout(9000);
@@ -724,7 +755,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private void openSearch(String raw,String prefix){
         String value=raw==null?"":raw.trim();
         if(value.length()<3){setStatus("Prvo skeniraj ili vnesi model.");return;}
-        String query=prefix+SetecModelMatcher.searchTerm(value)+" technical specifications";
+        String query=prefix+GoogleModelResearch.searchQuery(value);
         openUri("https://www.google.com/search?q="+Uri.encode(query));
     }
     private void openUri(String value){
@@ -753,6 +784,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     @Override protected void onDestroy(){
         researchSerial++;setecSerial++;handler.removeCallbacksAndMessages(null);
         if(setecBrowser!=null){setecBrowser.stopLoading();setecBrowser.destroy();setecBrowser=null;}
+        if(googleBrowser!=null){googleBrowser.stopLoading();googleBrowser.destroy();googleBrowser=null;}
         if(cameraProvider!=null)cameraProvider.unbindAll();
         recognizer.close();
         cameraExecutor.shutdownNow();networkExecutor.shutdownNow();
