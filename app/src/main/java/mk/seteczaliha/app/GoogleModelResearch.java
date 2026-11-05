@@ -125,7 +125,7 @@ final class GoogleModelResearch {
             if(facts.size()>=12)break;
             if(!relevant(model,r)||!r.url.startsWith("https://"))continue;
             String text=(r.title+" . "+r.snippet).replaceAll("\\s+"," ");
-            boolean washing=java.util.regex.Pattern.compile("(?iu)машина\\s+за\\s+(?:перење|прање)|washing\\s*machine|washer|машина\\s+за\\s+алишта|twm\\s*\\d+").matcher(text).find();
+            boolean washing=java.util.regex.Pattern.compile("(?iu)машина\\s+за\\s+(?:перење|прање)|washing\\s*machine|washing\\s*capacity|wash\\s*load|washer|машина\\s+за\\s+алишта|twm\\s*\\d+").matcher(text).find();
             for(FactPattern spec:FACTS){
                 if(facts.containsKey(spec.label))continue;
                 if(spec.label.equals("Капацитет на перење")&&!washing)continue;
