@@ -403,9 +403,15 @@ public final class ModelScannerActivity extends ComponentActivity {
         ModelNameParser.Candidate best=options.get(0);
         modelInput.setText(best.model);
         modelInput.setSelection(best.model.length());
-        if(ModelNameParser.likelyCorrect(best)){
+        // When a photo contains two neighboring price tags, do not silently
+        // choose the wrong product. Show both model codes for manual selection.
+        boolean ambiguous=options.size()>1&&best.score-options.get(1).score<9;
+        if(ModelNameParser.likelyCorrect(best)&&!ambiguous){
             setStatus("Препознаен модел: "+best.model+". Ако е погрешен, избери друга понуда или поправи го.");
             research(best.model); // One-shot SCAN was explicitly pressed.
+        }else if(ambiguous){
+            internetStatus.setText("На сликата има повеќе модели. Избери го точниот подолу; нема да истражувам погрешен модел.");
+            setStatus("Препознаени се повеќе модели на целата етикета. Допри го точниот.");
         }else{
             internetStatus.setText("Моделот не е доволно сигурен. Потврди го или поправи го пред пребарување.");
             setStatus("Можно име: "+best.model+". Провери го текстот и притисни „Истражи го моделот“.");
