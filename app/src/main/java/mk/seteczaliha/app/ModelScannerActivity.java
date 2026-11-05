@@ -1,8 +1,6 @@
 package mk.seteczaliha.app;
 
 import android.Manifest;
-import android.app.AlertDialog;
-import android.content.SharedPreferences;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -106,10 +104,6 @@ public final class ModelScannerActivity extends ComponentActivity {
     private int setecQueryIndex=0,lookupGeneration=0,slugHostIndex=0;
     private String officialSlug="";
     private int setecSpecAttempts=0;
-    private Button aiButton, aiSettingsButton;
-    private TextView aiStatus,aiOutput;
-    private LinearLayout aiLinks;
-    private int aiSerial=0;
     private boolean scanning = false;
     private int researchSerial = 0;
     private ActivityResultLauncher<String> cameraPermission;
@@ -279,31 +273,6 @@ public final class ModelScannerActivity extends ComponentActivity {
         googleSources=new LinearLayout(this);
         googleSources.setOrientation(LinearLayout.VERTICAL);
         content.addView(googleSources);
-
-        // AI is opt-in: this button asks the owner-configured HTTPS server,
-        // not OpenAI from this APK. Existing Setec data remains unchanged.
-        LinearLayout aiActions=new LinearLayout(this);
-        aiActions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams aiActionsParams=new LinearLayout.LayoutParams(-1,-2);
-        aiActionsParams.topMargin=dp(18);
-        content.addView(aiActions,aiActionsParams);
-        aiButton=button("🤖 AI Istraži",0xFF31546E);
-        LinearLayout.LayoutParams aiPrimary=new LinearLayout.LayoutParams(0,dp(54),3);
-        aiActions.addView(aiButton,aiPrimary);
-        aiSettingsButton=button("⚙ AI",0xFF58626F);
-        LinearLayout.LayoutParams aiSecondary=new LinearLayout.LayoutParams(0,dp(54),1);
-        aiSecondary.leftMargin=dp(8);
-        aiActions.addView(aiSettingsButton,aiSecondary);
-        aiButton.setOnClickListener(v->askAiResearch());
-        aiSettingsButton.setOnClickListener(v->openAiSettings(false));
-        aiStatus=label("AI e opcionalen. Potreben e povrzan HTTPS server; OpenAI klucot nikogas ne odi vo APK.",12,false,0xFF5D6C7C);
-        topMargin(content,aiStatus,dp(8));
-        aiOutput=label("",14,false,INK);
-        aiOutput.setTextIsSelectable(true);
-        topMargin(content,aiOutput,dp(9));
-        aiLinks=new LinearLayout(this);
-        aiLinks.setOrientation(LinearLayout.VERTICAL);
-        content.addView(aiLinks);
 
         LinearLayout links=new LinearLayout(this);
         links.setOrientation(LinearLayout.VERTICAL);
@@ -511,101 +480,6 @@ public final class ModelScannerActivity extends ComponentActivity {
         }
     }
 
-    private SharedPreferences aiPreferences(){
-        return getSharedPreferences("setec_ai_connection",MODE_PRIVATE);
-    }
-
-    private void openAiSettings(boolean startAfterSaving){
-        SharedPreferences prefs=aiPreferences();
-        LinearLayout fields=new LinearLayout(this);
-        fields.setPadding(dp(20),dp(7),dp(20),0);
-        fields.setOrientation(LinearLayout.VERTICAL);
-        TextView explanation=label(
-            "Внеси адреса на ТВОЈ AI сервер и негов посебен пристапен токен. "+
-            "НЕ внесувај OpenAI API клуч во телефонот.",13,false,INK);
-        fields.addView(explanation);
-        EditText address=new EditText(this);
-        address.setSingleLine(true);
-        address.setTextSize(13);
-        address.setHint("https://tvoj-server.workers.dev");
-        address.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);
-        address.setText(prefs.getString("server",""));
-        fields.addView(address,new LinearLayout.LayoutParams(-1,dp(51)));
-        EditText token=new EditText(this);
-        token.setSingleLine(true);
-        token.setTextSize(13);
-        token.setHint("Pristapen token za serverot (ne API kluc)");
-        token.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        token.setText(prefs.getString("token",""));
-        fields.addView(token,new LinearLayout.LayoutParams(-1,dp(51)));
-
-        new AlertDialog.Builder(this)
-            .setTitle("🤖 AI povrzuvanje")
-            .setView(fields)
-            .setNegativeButton("Otkaži",(dialog,which)->{})
-            .setPositiveButton("Začuvaj",(dialog,which)->{
-                String endpoint=address.getText().toString().trim();
-                String clientToken=token.getText().toString().trim();
-                if(!AiResearchClient.validServerUrl(endpoint)||clientToken.length()<16){
-                    aiStatus.setText("Serverot mora da bide HTTPS, a pristapniot token barem 16 znaci. Proveri gi postavkite.");
-                    return;
-                }
-                prefs.edit().putString("server",endpoint)
-                    .putString("token",clientToken).apply();
-                aiStatus.setText("✓ AI serverot e začuvan. AI raboti samo po pritiskaње na 'AI Istraži'.");
-                if(startAfterSaving)askAiResearch();
-            }).show();
-    }
-
-    private void askAiResearch(){
-        String raw=comparePicker?compareModel:modelInput.getText().toString().trim();
-        if(raw.isEmpty()&&!comparePicker)raw=activeSetecModel;
-        String model=SetecProductTitle.modelFromProductName(raw);
-        if(model.length()<4||model.matches("[0-9]+")){
-            aiStatus.setText("Prvo pronaјdi go točniot model. Ne može da se istražuva samo SETEC šifra.");
-            return;
-        }
-        SharedPreferences prefs=aiPreferences();
-        String endpoint=prefs.getString("server",""),
-               token=prefs.getString("token","");
-        if(!AiResearchClient.validServerUrl(endpoint)||token.length()<16){
-            openAiSettings(true);
-            return;
-        }
-        final int serial=++aiSerial;
-        final String query=model;
-        aiButton.setEnabled(false);
-        aiStatus.setText("🤖 AI istražuva: "+query+" (so izvori)...");
-        aiOutput.setText("");
-        aiLinks.removeAllViews();
-        networkExecutor.execute(()->{
-            AiResearchClient.Result answer=null;
-            String error=null;
-            try{answer=AiResearchClient.research(endpoint,token,query);}
-            catch(Exception e){error=e.getMessage();}
-            final AiResearchClient.Result response=answer;
-            final String failure=error;
-            runOnUiThread(()->{
-                if(serial!=aiSerial||isFinishing()||isDestroyed())return;
-                aiButton.setEnabled(true);
-                if(response==null){
-                    aiStatus.setText("AI ne e dostapen. "+(failure==null?"Proveri server.":failure));
-                    return;
-                }
-                aiStatus.setText(response.verified?
-                    "✓ AI pregled za "+query+" · proveri gi izvorite podolu":
-                    "⚠ Nema potvrdeni linkovi. Ne koristi kako sigurni specifikacii.");
-                aiOutput.setText(response.summary+"\n\n"+response.note);
-                for(AiResearchClient.Source source:response.sources){
-                    TextView link=label("↗ "+source.title,13,true,0xFFBA6320);
-                    link.setPadding(0,dp(8),0,dp(8));
-                    aiLinks.addView(link);
-                    link.setOnClickListener(v->openUri(source.url));
-                }
-            });
-        });
-    }
-
     private void research(String input){research(input,true);}
     private void research(String input,boolean lookUpModelOnSetec){
         String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
@@ -772,7 +646,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         final int serial=++setecSerial;
         final int generation=++lookupGeneration;
         setecStatus.setText("🔎 Барам SETEC шифра "+sku+" — само бројки.");
-        internetStatus.setText("Прво мора да ја потврдам шифрата на Setec. Потоа ќе ги барам спецификациите на интернет.");
+        internetStatus.setText("Прво ја потврдувам шифрата на Setec.mk, па ги читам описот и техничките податоци од истиот производ.");
         setecBrowser.stopLoading();
         setecBrowser.loadUrl("https://www.setec.mk/");
         handler.postDelayed(()->{
@@ -1035,7 +909,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         setecBrowser.loadUrl("https://www.setec.mk/");
         handler.postDelayed(()->{
             if(serial==setecSerial&&setecStage==1&&generation==lookupGeneration&&!setecMatched){
-                setecStatus.setText("Не најдов доволно сигурен Setec производ за шифра и цена. Google описот се бара одделно.");
+                setecStatus.setText("Не најдов доволно сигурен Setec производ. Провери ја шифрата или пробај повторно.");
             }
         },9500);
     }
@@ -1306,7 +1180,6 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
     private int dp(int n){return Math.round(getResources().getDisplayMetrics().density*n);}
     @Override protected void onDestroy(){
-        aiSerial++;
         researchSerial++;setecSerial++;handler.removeCallbacksAndMessages(null);
         if(setecBrowser!=null){setecBrowser.stopLoading();setecBrowser.destroy();setecBrowser=null;}
         if(googleBrowser!=null){googleBrowser.stopLoading();googleBrowser.destroy();googleBrowser=null;}
