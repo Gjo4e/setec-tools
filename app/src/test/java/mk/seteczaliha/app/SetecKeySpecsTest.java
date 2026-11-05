@@ -50,4 +50,62 @@ public final class SetecKeySpecsTest {
             "24 рати: 1900 ден.\nГаранција: 24 месеци\nДостава 599 ден.";
         assertTrue(SetecKeySpecs.extract("ACER Aspire Go 15",PAGE,noise).isEmpty());
     }
+
+    @Test public void acerLongSetecTitleProvidesSpecsEvenWithEmptyTab(){
+        String title="Лаптоп ACER Aspire Go 15 (AG15-42P-R844) - Процесор AMD Ryzen™ 7 5825U (16M Cache";
+        List<GoogleModelResearch.Fact> facts=SetecKeySpecs.extract(
+            "ACER Aspire Go 15 (AG15-42P-R844)",PAGE,"","",title);
+        assertTrue("Long Setec H1 has processor info",facts.stream()
+            .anyMatch(f->f.label.equals("Процесор")&&f.value.contains("Ryzen")));
+        assertTrue(facts.stream().noneMatch(f->f.value.contains("Cache")));
+        assertTrue(facts.stream().allMatch(f->f.url.equals(PAGE)));
+    }
+
+    @Test public void shortDescriptionProvidesFactsWhenTechTabEmpty(){
+        String shortText="Процесор AMD Ryzen 7 5825U\n"+
+            "16GB DDR4 RAM\n"+
+            "512GB NVMe SSD\n"+
+            "Графичка AMD Radeon Graphics\n"+
+            "Екран 15.6\" Full HD IPS (1920x1080)\n"+
+            "Клуб цена: 33.999 ден.";
+        List<GoogleModelResearch.Fact> facts=SetecKeySpecs.extract(
+            "ACER Aspire Go 15 (AG15-42P-R844)",PAGE,"",shortText,
+            "Лаптоп ACER Aspire Go 15 (AG15-42P-R844)");
+        assertEquals(5,facts.size());
+        assertEquals("Процесор",facts.get(0).label);
+        assertEquals("RAM",facts.get(1).label);
+        assertEquals("Диск",facts.get(2).label);
+        assertEquals("Графичка",facts.get(3).label);
+        assertEquals("Екран",facts.get(4).label);
+    }
+
+    @Test public void skuVerifiedWasherUsesUnlabeledFacts(){
+        String brief="Машина за перење TELEFUNKEN TWM 1059V\n"+
+            "9кг\n1000 вртежи\n15 програми\nА++ енергетска класа\n"+
+            "Димензии: 85 x 60 x 55 cm";
+        List<GoogleModelResearch.Fact> facts=SetecKeySpecs.extract(
+            "TELEFUNKEN TWM 1059V",
+            "https://www.setec.mk/products/telefunken-twm-1059v",
+            "",brief,"Машина за перење TELEFUNKEN TWM 1059V");
+        assertEquals(5,facts.size());
+        assertEquals("Капацитет на перење",facts.get(0).label);
+        assertEquals("Центрифуга",facts.get(1).label);
+        assertEquals("Енергетска класа",facts.get(2).label);
+        assertEquals("Програми",facts.get(3).label);
+        assertEquals("Димензии",facts.get(4).label);
+    }
+
+    @Test public void realSetecRamProductUsesUnlabeledBulletList(){
+        String tech="AGI RAM 16GB DDR5 5600MHz\n16GB UDIMM-Bulk\nAGI560016UD238-BK";
+        List<GoogleModelResearch.Fact> facts=SetecKeySpecs.extract(
+            "AGI RAM 16GB DDR5 5600MHz",
+            "https://setec.mk/products/agi-ram-16gb-ddr5-5600mhz-1",
+            tech,"AGI RAM 16GB DDR5 5600MHz","AGI RAM 16GB DDR5 5600MHz");
+        assertTrue(facts.stream().anyMatch(f->f.label.equals("RAM")&&f.value.contains("16")));
+    }
+
+    @Test public void technicalTabIsOnlyOpenedOnce(){
+        assertTrue(SetecPageData.READ_PRODUCT_SCRIPT.contains("window.__setecSpecsOpened"));
+        assertTrue(SetecPageData.READ_PRODUCT_SCRIPT.contains("short:short"));
+    }
 }
