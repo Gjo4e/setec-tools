@@ -28,7 +28,7 @@ import java.util.Map;
 
 /**
  * Compare precisely two real models. The existing opt-in camera scanner
- * discovers each model, and its independent research pipeline supplies facts.
+ * finds and verifies each Setec product and extracts its listed specs.
  * Only up to five key specs appear side by side, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
@@ -58,7 +58,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                     JSONObject f=arr.optJSONObject(i);
                     if(f==null)continue;
                     String label=f.optString("label").trim(),value=f.optString("value").trim();
-                    if(label.length()>55||value.length()>65||label.isEmpty()||value.isEmpty())continue;
+                    if(label.length()>55||value.length()>110||label.isEmpty()||value.isEmpty())continue;
                     p.facts.put(label,value);
                     String url=f.optString("url");
                     if(safeSource(url))p.sourceByLabel.put(label,url);
@@ -71,7 +71,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private static boolean safeSource(String value){
         try{
             Uri uri=Uri.parse(value);
-            return "https".equalsIgnoreCase(uri.getScheme())&&uri.getHost()!=null;
+            return SetecPageData.isOfficialProductUrl(value);
         }catch(Exception e){return false;}
     }
 
