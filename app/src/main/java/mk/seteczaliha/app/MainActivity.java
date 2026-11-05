@@ -162,6 +162,9 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
+        @JavascriptInterface public void openModelScanner() {
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, ModelScannerActivity.class)));
+        }
         @JavascriptInterface public void moreResults() {
             runOnUiThread(MainActivity.this::startMoreResults);
         }
