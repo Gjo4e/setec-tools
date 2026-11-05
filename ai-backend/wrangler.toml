@@ -1,0 +1,10 @@
+# Example Cloudflare Worker configuration for SETEC ŠIFRI.
+# Set these securely through wrangler secret put (never commit their values):
+#   OPENAI_API_KEY
+#   APP_CLIENT_TOKEN
+name = "setec-sifri-ai"
+main = "worker.js"
+compatibility_date = "2026-11-05"
+
+[vars]
+OPENAI_MODEL = "gpt-5.4"
