@@ -64,14 +64,17 @@ final class GoogleModelResearch {
         if(result==null||result.title.isEmpty())return false;
         String normalized=ModelNameParser.normalizeModel(model);
         String expectedCode=SetecModelMatcher.modelCode(normalized);
-        String combined=(result.title+" "+result.snippet).toUpperCase(Locale.ROOT);
         if(expectedCode.length()>=5) {
-            // Match the model as a contiguous identifier, allowing hyphens and spaces
-            // in the seller's formatting. Do not accept a neighboring model number.
-            String compact=combined.replaceAll("[^A-Z0-9]","");
-            if(!compact.contains(expectedCode))return false;
-            String[] tokens=normalized.toUpperCase(Locale.ROOT).split("\\s+");
-            if(tokens.length>1&&!combined.contains(tokens[0])&&!result.title.toUpperCase(Locale.ROOT).contains(tokens[0]))return false;
+            // A matching search snippet does not make an unrelated search RESULT
+            // relevant. Require the exact model identity in the page title or URL.
+            // This prevents random TikTok / Reddit results for a washing machine.
+            String heading=(result.title+" "+result.url).toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]","");
+            if(!heading.contains(expectedCode))return false;
+            String brand=normalized.split("\\s+")[0].toUpperCase(Locale.ROOT);
+            String title=result.title.toUpperCase(Locale.ROOT);
+            String url=result.url.toUpperCase(Locale.ROOT);
+            if(brand.length()>2&&!title.contains(brand)&&!url.contains(brand))return false;
             return true;
         }
         return SetecModelMatcher.score(normalized,result.title)>=80;
