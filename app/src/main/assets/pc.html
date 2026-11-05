@@ -347,7 +347,7 @@ function renderCandidates(){
   fragment.appendChild(row);
  }
  if(catalogProducts.length&&!shownCount){
-  fragment.appendChild(el('div','warning','Нема прикажани соодветни компоненти. Провери го филтерот или вчитај следна страница.'));
+  fragment.appendChild(el('div','warning','Нема прикажани соодветни компоненти засега. Останатите страници се пребаруваат автоматски.'));
  }
  host.replaceChildren(fragment);
  $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
@@ -390,12 +390,12 @@ window.pcProgress=(done,total,available)=>{
  $('stockStatus').textContent=done<total?'Залиха: проверени '+done+' од '+total+' производи.':'Проверени '+total+' производи · потврдени салони кај '+available+'.';
  $('catCount').textContent=verifiedMap.size+' со потврдена локација · '+catalogProducts.length+' од каталогот';
 };
-window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(verifiedMap.has(p.url))verifiedMap.set(p.url,{...verifiedMap.get(p.url),...p});if(!builderPart(catalogProducts[i],category)){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}renderCandidates()};
+window.pcProductDetails=json=>{let p;try{p=JSON.parse(json)}catch(e){return}const i=catalogProducts.findIndex(x=>x.url===p.url);if(i<0)return;catalogProducts[i]={...catalogProducts[i],...p};if(verifiedMap.has(p.url))verifiedMap.set(p.url,{...verifiedMap.get(p.url),...p});if(!builderPart(catalogProducts[i],category)){catalogProducts.splice(i,1);verifiedMap.delete(p.url)}scheduleRender()};
 window.pcVerifiedProduct=json=>{
  let p;try{p=JSON.parse(json)}catch(e){return}
  if(!p||!safe(p.url)||!p.stockVerified||!Array.isArray(p.stores)||!p.stores.length)return;
- if(!builderPart(p,category)){catalogProducts=catalogProducts.filter(x=>x.url!==p.url);verifiedMap.delete(p.url);renderCandidates();return;}
- verifiedMap.set(p.url,{...catalogProducts.find(x=>x.url===p.url),...p,stores:uniqueStores(p)});renderCandidates();
+ if(!builderPart(p,category)){catalogProducts=catalogProducts.filter(x=>x.url!==p.url);verifiedMap.delete(p.url);scheduleRender();return;}
+ verifiedMap.set(p.url,{...catalogProducts.find(x=>x.url===p.url),...p,stores:uniqueStores(p)});scheduleRender();
 };
 window.pcVerificationDone=()=>{
  verificationFinished=true;
