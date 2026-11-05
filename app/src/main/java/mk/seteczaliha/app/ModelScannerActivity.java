@@ -687,6 +687,192 @@ public final class ModelScannerActivity extends ComponentActivity {
         }
     }
 
+
+    /**
+     * In comparison mode, a SKU from the existing numeric scanner must first
+     * resolve to an exact Setec product. We NEVER send an SKU to Google as if
+     * it were a model and NEVER infer identity from the closest catalog title.
+     */
+    private void startCompareSkuLookup(String sku){
+        if(!comparePicker||sku==null||!sku.matches("[0-9]{4,8}")){
+            setStatus("Скенирај SETEC шифра од 4 до 8 цифри.");
+            return;
+        }
+        compareSkuRequested=sku;
+        clearComparisonData("");
+        modelInput.setText(sku);
+        modelInput.setEnabled(false);
+        facts.setText("");
+        googleFacts.setText("");
+        googleSources.removeAllViews();
+        sources.removeAllViews();
+        setecOptions.removeAllViews();
+        compareSkuCandidateUrls.clear();
+        compareSkuCandidateIndex=0;
+        compareSkuSearchFallback=false;
+        bestSetecUrl="";
+        setecMatched=false;
+        setecStage=5;
+        final int serial=++setecSerial;
+        final int generation=++lookupGeneration;
+        setecStatus.setText("🔎 Барам SETEC шифра "+sku+" — само бројки.");
+        internetStatus.setText("Прво мора да ја потврдам шифрата на Setec. Потоа ќе ги барам спецификациите на интернет.");
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl("https://www.setec.mk/");
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&generation==lookupGeneration&&setecStage==5){
+                loadCompareSkuFallback(serial);
+            }
+        },5200);
+    }
+
+    private void submitCompareSkuSearch(int serial,int generation){
+        if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=5||setecBrowser==null)return;
+        String query=JSONObject.quote(compareSkuRequested);
+        String js="(function(){"+
+            "let input=[...document.querySelectorAll('input')].find(x=>/пребарај|search/i.test(x.placeholder||'')||x.type==='search');"+
+            "if(!input)return 'no-input';"+
+            "let setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,"+query+");"+
+            "input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:"+query+"}));"+
+            "input.dispatchEvent(new Event('change',{bubbles:true}));"+
+            "let f=input.closest('form');"+
+            "if(f){try{f.requestSubmit()}catch(e){}}else{let b=input.parentElement&&input.parentElement.querySelector('button');if(b)b.click();else input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}"+
+            "return 'submitted';})()";
+        setecBrowser.evaluateJavascript(js,encoded->{
+            if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=5)return;
+            if("submitted".equals(decodeJs(encoded))){
+                setecStage=6;
+                setecStatus.setText("🔎 Пребарувам производ со шифра "+compareSkuRequested+" на Setec.mk…");
+                for(long delay:new long[]{900,1900,3500,5700,8000})
+                    handler.postDelayed(()->readCompareSkuMatches(serial,generation),delay);
+                handler.postDelayed(()->{
+                    if(serial==setecSerial&&generation==lookupGeneration&&setecStage==6)
+                        loadCompareSkuFallback(serial);
+                },8500);
+            }
+        });
+    }
+
+    private void loadCompareSkuFallback(int serial){
+        if(serial!=setecSerial||setecMatched||setecBrowser==null||compareSkuSearchFallback)return;
+        compareSkuSearchFallback=true;
+        setecStage=6;
+        final int generation=++lookupGeneration;
+        setecStatus.setText("🔎 Повторно барам по точната SETEC шифра "+compareSkuRequested+"…");
+        Uri url=Uri.parse("https://www.setec.mk/search-result").buildUpon()
+            .appendQueryParameter("q",compareSkuRequested).build();
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl(url.toString());
+        for(long delay:new long[]{1300,2700,4200,6500,9000})
+            handler.postDelayed(()->readCompareSkuMatches(serial,generation),delay);
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&generation==lookupGeneration&&setecStage==6){
+                setecStatus.setText("Не ја најдов точно шифрата "+compareSkuRequested+
+                    " во каталогот. Не избрав погрешен модел. Врати се и скенирај ја шифрата повторно.");
+            }
+        },10300);
+    }
+
+    private void readCompareSkuMatches(int serial,int generation){
+        if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=6||setecBrowser==null)return;
+        String script="(function(){"+
+            "try{const q="+JSONObject.quote(compareSkuRequested)+";let seen=new Set(),out=[];"+
+            "for(const a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
+            "let url;try{url=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
+            "if(!['www.setec.mk','setec.mk','set.mk','www.set.mk'].includes(url.hostname)||seen.has(url.href))continue;"+
+            "let card=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;"+
+            "let text=(card.innerText||'').replace(/\\s+/g,' ');"+
+            "let m=text.match(/(?:Шифра|SKU)\\s*:?\\s*(\\d{4,8})/i);"+
+            "let code=m?m[1]:'';"+
+            "if(code!==q && !(new RegExp('(?:^|\\\\D)'+q+'(?:\\\\D|$)')).test(text))continue;"+
+            "seen.add(url.href);out.push({url:url.href,sku:code});if(out.length>=16)break;}"+
+            "return JSON.stringify(out);}catch(e){return '[]';}})()";
+        setecBrowser.evaluateJavascript(script,encoded->{
+            if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=6)return;
+            try{
+                String raw=decodeJs(encoded);
+                if(raw==null)return;
+                JSONArray list=new JSONArray(raw);
+                for(int i=0;i<list.length();i++){
+                    JSONObject item=list.optJSONObject(i);
+                    if(item==null)continue;
+                    String url=item.optString("url");
+                    if(isSetecProduct(url)&&!compareSkuCandidateUrls.contains(url))
+                        compareSkuCandidateUrls.add(url);
+                }
+                if(!compareSkuCandidateUrls.isEmpty())tryNextCompareSkuCandidate(serial);
+            }catch(Exception ignored){}
+        });
+    }
+
+    private void tryNextCompareSkuCandidate(int serial){
+        if(serial!=setecSerial||setecMatched||setecBrowser==null)return;
+        if(compareSkuCandidateIndex>=compareSkuCandidateUrls.size()){
+            if(!compareSkuSearchFallback)loadCompareSkuFallback(serial);
+            else{
+                setecStage=0;
+                setecStatus.setText("Ниту еден производ не ја потврди шифрата "+compareSkuRequested+
+                    ". Пробај повторно или провери ја шифрата.");
+            }
+            return;
+        }
+        final String candidate=compareSkuCandidateUrls.get(compareSkuCandidateIndex++);
+        final int generation=++lookupGeneration;
+        setecStage=7;
+        setecStatus.setText("🔎 Проверувам дали страницата ја има баш шифрата "+compareSkuRequested+"…");
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl(candidate);
+        for(long delay:new long[]{1000,2300,3750})
+            handler.postDelayed(()->readCompareSkuProduct(serial,generation),delay);
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&generation==lookupGeneration&&setecStage==7&&!setecMatched)
+                tryNextCompareSkuCandidate(serial);
+        },5250);
+    }
+
+    private void readCompareSkuProduct(int serial,int generation){
+        if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=7||setecBrowser==null)return;
+        String script="(function(){"+
+            "try{let body=document.body?.innerText||'';"+
+            "let name=(document.querySelector('h1')?.innerText||'').replace(/\\s+/g,' ').trim();"+
+            "let m=body.match(/(?:Шифра|SKU)\\s*:?\\s*(\\d{4,8})/i);"+
+            "let sku=m?m[1]:'';"+
+            "let price=label=>{let re=new RegExp(label+'\\\\s*:?\\\\s*([\\\\d., ]+)\\\\s*ден','i');let x=body.match(re);return x?x[1].replace(/\\s/g,''):'';};"+
+            "return JSON.stringify({name,sku,club:price('Клуб цена'),regular:price('Редовна цена')});"+
+            "}catch(e){return '{}'}})()";
+        setecBrowser.evaluateJavascript(script,encoded->{
+            if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=7||setecMatched)return;
+            try{
+                String raw=decodeJs(encoded);
+                if(raw==null)return;
+                JSONObject product=new JSONObject(raw);
+                String sku=product.optString("sku");
+                String name=product.optString("name").trim();
+                String url=setecBrowser.getUrl();
+                if(!compareSkuRequested.equals(sku)||name.length()<5||!isSetecProduct(url))return;
+                // This is the ONLY path that can confirm the scanned SKU.
+                compareSku=sku;
+                compareClub=product.optString("club");
+                compareRegular=product.optString("regular");
+                bestSetecUrl=url;
+                activeSetecModel=ModelNameParser.normalizeModel(name);
+                setecMatched=true;
+                setecStage=3;
+                setecStatus.setText("✓ Потврдена SETEC шифра "+sku+": "+name+
+                    ". Ги барам клучните спецификации на интернет.");
+                modelInput.setText(name);
+                researchButton.setEnabled(false);
+                research(name,false);
+                // External research leaves the verified SKU and prices untouched.
+                StringBuilder details=new StringBuilder("SETEC.MK · ШИФРА И ЦЕНА\n"+name+
+                    "\nSetec шифра: "+sku);
+                if(!compareClub.isEmpty())details.append("\nКлуб цена: ").append(compareClub).append(" ден.");
+                if(!compareRegular.isEmpty())details.append("\nРедовна цена: ").append(compareRegular).append(" ден.");
+                facts.setText(details.toString());
+            }catch(Exception ignored){}
+        });
+    }
+
     // One search per chosen model. Research stays inside this Activity.
     private void startSetecLookup(String requestedModel){
         bestSetecUrl="";
