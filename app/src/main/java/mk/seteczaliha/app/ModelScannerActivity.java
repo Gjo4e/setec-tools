@@ -26,6 +26,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -177,17 +178,9 @@ public final class ModelScannerActivity extends ComponentActivity {
         sources=new LinearLayout(this);sources.setOrientation(LinearLayout.VERTICAL);
         content.addView(sources);
 
+        activePreview=preview;
         if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) startCamera(preview);
         else cameraPermission.launch(Manifest.permission.CAMERA);
-        // Hold reference via view tag so permission callback can use the preview.
-        cameraPanel.setTag(preview);
-    }
-
-    private PreviewView findPreview() {
-        View v=((FrameLayout)((LinearLayout)findViewById(android.R.id.content).getRootView()
-            .findViewById(android.R.id.content).getParent()).getChildAt(0)).getChildAt(0);
-        // Never rely on the layout traversal; locate the CameraX preview recursively.
-        return null;
     }
 
     private PreviewView activePreview;
