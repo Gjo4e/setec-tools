@@ -204,7 +204,12 @@ public final class ModelScannerActivity extends ComponentActivity {
         if(scanning)return;
         if(capture==null){setStatus("Камерата уште не е подготвена. Можеш рачно да внесеш модел.");return;}
         scanning=true;scanButton.setEnabled(false);
-        setStatus("Снимив кадар. Препознавам текст само од ова скенирање…");
+        // Invalidate any previous search: never present an old model's data as new.
+        researchSerial++;
+        sources.removeAllViews();
+        facts.setText("");
+        internetStatus.setText("Се чита само текстот во портокаловата рамка.");
+        setStatus("Снимив кадар. Препознавам текст само од рамката…");
         capture.takePicture(ContextCompat.getMainExecutor(this),new ImageCapture.OnImageCapturedCallback(){
             @Override public void onCaptureSuccess(ImageProxy proxy){
                 try{
@@ -213,7 +218,10 @@ public final class ModelScannerActivity extends ComponentActivity {
                     matrix.postRotate(proxy.getImageInfo().getRotationDegrees());
                     Bitmap upright=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
                     proxy.close();
-                    InputImage input=InputImage.fromBitmap(upright,0);
+                    // CameraX captures a full image even though PreviewView only
+                    // shows the central crop. OCR *only* the orange on-screen guide.
+                    Bitmap modelArea=cropToScanGuide(upright);
+                    InputImage input=InputImage.fromBitmap(modelArea,0);
                     recognizer.process(input)
                         .addOnSuccessListener(ModelScannerActivity.this::handleRecognized)
                         .addOnFailureListener(e->setStatus("Не можам да го прочитам моделот. Приближи или внеси рачно."))
@@ -226,61 +234,70 @@ public final class ModelScannerActivity extends ComponentActivity {
         });
     }
     private void finishScan(){scanning=false;scanButton.setEnabled(true);}
-    private static final Pattern CODE=Pattern.compile("(?i)(?=[A-Z0-9/._-]*[A-Z])(?=[A-Z0-9/._-]*\\d)[A-Z0-9][A-Z0-9/._-]{3,}");
-    private static final Pattern BRAND=Pattern.compile("(?i)\\b(ASUS|ASROCK|MSI|GIGABYTE|INTEL|AMD|KINGSTON|SAMSUNG|ADATA|CORSAIR|CRUCIAL|WESTERN DIGITAL|WD|SEAGATE|NOCTUA|DEEPCOOL|COOLER MASTER|NZXT|SAPPHIRE|PALIT|ZOTAC|THERMALTAKE|BE QUIET|TEAMGROUP|G.SKILL|LENOVO|DELL|HP|ACER|LG|SONY)\\b");
-    private static final Pattern BAD=Pattern.compile("(?i)\\b(ШИФРА|ЦЕНА|ДЕНАРИ|СЕТЕК|БАРКОД|BARCODE|SERIAL|S/N|IMEI|EAN|GARANCIJA|ГАРАНЦИЈА|ДОСТАПНОСТ|ДОСТАВА|WWW\\.|HTTPS?\\b|MKD|TOTAL)\\b");
+    /**
+     * PreviewView uses FILL_CENTER. Map the visible orange guide into the
+     * captured upright bitmap; anything outside (prices, installment rates)
+     * is deliberately not passed to text recognition.
+     */
+    private Bitmap cropToScanGuide(Bitmap upright) {
+        int width=upright.getWidth(),height=upright.getHeight();
+        int previewWidth=activePreview==null?0:activePreview.getWidth();
+        int previewHeight=activePreview==null?0:activePreview.getHeight();
+        if(previewWidth<40||previewHeight<40){
+            // Conservative fallback if layout has not been measured.
+            int h=Math.max(1,Math.round(height*0.23f));
+            return Bitmap.createBitmap(upright,0,(height-h)/2,width,h);
+        }
+        float scale=Math.max(previewWidth/(float)width,previewHeight/(float)height);
+        float guideWidth=Math.max(1,previewWidth-2f*dp(22));
+        float guideHeight=Math.min(previewHeight,dp(115));
+        // Tiny margin allows OCR to read characters on the visible orange border.
+        int cropWidth=Math.min(width,Math.max(1,Math.round(guideWidth/scale*1.015f)));
+        int cropHeight=Math.min(height,Math.max(1,Math.round(guideHeight/scale*1.015f)));
+        int left=Math.max(0,(width-cropWidth)/2);
+        int top=Math.max(0,(height-cropHeight)/2);
+        return Bitmap.createBitmap(upright,left,top,cropWidth,cropHeight);
+    }
 
     private void handleRecognized(Text imageText){
-        Map<String,Integer> ranked=new LinkedHashMap<>();
-        for(Text.TextBlock block:imageText.getTextBlocks()){
-            List<Text.Line> lines=block.getLines();
-            for(int i=0;i<lines.size();i++){
-                String raw=lines.get(i).getText();
-                offer(raw,ranked);
-                if(i>0){
-                    String previous=lines.get(i-1).getText().trim();
-                    if(BRAND.matcher(previous).find()&&previous.length()<25)offer(previous+" "+raw,ranked);
-                }
-            }
-        }
-        List<Map.Entry<String,Integer>> options=new ArrayList<>(ranked.entrySet());
-        options.sort((a,b)->Integer.compare(b.getValue(),a.getValue()));
+        List<String> lines=new ArrayList<>();
+        for(Text.TextBlock block:imageText.getTextBlocks())
+            for(Text.Line line:block.getLines())lines.add(line.getText());
+
+        List<ModelNameParser.Candidate> options=ModelNameParser.rank(lines);
         suggestions.removeAllViews();
         if(options.isEmpty()){
-            suggestions.addView(label("Не прочитав јасен модел. Обиди се со друга дистанца или внеси го рачно.",12,false,0xFF966125));
-            setStatus("Нема доволно читлив модел. Не направив пребарување за погрешен текст.");
+            modelInput.setText("");
+            facts.setText("");
+            internetStatus.setText("Не е препознаен јасен модел. Не пребарувам за рати или цени.");
+            suggestions.addView(label("Скенирај повторно со моделот во рамката или внеси го рачно.",12,false,0xFF966125));
+            setStatus("Не прочитав сигурен модел. „12x“ и цените се игнорирани.");
             return;
         }
-        int max=Math.min(options.size(),6);
-        for(int i=0;i<max;i++){
-            String name=options.get(i).getKey();
+        for(ModelNameParser.Candidate candidate:options){
+            final String name=candidate.model;
             Button choice=button("✓ "+name,0xFFE9EDF3);
             choice.setTextColor(INK);
             LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
-            params.topMargin=dp(5);params.height=Math.max(dp(45),params.height);
+            params.topMargin=dp(5);
+            params.height=dp(49);
             suggestions.addView(choice,params);
-            choice.setOnClickListener(v->{modelInput.setText(name);modelInput.setSelection(name.length());research(name);});
+            choice.setOnClickListener(v->{
+                modelInput.setText(name);
+                modelInput.setSelection(name.length());
+                research(name);
+            });
         }
-        String first=options.get(0).getKey();
-        modelInput.setText(first);modelInput.setSelection(first.length());
-        setStatus("Најверојатен модел: "+first+". Ако не е точен, избери друг ред или поправи го.");
-        research(first); // Only after the user explicitly pressed SCAN.
-    }
-    private static void offer(String input,Map<String,Integer> results){
-        if(input==null)return;
-        String t=input.replaceAll("[\\t\\r\\n]+"," ").replaceAll("\\s+"," ").trim();
-        t=t.replaceFirst("(?i)^(MODEL|MODEL NO\\.?|MODEL NUMBER|МОДЕЛ)\\s*[:#-]?\\s*","");
-        if(t.length()<4||t.length()>95||BAD.matcher(t).find())return;
-        Matcher matcher=CODE.matcher(t);
-        if(!matcher.find())return; // Avoid scanning prices and ordinary words.
-        int score=3;
-        if(BRAND.matcher(t).find())score+=6;
-        if(t.contains("-")||t.contains("/"))score+=3;
-        if(t.matches(".*[A-Za-z]{2,}.*"))score+=2;
-        if(t.length()>10&&t.length()<55)score+=2;
-        if(t.matches(".*\\b(?:12|24|36|48)\\s*(?:МЕСЕЦИ|MONTHS)\\b.*"))score-=10;
-        String candidate=t.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d)]+$","").trim();
-        if(candidate.length()>=4)results.put(candidate,Math.max(score,results.containsKey(candidate)?results.get(candidate):0));
+        ModelNameParser.Candidate best=options.get(0);
+        modelInput.setText(best.model);
+        modelInput.setSelection(best.model.length());
+        if(ModelNameParser.likelyCorrect(best)){
+            setStatus("Препознаен модел: "+best.model+". Ако е погрешен, избери друга понуда или поправи го.");
+            research(best.model); // One-shot SCAN was explicitly pressed.
+        }else{
+            internetStatus.setText("Моделот не е доволно сигурен. Потврди го или поправи го пред пребарување.");
+            setStatus("Можно име: "+best.model+". Провери го текстот и притисни „Истражи го моделот“.");
+        }
     }
     private void research(String input){
         String model=input==null?"":input.replaceAll("[\\n\\r\\t]"," ").replaceAll("\\s+"," ").trim();
