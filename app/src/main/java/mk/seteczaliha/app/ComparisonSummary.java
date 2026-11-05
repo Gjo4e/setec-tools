@@ -10,7 +10,7 @@ import java.util.Set;
 
 /**
  * Presents the few specifications that matter for a meaningful two-product
- * comparison. Values must come from exact-model independently sourced facts.
+ * comparison. Values must come from verified exact-product Setec facts.
  * Missing facts are never inferred, extrapolated or invented.
  */
 final class ComparisonSummary {
@@ -19,16 +19,17 @@ final class ComparisonSummary {
         "Капацитет на перење","Центрифуга","Енергетска класа","Програми","Димензии",
         "Бучава","Заштита од протекување","Одложен почеток");
     private static final List<String> ELECTRONICS = Arrays.asList(
-        "RAM","Капацитет","Резолуција","Димензии","Бучава",
-        "Енергетска класа","LED дисплеј");
+        "Процесор","RAM","Диск","Графичка","Екран",
+        "Резолуција","Батерија","Камера");
     private static final List<String> APPLIANCE = Arrays.asList(
-        "Капацитет","Енергетска класа","Димензии","Бучава","Програми",
-        "LED дисплеј","Одложен почеток");
+        "Капацитет","Енергетска класа","No Frost","Димензии","Бучава");
+    private static final List<String> TV = Arrays.asList(
+        "Дијагонала","Резолуција","Освежување","Технологија на екран","Smart TV");
     private static final List<String> GENERAL = Arrays.asList(
-        "Капацитет на перење","Центрифуга","RAM","Капацитет",
-        "Енергетска класа","Програми","Резолуција","Димензии",
-        "Бучава","LED дисплеј","Одложен почеток","Предперење",
-        "Заштита од протекување","Пареа");
+        "Процесор","RAM","Диск","Графичка","Екран",
+        "Капацитет на перење","Центрифуга","Капацитет",
+        "Енергетска класа","Програми","Дијагонала","Резолуција",
+        "Освежување","Димензии","Бучава","No Frost");
 
     private ComparisonSummary(){}
 
@@ -54,11 +55,17 @@ final class ComparisonSummary {
         if(available.contains("Капацитет на перење")||
             models.contains("WASHING")||models.contains("ПЕРЕЊЕ")||
             models.matches(".*\\b(?:TWM|MF110W|WN[A-Z]{2}\\d)\\b.*"))return WASHER;
+        if(models.contains("ТЕЛЕВИЗОР")||models.contains("TV ")||
+            models.contains(" QLED")||models.contains(" OLED")||
+            models.contains("МОНИТОР")||models.contains("MONITOR"))return TV;
         if(models.contains("FRIDGE")||models.contains("ФРИЖИДЕР")||
             models.contains("REFRIGERATOR")||models.contains("ЗАМРЗНУВАЧ"))return APPLIANCE;
         if(models.contains("MACBOOK")||models.contains("LAPTOP")||
+            models.contains("ASPIRE")||models.contains("IDEAPAD")||
+            models.contains("VIVOBOOK")||models.contains("THINKPAD")||
             models.contains("LENOVO")||models.contains("ASUS")||
-            available.contains("RAM")||available.contains("Резолуција"))return ELECTRONICS;
+            available.contains("Процесор")||available.contains("Графичка")||
+            available.contains("RAM")||available.contains("Диск"))return ELECTRONICS;
         return GENERAL;
     }
 
