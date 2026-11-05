@@ -811,11 +811,23 @@ public final class ModelScannerActivity extends ComponentActivity {
     private void renderSources(String model,List<Result> found,String error){
         sources.removeAllViews();
         if(found.isEmpty()){
-            internetStatus.setText("Нема автоматски прочитани izvori. Otvori „Veb rezultati“ ili „Setec.mk“ za direktno prebaruvanje.");
-            if(!error.isEmpty())sources.addView(label(error,12,false,0xFF915F28));
+            internetStatus.setText(googleHasResults
+                ?"Други извори не се достапни; Google резултатите се прикажани погоре."
+                :"Резервното пребарување не врати извори. Проверка може да се направи преку „Веб резултати“.");
+            if(!error.isEmpty()&&!googleHasResults)sources.addView(label(error,12,false,0xFF915F28));
             return;
         }
-        internetStatus.setText("🔎 Najdeni "+found.size()+" javni izvori za „"+model+"“. Dopri rezultat za da gi proveriš celosnite specifikacii.");
+        if(!googleHasResults){
+            // When Google prevents automated reading, present other public snippets
+            // with EXACTLY the same source-checking and fact extraction rules.
+            List<GoogleModelResearch.Result> fallback=new ArrayList<>();
+            for(Result r:found){
+                GoogleModelResearch.Result item=new GoogleModelResearch.Result(r.title,r.description,r.url);
+                if(GoogleModelResearch.relevant(model,item))fallback.add(item);
+            }
+            if(!fallback.isEmpty())showGoogleSources(model,fallback,"Други јавни извори");
+        }
+        internetStatus.setText("🔎 Пронајдени "+found.size()+" дополнителни јавни извори за „"+model+"“. Допри резултат за деталите.");
         for(Result source:found){
             LinearLayout card=new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
