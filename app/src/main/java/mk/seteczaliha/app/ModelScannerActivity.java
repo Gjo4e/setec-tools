@@ -376,6 +376,122 @@ public final class ModelScannerActivity extends ComponentActivity {
         return "• Točen model i proizveduvač\n• Najvažni tehnički specifikacii\n• Kompatibilnost i konektori\n• Garancija i dokumentacija\n• Cena i dostapnost vo Setec";
     }
 
+    // One search per chosen model. Research stays inside this Activity.
+    private void startSetecLookup(String requestedModel){
+        bestSetecUrl="";
+        activeSetecModel=ModelNameParser.normalizeModel(requestedModel);
+        int serial=++setecSerial;
+        setecStage=1;setecMatched=false;
+        setecStatus.setText("🔎 Пребарувам производи на Setec.mk…");
+        String term=SetecModelMatcher.searchTerm(activeSetecModel);
+        if(term.isEmpty()){setecStatus.setText("Внеси модел за пребарување на Setec.");return;}
+        Uri target=Uri.parse("https://www.setec.mk/search-result").buildUpon()
+            .appendQueryParameter("q",term).build();
+        setecBrowser.stopLoading();
+        setecBrowser.loadUrl(target.toString());
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&setecStage==1&&!setecMatched){
+                setecStatus.setText("Не најдов сигурно совпаѓање во каталогот на Setec. Пробај со точната ознака или отвори Setec пребарување.");
+            }
+        },10500);
+    }
+
+    private static String decodeJs(String value){
+        if(value==null||"null".equals(value)||"undefined".equals(value))return null;
+        try{
+            JSONArray arr=new JSONArray("["+value+"]");
+            return arr.optString(0,null);
+        }catch(Exception ignored){return null;}
+    }
+
+    private void readSetecMatches(int serial){
+        if(serial!=setecSerial||setecStage!=1||setecMatched||setecBrowser==null)return;
+        String js="(function(){\n try{\n  let result=new Map();\n  for(const a of document.querySelectorAll('a[href*=\"/products/\"]')){\n   let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}\n   if(!['www.setec.mk','setec.mk'].includes(u.hostname)||result.has(u.href))continue;\n   let card=a.closest('article,li,[class*=\"product\"],[class*=\"Product\"],[class*=\"card\"],[class*=\"Card\"]')||a.parentElement||a;\n   let heading=card.querySelector('h2,h3,h4,[class*=\"title\"],[class*=\"name\"]');\n   let name=(heading?.innerText||a.title||a.innerText||'').replace(/\\s+/g,' ').trim();\n   if(name.length<5||name.length>210)continue;\n   result.set(u.href,{url:u.href,name:name});\n   if(result.size>=100)break;\n  }\n  return JSON.stringify([...result.values()]);\n }catch(e){return '[]'}\n})()";
+        setecBrowser.evaluateJavascript(js,encoded->{
+            if(serial!=setecSerial||setecStage!=1||setecMatched)return;
+            try{
+                String raw=decodeJs(encoded);
+                if(raw==null)return;
+                JSONArray options=new JSONArray(raw);
+                int topScore=-1,runnerUp=-1;String topUrl="",topName="";
+                for(int i=0;i<options.length();i++){
+                    JSONObject item=options.optJSONObject(i);
+                    if(item==null)continue;
+                    String url=item.optString("url");
+                    String name=item.optString("name");
+                    if(!isSetecProduct(url))continue;
+                    int score=SetecModelMatcher.score(activeSetecModel,name);
+                    if(score>topScore){
+                        runnerUp=topScore;topScore=score;topUrl=url;topName=name;
+                    }else if(score>runnerUp){runnerUp=score;}
+                }
+                if(topScore>=100&&topScore-runnerUp>=4){
+                    setecMatched=true;setecStage=2;bestSetecUrl=topUrl;
+                    setecStatus.setText("✓ Совпаѓање во Setec: "+topName+"\nГи читам техничките спецификации…");
+                    setecBrowser.loadUrl(topUrl);
+                }
+            }catch(Exception ignored){}
+        });
+    }
+
+    private static boolean isSetecProduct(String link){
+        try{
+            Uri u=Uri.parse(link);
+            return "https".equalsIgnoreCase(u.getScheme())
+                &&("setec.mk".equalsIgnoreCase(u.getHost())||"www.setec.mk".equalsIgnoreCase(u.getHost()))
+                &&u.getPath()!=null&&u.getPath().startsWith("/products/");
+        }catch(Exception e){return false;}
+    }
+
+    private void readSetecDetails(int serial){
+        if(serial!=setecSerial||setecStage!=2||setecBrowser==null)return;
+        String js="(function(){\n try{\n  const body=document.body?.innerText||'';\n  const title=(document.querySelector('h1')?.innerText||'').replace(/\\s+/g,' ').trim();\n  // Setec renders technical specifications under an accordion/tab.\n  const button=[...document.querySelectorAll('button,[role=\"tab\"],a')].find(x=>\n   /Технички\\s*спецификации/i.test((x.innerText||x.textContent||'').trim())&&\n   (x.innerText||x.textContent||'').length<80);\n  try{if(button&&!window.__modelSpecOpened){button.click();window.__modelSpecOpened=true}}catch(e){}\n  const findValue=label=>{\n   const m=body.match(new RegExp(label+'\\\\s*:?\\\\s*([\\\\d.,]+)\\\\s*ден','i'));\n   return m?m[1]:'';\n  };\n  const sku=(body.match(/Шифра\\s*:?\\s*(\\d{4,8})/i)||[])[1]||'';\n  const warranty=(body.match(/Гаранција\\s*:?\\s*([^\\n]{2,70})/i)||[])[1]||'';\n  let specs='';\n  // Prefer the visible technical section over unrelated page navigation text.\n  const candidates=body.split(/Технички\\s*спецификации/i);\n  if(candidates.length>1){\n   const tail=candidates[candidates.length-1].trim();\n   const stop=tail.search(/(?:\\n\\s*(?:Оцени|Рецензии|Поврзани\\s*производи|Достава|Услови|Препорачани|Слични\\s*производи)\\s*\\n)/i);\n   const data=(stop>0?tail.slice(0,stop):tail).slice(0,1600);\n   let lines=data.split('\\n').map(v=>v.trim()).filter(x=>x.length>2&&x.length<180&&\n      !/^(?:Мени|Пребарај|Клуб\\s*цена|Редовна\\s*цена|Преглед|Cart|Compare)/i.test(x));\n   if(lines.length>1)specs=lines.slice(0,20).join('\\n');\n  }\n  return JSON.stringify({name:title,sku,club:findValue('Клуб цена'),\n   regular:findValue('Редовна цена'),warranty,specs});\n }catch(e){return '{}'}\n})()";
+        setecBrowser.evaluateJavascript(js,encoded->{
+            if(serial!=setecSerial||setecStage!=2)return;
+            try{
+                String raw=decodeJs(encoded);
+                if(raw==null)return;
+                JSONObject product=new JSONObject(raw);
+                String name=product.optString("name");
+                if(SetecModelMatcher.score(activeSetecModel,name)<100)return;
+                String code=product.optString("sku");
+                String club=product.optString("club");
+                String regular=product.optString("regular");
+                String warranty=product.optString("warranty");
+                String specs=product.optString("specs").trim();
+                StringBuilder lines=new StringBuilder();
+                lines.append("ПРОИЗВОД ОД SETEC.MK\n").append(name);
+                if(!code.isEmpty())lines.append("\nSetec шифра: ").append(code);
+                if(!club.isEmpty())lines.append("\nКлуб цена: ").append(club).append(" ден.");
+                if(!regular.isEmpty())lines.append("\nРедовна цена: ").append(regular).append(" ден.");
+                if(!warranty.isEmpty())lines.append("\nГаранција: ").append(warranty);
+                if(!specs.isEmpty()){
+                    lines.append("\n\nТЕХНИЧКИ СПЕЦИФИКАЦИИ\n").append(specs);
+                    setecStage=3;
+                    setecStatus.setText("✓ Најдени технички податоци на Setec.mk. Изворот може да се отвори со копчето Setec.mk.");
+                }else{
+                    setecStatus.setText("✓ Пронајден производот, но сеуште ги читам спецификациите од Setec.mk.");
+                }
+                lines.append("\n\nВАЖНО ЗА ПРОВЕРКА\n").append(checklist(activeSetecModel))
+                    .append("\n\nЗа компатибилност и ревизии секогаш провери и кај производителот.");
+                facts.setText(lines.toString());
+            }catch(Exception ignored){}
+        });
+        handler.postDelayed(()->{
+            if(serial==setecSerial&&setecStage==2)
+                setecStatus.setText("✓ Пронајден точен производ на Setec. Specifikaciite možda ne se čitаat avtomatski; vidi go oficijalniot proizvod.");
+        },6000);
+    }
+
+    private void openExactSetec(){
+        String model=modelInput.getText().toString().trim();
+        if(model.length()<3){setStatus("Прво внеси или скенирај модел.");return;}
+        if(!bestSetecUrl.isEmpty()&&isSetecProduct(bestSetecUrl)){openUri(bestSetecUrl);return;}
+        Uri page=Uri.parse("https://www.setec.mk/search-result").buildUpon()
+            .appendQueryParameter("q",SetecModelMatcher.searchTerm(model)).build();
+        openUri(page.toString());
+    }
+
     private static final class Result{
         String title,description,url;
         Result(String title,String description,String url){this.title=title;this.description=description;this.url=url;}
