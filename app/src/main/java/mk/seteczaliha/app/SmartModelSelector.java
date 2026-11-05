@@ -176,10 +176,17 @@ final class SmartModelSelector {
         }
         String end=text.substring(codePos);
         Matcher match=CODE.matcher(end);
-        if(!match.find())return "";
-        String actualCode=match.group();
+        String actualCode="";
+        int matchEnd=0;
+        if(match.find()){actualCode=match.group();matchEnd=match.end();}
+        else{
+            Matcher suffix=NUMERIC_SUFFIX_CODE.matcher(end);
+            if(!suffix.find())return "";
+            actualCode=suffix.group();
+            matchEnd=suffix.end();
+        }
         // Short suffix split into separate OCR token: "MF110W60/W HR".
-        String tail=end.substring(match.end()).trim();
+        String tail=end.substring(matchEnd).trim();
         if(actualCode.contains("/")&&tail.matches("(?i)^(?:HR|EU|MK|UK|BK|US|WH)\\b.*")){
             Matcher suffix=Pattern.compile("(?i)^(HR|EU|MK|UK|BK|US|WH)\\b").matcher(tail);
             if(suffix.find())actualCode+="-"+suffix.group(1);
