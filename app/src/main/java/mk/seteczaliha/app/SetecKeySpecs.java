@@ -100,7 +100,22 @@ final class SetecKeySpecs {
             if(value!=null&&!value.isEmpty()&&out.size()<5)
                 out.add(new GoogleModelResearch.Fact(key,value,url));
         }
-        return SetecUniversalSpecs.select(model,url,specs,shortDescription,fullTitle,category,found);
+        List<GoogleModelResearch.Fact> selected=SetecUniversalSpecs.select(
+            model,url,specs,shortDescription,fullTitle,category,found);
+        // The named-category rules are only a ranking aid, never the sole
+        // mechanism: a new type can still expose unambiguous labelled
+        // "Specification: value" rows without a software update.
+        if(selected.size()<5){
+            for(GoogleModelResearch.Fact extra:SetecDescriptionFallback.labeledFacts(
+                    model,url,specs,shortDescription,fullTitle)){
+                if(selected.size()>=5)break;
+                boolean exists=false;
+                for(GoogleModelResearch.Fact known:selected)
+                    if(known.label.equalsIgnoreCase(extra.label))exists=true;
+                if(!exists)selected.add(extra);
+            }
+        }
+        return selected;
     }
 
     private static void parse(String line,Map<String,String> facts,
