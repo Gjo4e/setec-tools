@@ -11,6 +11,13 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebSettings;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import android.text.Html;
 import android.text.InputType;
 import android.view.Gravity;
@@ -70,9 +77,15 @@ public final class ModelScannerActivity extends ComponentActivity {
     private ProcessCameraProvider cameraProvider;
     private ImageCapture capture;
     private Button scanButton, researchButton;
-    private TextView status, internetStatus, facts, selectedLabel;
+    private TextView status, internetStatus, facts, selectedLabel, setecStatus;
     private LinearLayout suggestions, sources;
     private EditText modelInput;
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private WebView setecBrowser;
+    private String bestSetecUrl="",activeSetecModel="";
+    private int setecStage=0; // 0 idle, 1 catalog search, 2 exact product
+    private int setecSerial=0;
+    private boolean setecMatched=false;
     private boolean scanning = false;
     private int researchSerial = 0;
     private ActivityResultLauncher<String> cameraPermission;
@@ -89,7 +102,29 @@ public final class ModelScannerActivity extends ComponentActivity {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setBackgroundColor(0xFFF7F8FB);
-        setContentView(page);
+        // Keep Setec's dynamic catalog in an independent full-width WebView.
+        // This never navigates the app away from the model results screen.
+        FrameLayout appRoot=new FrameLayout(this);
+        setContentView(appRoot);
+        setecBrowser=new WebView(this);
+        setecBrowser.setAlpha(0.01f);
+        setecBrowser.setClickable(false);
+        WebSettings settings=setecBrowser.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setLoadsImagesAutomatically(false);
+        settings.setBlockNetworkImage(true);
+        appRoot.addView(setecBrowser,new FrameLayout.LayoutParams(-1,-1));
+        appRoot.addView(page,new FrameLayout.LayoutParams(-1,-1));
+        setecBrowser.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView view,String url){
+                final int serial=setecSerial;
+                if(setecStage==1)for(long delay:new long[]{600,1500,3000,5200})
+                    handler.postDelayed(()->readSetecMatches(serial),delay);
+                else if(setecStage==2)for(long delay:new long[]{650,1350,2700})
+                    handler.postDelayed(()->readSetecDetails(serial),delay);
+            }
+        });
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
@@ -160,7 +195,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         content.addView(suggestions);
         suggestions.addView(label("По SCAN ќе се појават препознаените модели. Можеш и рачно да го поправиш текстот.",12,false,0xFF6A7280));
 
+        setecStatus=label("Официјални податоци од Setec.mk ќе се појават тука.",13,true,0xFF835419);
+        topMargin(content,setecStatus,dp(17));
         facts=label("",13,false,INK);
+        facts.setTextIsSelectable(true);
         topMargin(content,facts,dp(18));
 
         LinearLayout links=new LinearLayout(this);
@@ -171,7 +209,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         b.leftMargin=dp(8);
         links.addView(web,a);links.addView(setec,b);
         web.setOnClickListener(v -> openSearch(modelInput.getText().toString(),""));
-        setec.setOnClickListener(v -> openSearch(modelInput.getText().toString(),"site:setec.mk "));
+        setec.setOnClickListener(v -> openExactSetec());
 
         internetStatus = label("По SCAN автоматски ќе побарам јавно достапни извори и спецификации.",13,false,0xFF687181);
         topMargin(content,internetStatus,dp(14));
@@ -307,9 +345,10 @@ public final class ModelScannerActivity extends ComponentActivity {
         modelInput.setSelection(model.length());
         final String query=model;
         final int serial=++researchSerial;
-        facts.setText("ВАЖНО ЗА ПРОВЕРКА\n"+checklist(query)+"\n\nПодатоците од Интернет мора да се споредат со точниот модел и ревизија.");
-        internetStatus.setText("🔎 Истражувам „"+query+"“ на Интернет…");
+        facts.setText("ВАЖНО ЗА ПРОВЕРКА\n"+checklist(query)+"\n\nГи барам проверените спецификации од официјалниот производ.");
+        internetStatus.setText("🔎 Дополнителни јавни извори за „"+query+"“…");
         sources.removeAllViews();
+        startSetecLookup(query);
         networkExecutor.execute(() -> {
             List<Result> results=new ArrayList<>();
             String error="";
