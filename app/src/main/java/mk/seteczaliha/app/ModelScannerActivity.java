@@ -455,6 +455,17 @@ public final class ModelScannerActivity extends ComponentActivity {
                 });
                 return;
             }
+            List<GoogleModelResearch.Result> alt=AlternativeSearchFetcher.search(query);
+            if(!alt.isEmpty()){
+                runOnUiThread(()->{
+                    if(serial!=researchSerial||isFinishing()||googleHasResults)return;
+                    googleHasResults=true;
+                    showGoogleSources(query,alt,"Независни веб извори");
+                    internetStatus.setText("Проверени извори се прикажани погоре. Google не е единствениот пребарувач.");
+                    sources.removeAllViews();
+                });
+                return;
+            }
             List<Result> fallback=new ArrayList<>();
             String error="";
             try{fallback=fetchPublicResults(query);}
