@@ -44,6 +44,12 @@ final class SetecKeySpecs {
     /** Preserve source priority: technical tab > short product description > H1. */
     static List<GoogleModelResearch.Fact> extract(
             String model,String url,String specs,String shortDescription,String fullTitle){
+        return extract(model,url,specs,shortDescription,fullTitle,"");
+    }
+
+    static List<GoogleModelResearch.Fact> extract(
+            String model,String url,String specs,String shortDescription,String fullTitle,
+            String category){
         List<GoogleModelResearch.Fact> out=new ArrayList<>();
         if(!SetecPageData.isOfficialProductUrl(url))return out;
         String classification=(String.valueOf(model)+" "+String.valueOf(fullTitle)).toUpperCase(Locale.ROOT);
@@ -94,7 +100,7 @@ final class SetecKeySpecs {
             if(value!=null&&!value.isEmpty()&&out.size()<5)
                 out.add(new GoogleModelResearch.Fact(key,value,url));
         }
-        return SetecUniversalSpecs.select(model,url,specs,shortDescription,fullTitle,found);
+        return SetecUniversalSpecs.select(model,url,specs,shortDescription,fullTitle,category,found);
     }
 
     private static void parse(String line,Map<String,String> facts,
