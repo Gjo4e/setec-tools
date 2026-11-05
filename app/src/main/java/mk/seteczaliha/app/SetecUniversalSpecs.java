@@ -427,6 +427,16 @@ final class SetecUniversalSpecs {
      * Only claim refresh frequency when a genuine Hz measurement is explicit.
      */
     private static void parseTv(Map<String,String> f,String line){
+        // Earlier general parser sometimes captures a value like 3840x2160.
+        // Normalize that value before applying the TV-specific selector.
+        String rawResolution=f.get("Резолуција");
+        if(rawResolution!=null){
+            String clean=rawResolution.replaceAll("(?<=\\d)[.,](?=\\d{3}\\b)","")
+                .replaceAll("\\s*[x×]\\s*","×");
+            if(clean.matches("(?:1280×720|1366×768|1920×1080|2560×1440|"+
+                    "3840×2160|4096×2160|7680×4320)"))
+                f.put("Резолуција",clean);
+        }
         // Limit standalone inch values to plausible display diagonals.
         offer(f,"Дијагонала",line,
             "(?iu)(?:дијагонала|screen\\s*size|големина\\s*на\\s*екран)\\s*[:\\-]?\\s*"+
