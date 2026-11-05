@@ -33,6 +33,12 @@ final class SetecPageData {
 (function(){
   try{
     const body=document.body?.innerText||'';
+    const crumbs=[...document.querySelectorAll(
+      '[class*="breadcrumb" i] a,[aria-label*="breadcrumb" i] a'
+    )].map(a=>(a.innerText||a.textContent||'').trim()).filter(Boolean);
+    // The breadcrumb is product-specific; never infer category from the
+    // global navigation menu which lists ALL Setec categories.
+    const category=crumbs.slice(-2).join(' / ').slice(0,150);
     const h1=(document.querySelector('h1')?.innerText||'').replace(/\\s+/g,' ').trim();
     const sku=(body.match(/(?:Шифра|SKU)\\s*:?\\s*(\\d{4,8})/i)||[])[1]||'';
     const price=label=>{
@@ -81,14 +87,15 @@ final class SetecPageData {
       '[role=tabpanel],.tab-pane,[class*="specifications"],[id*="specifications"]'
     )];
     for(const p of panels){
-      const txt=(p.innerText||'').trim();
+      // Hidden React/accordion tab contents often have empty innerText.
+      const txt=(p.innerText||p.textContent||'').trim();
       if(txt.length>specs.length && txt.length>=25 && txt.length<7500 &&
          !/Клуб\\s*цена|Редовна\\s*цена/.test(txt.substring(0,220)))
           specs=txt.slice(0,5500);
     }
     return JSON.stringify({
       name:h1,sku:sku,club:price('Клуб цена'),regular:price('Редовна цена'),
-      specs:specs,short:short
+      specs:specs,short:short,category:category
     });
   }catch(e){return '{}'}
 })()
