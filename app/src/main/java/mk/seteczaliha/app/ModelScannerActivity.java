@@ -383,6 +383,15 @@ public final class ModelScannerActivity extends ComponentActivity {
     }
     private String checklist(String model){
         String m=model.toUpperCase(Locale.ROOT);
+        // White goods: useful characteristics are very different from PC compatibility.
+        if(m.matches(".*(?:MF110W|MF205W|WASH(?:ING)?|ПЕРЕЊЕ|ПЕРАЛНА|МАШИНА ЗА АЛИШТА).*"))
+            return "• Капацитет на перење (kg)\\n• Центрифуга (врт./мин.)\\n• Програми и брзо перење\\n• Енергетска класа и потрошувачка\\n• Димензии (В×Ш×Д) и бучава\\n• Гаранција и сервиси".replace("\\n","\n");
+        if(m.matches(".*(?:FRIDGE|REFRIGERATOR|NO\\s*FROST|ФРИЖИДЕР|ЗАМРЗНУВАЧ).*"))
+            return "• Корисен волумен (литри)\\n• No Frost / начин на ладење\\n• Енергетска класа\\n• Димензии и бучава\\n• Гаранција".replace("\\n","\n");
+        if(m.matches(".*(?:DISHWASH|МАШИНА ЗА САДОВИ|МИЈАЛНА).*"))
+            return "• Број на комплети\\n• Програми и времетраење\\n• Потрошувачка на вода и струја\\n• Бучава, димензии и гаранција".replace("\\n","\n");
+        if(m.matches(".*(?:КЛИМА|AIR\\s*CONDITIONER|INVERTER\\s*AC).*"))
+            return "• BTU и моќност\\n• Погодна површина (m²)\\n• SEER/SCOP и енергетска класа\\n• Бучава и тип на фреон\\n• Гаранција".replace("\\n","\n");
         if(m.matches(".*(?:B[45678]\\d{2}|Z[456789]\\d{2}|X[3578]\\d{2}|H[45678]\\d{2}|MOTHERBOARD|MAINBOARD|MATIČNA).*"))
             return "• Socket i kompatibilen procesor\n• DDR4/DDR5 i max RAM\n• M.2/SATA portovi\n• ATX/mATX/ITX format\n• BIOS i Wi‑Fi";
         if(m.matches(".*(?:RYZEN|INTEL|CORE\\s*I[3579]|PROCESSOR|CPU).*"))
