@@ -47,4 +47,11 @@ public final class SetecProductTitleTest {
             "Лаптоп "+new String(new char[120]).replace('\0','A')));
         assertEquals("",SetecProductTitle.modelFromProductName(null));
     }
+
+    @Test public void preserveAirConditionerModelCodeFromLongMarketingTitle(){
+        String title="Midea MFA2U-17HRFNX(GA)/MOX330U-18HFN8-Q(GA) "+
+            "Конзолен тип на клима уред Breezeless СО ДВОЕН ГРЕАЧ НА КУЌИШТЕ И НА КОМПРЕСОР";
+        assertEquals("Midea MFA2U-17HRFNX(GA)/MOX330U-18HFN8-Q(GA)",
+            SetecProductTitle.modelFromProductName(title));
+    }
 }
