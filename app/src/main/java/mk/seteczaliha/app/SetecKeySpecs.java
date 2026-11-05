@@ -94,7 +94,7 @@ final class SetecKeySpecs {
             if(value!=null&&!value.isEmpty()&&out.size()<5)
                 out.add(new GoogleModelResearch.Fact(key,value,url));
         }
-        return out;
+        return SetecUniversalSpecs.select(model,url,specs,shortDescription,fullTitle,found);
     }
 
     private static void parse(String line,Map<String,String> facts,
