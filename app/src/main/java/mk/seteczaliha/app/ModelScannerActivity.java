@@ -427,8 +427,21 @@ public final class ModelScannerActivity extends ComponentActivity {
         startGoogleResearch(query);
         startSetecLookup(query);
         networkExecutor.execute(() -> {
-            // Two independent Google paths: HTML response parsing and a WebView.
-            // Both are best-effort; if Google blocks both, use other public search.
+            // An exact manufacturer's product page is more reliable than scraped
+            // Google HTML. It still uses a NON-SETEC source for descriptions.
+            List<GoogleModelResearch.Result> manufacturer=OfficialModelSources.fetch(query);
+            if(!manufacturer.isEmpty()){
+                runOnUiThread(()->{
+                    if(serial!=researchSerial||isFinishing())return;
+                    googleHasResults=true;
+                    showGoogleSources(query,manufacturer,"Производител");
+                    internetStatus.setText("Официјалните податоци од производителот се прикажани погоре. Не се користи опис од Setec.");
+                    sources.removeAllViews();
+                });
+                return;
+            }
+            // Google may block automated requests; independent exact-model
+            // search is the fallback, never arbitrary unrelated links.
             List<GoogleModelResearch.Result> google=new ArrayList<>();
             try{google=GoogleSearchFetcher.search(query);}catch(Exception ignored){}
             final List<GoogleModelResearch.Result> directGoogle=google;
