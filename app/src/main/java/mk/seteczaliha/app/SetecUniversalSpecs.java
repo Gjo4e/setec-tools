@@ -92,7 +92,7 @@ final class SetecUniversalSpecs {
     private static Kind classify(String t){
         // Prefer unmistakable appliance type keywords. Short technical headers
         // often contain the only category text, e.g. "TEFAL TT420D30\nТостер".
-        if(has(t,"ТОСТЕР","TOASTER","СЕНДВИЧАРА","СЕНДВИЧ ТОСТЕР","АПАРАТ ЗА ТОСТ"))return Kind.TOASTER;
+        if(has(t,"ТОСТЕР","TOСТЕР","TOCTEP","TOASTER","СЕНДВИЧАРА","СЕНДВИЧ ТОСТЕР","АПАРАТ ЗА ТОСТ"))return Kind.TOASTER;
         if(has(t,"ФЕН ЗА КОСА","ФЕН ","HAIR DRYER","ФЕН ЗА СУШЕЊЕ"))return Kind.HAIR_DRYER;
         if(has(t,"АСПИРАТОР","КУЈНСКИ АСПИРАТОР","COOKER HOOD","RANGE HOOD"))return Kind.HOOD;
         if(has(t,"КЛИМА","КЛИМАТИЗЕР","AIR CONDITIONER","ТОПЛИНСКА ПУМПА","ИНВЕРТЕР КЛИМА"))
