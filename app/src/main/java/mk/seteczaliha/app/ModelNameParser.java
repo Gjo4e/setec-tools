@@ -36,7 +36,7 @@ final class ModelNameParser {
         "(?i)\\b(?=[A-Z0-9._/-]*[A-Z])(?=[A-Z0-9._/-]*\\d)[A-Z0-9][A-Z0-9._/-]{3,}\\b");
     private static final Pattern PRICING = Pattern.compile(
         "(?iu)(?:\\b\\d{1,2}\\s*[XХ]\\s*\\d{2,}\\b|" +
-        "\\b(?:RATE|INSTALLMENTS|RATI|РАТИ|РАТА|РАМ|ПЛАЌАЊЕ|CENA|ЦЕНА|КЛУБ\\s*ЦЕНА|КЛУБ|ДЕН|ДЕН\\.|ДЕНАР|МКД|MKD)\\b|" +
+        "\\b(?:RATE|INSTALLMENTS|RATI|РАТИ|РАТА|ПЛАЌАЊЕ|CENA|ЦЕНА|КЛУБ\\s*ЦЕНА|КЛУБ|ДЕН|ДЕН\\.|ДЕНАР|МКД|MKD)\\b|" +
         "\\b\\d+[.,]\\d{3}\\s*(?:ДЕН|MKD|DEN)\\b|" +
         "\\b\\d+\\s*(?:GB|TB)\\s*(?:MEMORIJA|МЕМОРИЈА)\\s+ЦЕНА\\b)");
     private static final Pattern NOISE = Pattern.compile(
