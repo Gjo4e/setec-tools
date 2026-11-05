@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * Conservative OCR candidate selection for a manually photographed model label.
@@ -42,6 +43,29 @@ final class ModelNameParser {
     private static final Pattern NOISE = Pattern.compile(
         "(?iu)(?:\\b(?:ШИФРА|БАРКОД|BARCODE|SERIAL|IMEI|EAN|ГАРАНЦИЈА|WARRANTY|ДОСТАПНОСТ|ДОСТАВА)\\b|" +
         "https?://|www\\.|\\b\\d{4,}\\s*(?:DEN|ДЕН)\\b)");
+    private static final Pattern APPLE_MACBOOK = Pattern.compile(
+        "(?i)\\bMACB[O0]{2}K\\s+(NE[O0]|AIR|PRO)(?:\\s+(\\d{1,2}))?");
+    private static final Pattern APPLE_COLOR = Pattern.compile(
+        "(?i)\\b(INDIGO|SILVER|CITRUS|BLUSH|MIDNIGHT|STARLIGHT|SPACE\\s+GRAY|BLACK|WHITE|GOLD)\\b");
+
+    /** Build a searchable model name, not the whole noisy price label. */
+    static String normalizeModel(String label) {
+        if(label==null)return "";
+        String text=label.replaceAll("[\\r\\n\\t]+"," ").replaceAll("\\s+"," ").trim();
+        Matcher mac=APPLE_MACBOOK.matcher(text);
+        if(mac.find()){
+            String family=mac.group(1).replace('0','O').toUpperCase(Locale.ROOT);
+            String size=mac.group(2)==null?"":" "+mac.group(2);
+            Matcher color=APPLE_COLOR.matcher(text.substring(mac.end()));
+            String variant=color.find()?" "+color.group(1).toUpperCase(Locale.ROOT).replaceAll("\\s+"," "):"";
+            return "Apple MacBook "+family+size+variant;
+        }
+        text=text.replaceAll("[“”″‘’()\\[\\]]"," ").replaceAll("\\s+"," ").trim();
+        text=text.replaceFirst("(?iu)^(?:MODEL(?:\\s+NO\\.?|\\s+NUMBER)?|МОДЕЛ)\\s*[:#-]?\\s*","");
+        text=GENERIC_START.matcher(text).replaceFirst("").trim();
+        return text.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d]+$","").trim();
+    }
+
     private static final Pattern GENERIC_START = Pattern.compile(
         "(?iu)^(?:ЛАПТОП|НОУТБУК|LAPTOP|NOTEBOOK|КОМПЈУТЕР|МАТИЧНА\\s+ПЛОЧА|" +
         "MOTHERBOARD|ПРОЦЕСОР|ГРАФИЧКА\\s+КАРТИЧКА|SSD\\s+ДИСК|RAM\\s+МЕМОРИЈА)\\s+");
@@ -87,13 +111,7 @@ final class ModelNameParser {
 
     private static void offer(Map<String,Candidate> found, String raw, int parts) {
         if (isNoise(raw)) return;
-        String clean = raw.replaceAll("[\\r\\n\\t]+", " ").replaceAll("\\s+", " ").trim()
-            .replaceFirst("(?iu)^(?:MODEL(?:\\s+NO\\.?|\\s+NUMBER)?|МОДЕЛ)\\s*[:#-]?\\s*", "");
-        clean = GENERIC_START.matcher(clean).replaceFirst("").trim();
-        // Camera text often includes decorative quotes and wrapped parentheses.
-        // These make an exact model search unreliable; keep part-number hyphens/slashes.
-        clean = clean.replaceAll("[“”″‘’()\\[\\]]", " ").replaceAll("\\s+", " ").trim();
-        clean = clean.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d]+$", "").trim();
+        String clean = normalizeModel(raw);
         if (clean.length() < 4 || clean.length() > 90) return;
         String upper = clean.toUpperCase(Locale.ROOT);
         boolean brand = BRAND.matcher(upper).find();
