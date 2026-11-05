@@ -65,6 +65,9 @@ final class ModelNameParser {
         text=text.replaceAll("[“”″‘’()\\[\\]]"," ").replaceAll("\\s+"," ").trim();
         text=text.replaceFirst("(?iu)^(?:MODEL(?:\\s+NO\\.?|\\s+NUMBER)?|МОДЕЛ)\\s*[:#-]?\\s*","");
         text=GENERIC_START.matcher(text).replaceFirst("").trim();
+        // Printed labels often repeat the small brand heading before the bold model.
+        // Keep a single manufacturer name, and discard duplicated heading text.
+        text=text.replaceAll("(?i)\\b(GORENJE|MIDEA|BEKO|BOSCH|WHIRLPOOL|CANDY|HISENSE|AEG|ELECTROLUX|SAMSUNG|LG|TESLA|HAIER|VOX|APPLE|ASUS|MSI|LENOVO|DELL|HP|KINGSTON)(?:\\s+\\1)+\\b","$1");
         return text.replaceAll("^[^\\p{L}\\d]+|[^\\p{L}\\d]+$","").trim();
     }
 
