@@ -221,6 +221,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         compareParams.topMargin=dp(6);
         captureRow.setOrientation(LinearLayout.VERTICAL);
         captureRow.addView(compareButton,compareParams);
+        if(comparePicker)compareButton.setVisibility(View.GONE);
         compareButton.setOnClickListener(v->{
             if(comparePicker)return;
             else startActivity(new Intent(this,CompareModelsActivity.class));
