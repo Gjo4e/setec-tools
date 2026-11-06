@@ -159,23 +159,37 @@ public final class MainActivity extends ComponentActivity {
 
         // Isolated catalog browser: read actual SETEC category links, products and pagination.
         categoryMerchant = new WebView(this);
-        categoryMerchant.setAlpha(0.01f);
+        // Keep the catalog browser fully rendered behind the local UI WebView.
+        // Android may deprioritize React hydration in nearly transparent WebViews.
+        categoryMerchant.setAlpha(1f);
         categoryMerchant.setClickable(false);
-        categoryMerchant.getSettings().setJavaScriptEnabled(true);
-        categoryMerchant.getSettings().setDomStorageEnabled(true);
-        categoryMerchant.getSettings().setLoadsImagesAutomatically(false);
+        WebSettings categorySettings = categoryMerchant.getSettings();
+        categorySettings.setJavaScriptEnabled(true);
+        categorySettings.setDomStorageEnabled(true);
+        categorySettings.setLoadsImagesAutomatically(true);
+        categorySettings.setOffscreenPreRaster(true);
+        categorySettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         categoryMerchant.setWebViewClient(new WebViewClient(){
-            @Override public void onPageFinished(WebView view,String url){
-                int serial=categorySerial;
-                if(!categoryResolveName.isEmpty() && isHome(url)){
-                    String name=categoryResolveName;
-                    for(long delay:new long[]{500,1200,2400,4400,7000})
-                        handler.postDelayed(()->resolveCategoryFromMenu(serial,name,delay==7000),delay);
-                    return;
-                }
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap favicon){
+                // Next.js renders its product cards asynchronously after initial navigation.
                 if(!safeCategoryUrl(url)||!sameCategoryPath(url,categoryUrl))return;
-                for(long delay:new long[]{700,1650,3300,5700,8600})
-                    handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
+                final int serial=categorySerial;
+                final String target=categoryUrl;
+                for(long delay:new long[]{1800,3400,5500,8200,12000})
+                    handler.postDelayed(()->readCategoryPage(serial,target),delay);
+            }
+            @Override public void onPageFinished(WebView view,String url){
+                if(!safeCategoryUrl(url)||!sameCategoryPath(url,categoryUrl))return;
+                final int serial=categorySerial;
+                final String target=categoryUrl;
+                for(long delay:new long[]{400,1300,2900,5100,7600})
+                    handler.postDelayed(()->readCategoryPage(serial,target),delay);
+            }
+            @Override public void onReceivedError(WebView view,android.webkit.WebResourceRequest request,
+                    android.webkit.WebResourceError error){
+                if(request.isForMainFrame()&&sameCategoryPath(request.getUrl().toString(),categoryUrl)){
+                    js("window.onCategoryError('Неуспешно поврзување со SETEC. Провери интернет и пробај повторно.');");
+                }
             }
         });
         root.addView(categoryMerchant,new FrameLayout.LayoutParams(-1,-1));
@@ -358,9 +372,14 @@ public final class MainActivity extends ComponentActivity {
             js("window.onCategoryError('Невалидна категорија.');");return;
         }
         categoryResolveName="";
-        categoryUrl=url;categorySerial++;
+        categoryUrl=url;
+        final int serial=++categorySerial;
         js("window.onCategoryLoading();");
         categoryMerchant.loadUrl(url);
+        // Page-finished can be delayed or skipped by SPA transitions;
+        // start an independent reader that keeps checking the rendered DOM.
+        for(long delay:new long[]{2500,4700,7200,10800,14500})
+            handler.postDelayed(()->readCategoryPage(serial,url),delay);
     }
     private void startResolveCategoryRoot(String name){
         if(categoryMerchant==null||name==null||name.trim().isEmpty())return;
@@ -469,7 +488,7 @@ public final class MainActivity extends ComponentActivity {
             "if(holder||a.querySelector('img')||a.parentElement?.querySelector('img'))categories.set(u.href,{name:name,url:u.href});"+
             "}"+
             "if(!u.pathname.startsWith('/products/')||products.has(u.href))continue;"+
-            "let p=a.closest('article,li,[class*=product],[class*=Product],[class*=card],[class*=Card]')||a.parentElement||a;"+
+            "let p=a.closest('[data-component=ProductCard],[data-product-id],article,li,[class*=product],[class*=Product],[class*=card],[class*=Card]')||a.parentElement||a;"+
             "let t=p.querySelector('h2,h3,h4,[class*=title],[class*=name]');"+
             "let productName=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).replace(/\\s+/g,' ').trim().slice(0,200);"+
             "let txt=(p.innerText||'').replace(/\\s+/g,' '),prices=setecPrices(txt);"+
