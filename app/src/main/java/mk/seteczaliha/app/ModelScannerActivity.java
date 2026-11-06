@@ -466,9 +466,15 @@ public final class ModelScannerActivity extends ComponentActivity {
             compareDetailLines=SetecCompareRows.parseLines(
                 googleFacts.getText().toString());
         }
-        if(compareFacts.isEmpty()&&compareDetailLines.isEmpty()){
+        // Save the SAME five important lines the scanner can display,
+        // including free-form technical bullets when Setec has no labels.
+        Map<String,String> namedForSave=ComparisonSummary.asMap(compareFacts);
+        List<String> mostImportant=SetecCompareRows.highlights(
+            compareModel,namedForSave,compareDetailLines,
+            googleFacts.getText().toString());
+        if(mostImportant.isEmpty()){
             setStatus("Не се прочитани техничките детали од Setec.mk. "+
-                "Почекај да се вчитаат и провери повторно пред зачувување.");
+                "Провери го описот и пробај повторно.");
             readCompareSkuSpecs(setecSerial,lookupGeneration);
             return;
         }
@@ -479,7 +485,10 @@ public final class ModelScannerActivity extends ComponentActivity {
             record.put("club",compareClub);
             record.put("regular",compareRegular);
             record.put("source",SetecPageData.isOfficialProductUrl(bestSetecUrl)?bestSetecUrl:"");
-            record.put("description",SetecCompareRows.asDescription(compareDetailLines));
+            record.put("description",SetecCompareRows.asDescription(mostImportant));
+            JSONArray importantArr=new JSONArray();
+            for(String item:mostImportant)importantArr.put(item);
+            record.put("highlights",importantArr);
             JSONArray detailsArr=new JSONArray();
             for(String line:compareDetailLines)
                 detailsArr.put(line);
