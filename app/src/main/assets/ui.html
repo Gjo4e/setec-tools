@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>SETEC TOOLS</title>
+<html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Setec Tools</title>
 <style>
 :root{--orange:#258bff;--dark:#1c1c21;--text:#24242a;--muted:#777d88;--line:#e5e6eb;--bg:#f8f9fb;--green:#117a32}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Roboto,'Arial',sans-serif}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}.hidden{display:none!important}
@@ -284,7 +284,9 @@ body.dark{--bg:#080d14;--text:#f5f8ff;--muted:#9baec5;--line:#23354b;--surface:#
 .dashHero,body.dark .dashHero{background:radial-gradient(ellipse at 110% 80%,rgba(0,117,255,.50),transparent 42%),radial-gradient(ellipse at 75% 110%,rgba(18,67,163,.37),transparent 47%),linear-gradient(120deg,#090f18,#101e32)!important;border:1px solid #23476e!important}
 .dashEyebrow{color:#f3f8ff!important}
 .dashIntro{color:#acbfd5!important}
-.dashSearch{border:1px solid #278af0!important;box-shadow:0 0 0 1px rgba(22,110,219,.09),0 8px 23px rgba(0,0,0,.13)!important}
+.dashSearch{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;padding:0!important}
+.dashSearch input:focus{outline:0!important;box-shadow:0 0 0 1px #4f9ff2!important}
+.dashSearch button:focus-visible{outline:2px solid #8ed1ff;outline-offset:2px}
 .dashSearch button{color:#64c4ff!important}
 .dashTile,body.dark .dashTile,body.dark .dashTilePrimary{color:#f4f8ff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 18px rgba(0,0,0,.14)!important}
 .dashTile:nth-child(4n+1),body.dark .dashTile:nth-child(4n+1){background:linear-gradient(145deg,#0e3145,#101a27 80%)!important;border:1px solid #17658b!important}
@@ -423,7 +425,7 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 .categoryRetry{width:100%;padding:13px;border:1px solid #276b99;background:#102d49;border-radius:12px;color:#b4e2ff;font-weight:800;margin-top:10px}
 .categoryLoading{font-size:12px;color:#a6cdea;text-align:center;padding:18px}
 </style></head>
-<body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC <span class="brandTools">TOOLS</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
+<body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">Setec <span class="brandTools">Tools</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
 
 <main class="wrap">
 <section id="dashboard" class="dashboard">
