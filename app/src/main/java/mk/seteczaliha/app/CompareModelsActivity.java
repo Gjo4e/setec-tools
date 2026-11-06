@@ -56,7 +56,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private final Handler inputHandler=new Handler(Looper.getMainLooper());
     private final Runnable[] pendingLookup=new Runnable[2];
     private ActivityResultLauncher<Intent> picker, skuScanner;
-    private LinearLayout content,table;
+    private LinearLayout content,table,screenRoot;
     private TextView overview;
     private int editingSlot=0;
     private final WebView[] lookupBrowsers=new WebView[2];
@@ -165,6 +165,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         screen.setOrientation(LinearLayout.VERTICAL);
         screen.setBackgroundColor(0xFF080D14);
         setContentView(screen);
+        screenRoot=screen;
 
         LinearLayout header=new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
@@ -281,7 +282,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setLoadsImagesAutomatically(false);
-        web.setVisibility(View.GONE);
+        web.setAlpha(0.01f);
+        web.setClickable(false);
+        screenRoot.addView(web,new LinearLayout.LayoutParams(dp(1),dp(1)));
         lookupBrowsers[slot]=web;
         web.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView v,String url){
