@@ -321,6 +321,7 @@ public final class CompareModelsActivity extends ComponentActivity {
             table.addView(empty,p);
             return;
         }
+        addEvidenceVerdict(left,right,rows);
         boolean hasOriginal=false;
         for(SetecCompareRows.Row spec:rows){
             row(spec.label,spec.left,spec.right,spec.comparable);
@@ -344,6 +345,75 @@ public final class CompareModelsActivity extends ComponentActivity {
         table.addView(references,rp);
         addSource(references,left,false);
         addSource(references,right,true);
+    }
+
+
+    /** Evidence-only recommendation: no blanket winner from unrelated specifications. */
+    private void addEvidenceVerdict(Product left,Product right,List<SetecCompareRows.Row> rows){
+        StringBuilder report=new StringBuilder();
+        double lp=priceNumber(left.club),rp=priceNumber(right.club);
+        if(!Double.isNaN(lp)&&!Double.isNaN(rp)&&lp!=rp){
+            Product cheaper=lp<rp?left:right;
+            report.append("• Подобра клуб цена: ").append(cheaper.name)
+                .append(" — ").append((long)Math.abs(lp-rp))
+                .append(" ден. поевтин.\\n");
+        }
+        int count=0;
+        for(SetecCompareRows.Row r:rows){
+            if(!r.comparable||r.left==null||r.right==null)continue;
+            String label=r.label.toLowerCase(java.util.Locale.ROOT);
+            boolean largerBetter=label.matches(".*(ram|мемори|капацитет|батери|ssd|складира|refresh|освежува|hz|резолуц).*");
+            if(!largerBetter)continue;
+            double a=unitNumber(r.left),b=unitNumber(r.right);
+            if(Double.isNaN(a)||Double.isNaN(b)||a==b)continue;
+            String unitA=unitOf(r.left),unitB=unitOf(r.right);
+            if(!unitA.equals(unitB)||unitA.isEmpty())continue;
+            Product winner=a>b?left:right;
+            report.append("• ").append(r.label).append(": ").append(winner.name)
+                .append(" има ").append(a>b?r.left:r.right).append(" наспроти ")
+                .append(a>b?r.right:r.left).append(".\\n");
+            if(++count>=3)break;
+        }
+        String message=report.length()==0
+            ?"Нема доволно директно споредливи потврдени податоци за да се утврди предност."
+            :report.toString().trim();
+        message+="\\n\\nОва се проверливи разлики, не универзален победник. Изборот зависи од намената; спецификациите се од Setec.mk.";
+        TextView heading=text("АВТОМАТСКА АНАЛИЗА · СО ФАКТИ",15,true,INK);
+        LinearLayout.LayoutParams h=new LinearLayout.LayoutParams(-1,-2);
+        h.topMargin=dp(19);table.addView(heading,h);
+        TextView body=text(message,13,false,INK);
+        body.setPadding(dp(12),dp(12),dp(12),dp(12));
+        GradientDrawable bg=new GradientDrawable();bg.setColor(0xFFFFF4E8);
+        bg.setCornerRadius(dp(12));body.setBackground(bg);
+        table.addView(body);
+    }
+    private static double priceNumber(String raw){
+        if(raw==null)return Double.NaN;
+        String cleaned=raw.replaceAll("[^0-9]","");
+        if(cleaned.isEmpty())return Double.NaN;
+        try{return Double.parseDouble(cleaned);}catch(Exception e){return Double.NaN;}
+    }
+    private static double unitNumber(String raw){
+        if(raw==null)return Double.NaN;
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)([0-9]+(?:[.,][0-9]+)?)\\\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\\\b").matcher(raw);
+        if(!m.find())return Double.NaN;
+        try{
+            double v=Double.parseDouble(m.group(1).replace(',','.'));
+            String u=m.group(2).toUpperCase(java.util.Locale.ROOT);
+            if(u.equals("TB"))v*=1024;
+            if(u.equals("MB"))v/=1024;
+            if(u.equals("GHZ"))v*=1000;
+            return v;
+        }catch(Exception e){return Double.NaN;}
+    }
+    private static String unitOf(String raw){
+        if(raw==null)return "";
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)[0-9]+(?:[.,][0-9]+)?\\\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\\\b").matcher(raw);
+        if(!m.find())return "";
+        String u=m.group(1).toUpperCase(java.util.Locale.ROOT);
+        if(u.equals("TB")||u.equals("GB")||u.equals("MB"))return "STORAGE";
+        if(u.equals("GHZ")||u.equals("MHZ"))return "FREQUENCY";
+        return u;
     }
 
     private TextView highlightCard(Product product,int slot){
