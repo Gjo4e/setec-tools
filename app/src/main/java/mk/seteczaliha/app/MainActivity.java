@@ -36,6 +36,9 @@ public final class MainActivity extends ComponentActivity {
     private WebView ui;
     private WebView merchant;
     private WebView batchMerchant;
+    private WebView categoryMerchant;
+    private int categorySerial=0;
+    private String categoryUrl="";
     private boolean batchMerchantLoaded = false;
     private String batchCurrentSku = null;
     private int batchSerial = 0;
@@ -152,6 +155,24 @@ public final class MainActivity extends ComponentActivity {
         root.addView(batchMerchant, new FrameLayout.LayoutParams(-1, -1));
         batchMerchant.loadUrl(HOME);
 
+        // Isolated catalog browser: read actual SETEC category links, products and pagination.
+        categoryMerchant = new WebView(this);
+        categoryMerchant.setAlpha(0.01f);
+        categoryMerchant.setClickable(false);
+        categoryMerchant.getSettings().setJavaScriptEnabled(true);
+        categoryMerchant.getSettings().setDomStorageEnabled(true);
+        categoryMerchant.getSettings().setLoadsImagesAutomatically(false);
+        categoryMerchant.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView view,String url){
+                if(!safeCategoryUrl(url)||!url.equals(categoryUrl))return;
+                int serial=categorySerial;
+                for(long delay:new long[]{650,1700,3500}){
+                    handler.postDelayed(()->readCategoryPage(serial,url),delay);
+                }
+            }
+        });
+        root.addView(categoryMerchant,new FrameLayout.LayoutParams(-1,-1));
+
         ui = new WebView(this);
         ui.setBackgroundColor(Color.rgb(247,248,250));
         ui.getSettings().setJavaScriptEnabled(true);
@@ -212,6 +233,9 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public void openProduct(String url) {
             runOnUiThread(() -> loadProduct(url));
+        }
+        @JavascriptInterface public void loadCategory(String url) {
+            runOnUiThread(()->startCategoryPage(url));
         }
         @JavascriptInterface public void openCategory(String url) {
             runOnUiThread(() -> {
@@ -290,6 +314,54 @@ public final class MainActivity extends ComponentActivity {
             else Toast.makeText(this, "Дозволи камера за скенирање", Toast.LENGTH_LONG).show();
         }
     }
+    private boolean safeCategoryUrl(String url){
+        try{
+            Uri u=Uri.parse(url);
+            return "https".equalsIgnoreCase(u.getScheme())
+                && ("setec.mk".equalsIgnoreCase(u.getHost())||"www.setec.mk".equalsIgnoreCase(u.getHost()))
+                && u.getPath()!=null&&(u.getPath().equals("/category")||u.getPath().startsWith("/category/"));
+        }catch(Exception ignored){return false;}
+    }
+    private void startCategoryPage(String url){
+        if(!safeCategoryUrl(url)||categoryMerchant==null){
+            js("window.onCategoryError('Невалидна категорија.');");return;
+        }
+        categoryUrl=url;categorySerial++;
+        js("window.onCategoryLoading();");
+        categoryMerchant.loadUrl(url);
+    }
+    private void readCategoryPage(int serial,String url){
+        if(serial!=categorySerial||categoryMerchant==null||!url.equals(categoryMerchant.getUrl()))return;
+        String script="(function(){"+labelledPricesJs()+
+            "let categories=new Map(),products=new Map();"+
+            "for(let a of document.querySelectorAll('a[href]')){"+
+            "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
+            "if(!['setec.mk','www.setec.mk'].includes(u.hostname))continue;"+
+            "let name=(a.innerText||a.title||a.getAttribute('aria-label')||'').replace(/\\s+/g,' ').trim().slice(0,130);"+
+            "if(u.pathname.startsWith('/category/')&&u.href!==location.href&&name.length>1&&name.length<110){"+
+            "let holder=a.closest('nav,aside,[class*=category],[class*=Category],[class*=menu],[class*=Menu]');"+
+            "if(holder||a.querySelector('img')||a.parentElement?.querySelector('img'))categories.set(u.href,{name:name,url:u.href});"+
+            "}"+
+            "if(!u.pathname.startsWith('/products/')||products.has(u.href))continue;"+
+            "let p=a.closest('article,li,[class*=product],[class*=Product],[class*=card],[class*=Card]')||a.parentElement||a;"+
+            "let t=p.querySelector('h2,h3,h4,[class*=title],[class*=name]');"+
+            "let productName=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).replace(/\\s+/g,' ').trim().slice(0,200);"+
+            "let txt=(p.innerText||'').replace(/\\s+/g,' '),prices=setecPrices(txt);"+
+            "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
+            "let img=p.querySelector('img'),src=img?.currentSrc||img?.src||img?.getAttribute('data-src')||'';"+
+            "products.set(u.href,{url:u.href,name:productName,sku:m?m[1]:'',img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});"+
+            "}"+
+            "let next='';"+
+            "for(let a of document.querySelectorAll('a[href]')){let txt=(a.innerText||a.getAttribute('aria-label')||'').trim();"+
+            "if(a.rel==='next'||/^(следна|next|›|»|→)$/i.test(txt)){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&u.href!==location.href){next=u.href;break}}catch(e){}}}"+
+            "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:location.href,categories:[...categories.values()].slice(0,350),products:[...products.values()].slice(0,150),next:next});})()";
+        categoryMerchant.evaluateJavascript(script,encoded->{
+            if(serial!=categorySerial||!url.equals(categoryUrl))return;
+            String result=decodeJsString(encoded);
+            if(result!=null)js("window.onCategoryData("+JSONObject.quote(result)+");");
+        });
+    }
+
     private void startSearch(String query) {
         if (merchant == null) return;
         activeQuery = (query == null ? "" : query.trim()).replaceAll("[\\r\\n]", " ").substring(0, Math.min(90,(query == null ? "" : query.trim()).length()));
