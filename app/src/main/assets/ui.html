@@ -620,13 +620,13 @@ function renderCategories(){
  if(!root&&categorySelectedRoot&&categoryHistory.length===1){
    // The current category is a parent: show matching subcategories before products.
    const preferred=categorySelectedRoot.sub||[];
-   const ranked=list.map(x=>({x,score:preferred.findIndex(s=>s.toLocaleLowerCase()===x.name.toLocaleLowerCase())}));
-   ranked.sort((a,b)=>(a.score<0?999:a.score)-(b.score<0?999:b.score));
-   list=ranked.map(v=>v.x);
+   const normalize=s=>String(s||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+   const ranked=list.map(x=>({x,score:preferred.findIndex(s=>normalize(s)===normalize(x.name)||normalize(s).includes(normalize(x.name))||normalize(x.name).includes(normalize(s)))}));
+   list=ranked.filter(v=>v.score>=0).sort((a,b)=>a.score-b.score).map(v=>v.x);
    const intro=elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+categorySelectedRoot.name);
    host.appendChild(intro);
    if(!list.length){
-      const note=elem('div','categoryEmpty','Подкатегориите се вчитуваат од Setec.mk. Ако страницата не ги врати, отвори ја официјалната категорија.');
+      const note=elem('div','categoryEmpty','Подкатегориите сѐ уште не се пронајдени на оваа Setec страница. Отвори ја официјалната категорија за целосна листа.');
       host.appendChild(note);
    }
  }
