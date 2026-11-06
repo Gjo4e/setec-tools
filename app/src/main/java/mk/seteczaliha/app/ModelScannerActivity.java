@@ -88,6 +88,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private List<String> compareDetailLines=new ArrayList<>();
     private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
     private boolean compareResearchBusy=false;
+    private boolean compareAutoCompleted=false;
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
     private LinearLayout suggestions, sources, setecOptions;
     private EditText modelInput;
@@ -214,14 +215,14 @@ public final class ModelScannerActivity extends ComponentActivity {
             scanButton.setVisibility(View.GONE);
         }
         compareButton=button(comparePicker
-            ?"✓ Зачувај модел "+compareSlot+" за споредба"
+            ?"⌛ Автоматска проверка на производ"
             :"⚖ СПОРЕДИ ДВА МОДЕЛИ",0xFF36475B);
         LinearLayout.LayoutParams compareParams=new LinearLayout.LayoutParams(-1,dp(48));
         compareParams.topMargin=dp(6);
         captureRow.setOrientation(LinearLayout.VERTICAL);
         captureRow.addView(compareButton,compareParams);
         compareButton.setOnClickListener(v->{
-            if(comparePicker)saveForComparison();
+            if(comparePicker)return;
             else startActivity(new Intent(this,CompareModelsActivity.class));
         });
 
@@ -455,8 +456,8 @@ public final class ModelScannerActivity extends ComponentActivity {
             setStatus("Не е потврдена точната SETEC шифра. Не можам да го зачувам производот.");
             return;
         }
-        if(compareResearchBusy){
-            setStatus("Сѐ уште ги читам спецификациите од Setec.mk. Пробај „Зачувај“ повторно.");
+        if(compareResearchBusy&&!comparePicker){
+            setStatus("Сѐ уште ги читам спецификациите од Setec.mk.");
             return;
         }
         // Transfer the real Setec bullets already visible in this picker,
@@ -472,7 +473,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         List<String> mostImportant=SetecCompareRows.highlights(
             compareModel,namedForSave,compareDetailLines,
             googleFacts.getText().toString());
-        if(mostImportant.isEmpty()){
+        if(mostImportant.isEmpty()&&!comparePicker){
             setStatus("Не се прочитани техничките детали од Setec.mk. "+
                 "Провери го описот и пробај повторно.");
             readCompareSkuSpecs(setecSerial,lookupGeneration);
@@ -505,6 +506,8 @@ public final class ModelScannerActivity extends ComponentActivity {
             record.put("facts",arr);
             Intent result=new Intent();
             result.putExtra("compare_result",record.toString());
+            if(compareAutoCompleted)return;
+            compareAutoCompleted=true;
             setResult(RESULT_OK,result);
             finish();
         }catch(Exception error){
@@ -661,6 +664,7 @@ public final class ModelScannerActivity extends ComponentActivity {
             return;
         }
         compareSkuRequested=sku;
+        compareAutoCompleted=false;
         clearComparisonData("");
         modelInput.setText(sku);
         modelInput.setEnabled(false);
@@ -829,6 +833,15 @@ public final class ModelScannerActivity extends ComponentActivity {
                 googleStatus.setText("Читам краток опис и технички спецификации од Setec.mk…");
                 showSetecSpecs(cleanModel,url,p.optString("specs"),
                     p.optString("short"),fullTitle,p.optString("category"));
+                // Auto-return the verified model to the modern comparison screen.
+                // Allow a short interval for asynchronously loaded specifications.
+                handler.postDelayed(()->{
+                    if(serial!=setecSerial||generation!=lookupGeneration||
+                       !comparePicker||compareAutoCompleted||
+                       !compareSkuRequested.equals(compareSku)||isFinishing())return;
+                    compareResearchBusy=false;
+                    saveForComparison();
+                },4200);
                 // Setec can populate the technical tab a few seconds later.
                 // Keep retrying for more details even if the H1 already gave 1 fact.
                 for(long delay:new long[]{850,1800,3100,4700,6200})
