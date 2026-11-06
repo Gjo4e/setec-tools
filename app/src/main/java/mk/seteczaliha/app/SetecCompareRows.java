@@ -52,6 +52,35 @@ final class SetecCompareRows {
         return rows;
     }
 
+    /**
+     * Per-product top five. Unlike a comparison union, these rows can be shown
+     * as soon as ONE SKU has been verified. Source text shown in the scanner is
+     * included as a fallback, so the comparison never discards visible specs.
+     */
+    static List<String> highlights(String model,Map<String,String> facts,
+                                   List<String> original,String displayed){
+        List<String> out=new ArrayList<>();
+        Map<String,String> safe=facts==null?java.util.Collections.emptyMap():facts;
+        List<String> keys=ComparisonSummary.topSpecs(
+            model,safe,"",java.util.Collections.emptyMap());
+        for(String key:keys){
+            String val=safe.get(key);
+            if(val==null)continue;
+            String line=normalize(key)+": "+normalize(val);
+            if(!isUiOrSalesText(line)&&line.length()>=5&&line.length()<=230)
+                out.add(line);
+            if(out.size()>=MAX_ROWS)return out;
+        }
+        List<String> bullets=new ArrayList<>();
+        if(original!=null)bullets.addAll(original);
+        bullets.addAll(parseLines(displayed));
+        for(String line:remaining(bullets,safe)){
+            if(out.size()>=MAX_ROWS)break;
+            if(!out.contains(line))out.add(line);
+        }
+        return out;
+    }
+
     private static String known(Map<String,String> facts,String key){
         if(facts==null)return "Непотврдено";
         String val=facts.get(key);
