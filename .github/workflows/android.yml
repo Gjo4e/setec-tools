@@ -1,7 +1,7 @@
 name: Build Setec Zaliha APK
 on:
   push:
-    branches: [main]
+    branches: [main, 'feature/datamatrix-setec-scan-2026-11-06']
   workflow_dispatch:
 permissions:
   contents: read
