@@ -8,55 +8,49 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 8
     steps:
       - name: Install browser tools
         run: |
           pip install --quiet playwright
           python -m playwright install chromium
-      - name: Inspect live SETEC products menu
+      - name: Inspect category menu internals
         shell: bash
         run: |
-          cat > /tmp/discover.py <<'PY'
-          import json, time
+          cat > /tmp/inspect.py <<'PY'
           from playwright.sync_api import sync_playwright
-          rootnames=['Преносни Компјутери и Таблети','Компјутери и IT опрема','ТВ/Аудио/Видео','Телефони/Фото и Навигација','Бела Техника','Спорт и рекреација','Ладење и Греење','Мали Апарати','Конзоли за играње','Дом, Градина и Алати','Осветлување и Батерии','Зелена Енергија и системи за складирање']
-          result={'roots':{},'all':{},'errors':[]}
+          import json
+          network=[]
+          def handle_response(r):
+            try:
+              typ=(r.headers.get('content-type') or '')
+              if any(token in r.url for token in ['/api/','_next/data','_next/static','category']) and len(network)<100:
+                network.append({'url':r.url[:250],'type':typ})
+            except Exception:pass
           with sync_playwright() as p:
             browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
             page=browser.new_page(viewport={'width':1280,'height':980},locale='mk-MK')
+            page.on('response',handle_response)
             page.goto('https://www.setec.mk/',wait_until='domcontentloaded',timeout=35000)
-            page.wait_for_timeout(1800)
-            print('PAGE TITLE',page.title(),'anchors',page.locator('a[href*="/category/"]').count(),flush=True)
-            menu=page.get_by_role('button',name='ПРОИЗВОДИ').first
-            menu.click(timeout=9000)
-            page.wait_for_timeout(1300)
-            print('AFTER MENU anchor count',page.locator('a[href*="/category/"]').count(),flush=True)
-            print('MENU TEXT SAMPLE',page.locator('body').inner_text(timeout=5000)[:4500],flush=True)
-            for name in rootnames:
-              try:
-                els=page.get_by_text(name,exact=True).all()
-                visible=[el for el in els if el.is_visible()]
-                print('ROOT',name,'candidates',len(els),'visible',len(visible),flush=True)
-                if not visible:continue
-                el=visible[0]
-                try:el.hover(timeout=6000)
-                except Exception as e:print('HOVER ERROR',str(e)[:160],flush=True)
-                page.wait_for_timeout(500)
-                records=page.evaluate('''() => [...document.querySelectorAll('a[href*="/category/"]')].filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';}).map(e=>({name:(e.innerText||e.textContent||e.title||'').replace(/\\s+/g,' ').trim(),url:e.href})).filter(x=>x.name && /^https:\\/\\/(?:www\\.)?setec\\.mk\\/category\\//i.test(x.url))''')
-                result['roots'][name]=records
-                print('LINKS',name,len(records),records[:5],flush=True)
-                for obj in records:
-                  result['all'][obj['name']]=obj['url']
-              except Exception as e:
-                result['errors'].append(name+': '+str(e)[:400]);print('ERROR ROOT',name,str(e)[:150],flush=True)
+            page.wait_for_timeout(1700)
+            page.get_by_role('button',name='ПРОИЗВОДИ').first.click()
+            page.wait_for_timeout(1000)
+            print('MENU NETWORK',json.dumps(network[-25:],ensure_ascii=False),flush=True)
+            inspect=page.evaluate('''() => {let xs=[...document.querySelectorAll('*')].filter(x=>x.children.length===0&&x.textContent.trim()==='Конфигурации');return xs.slice(0,5).map(el=>({html:el.outerHTML.slice(0,700),parent:el.parentElement?.outerHTML.slice(0,1300),grandparent:el.parentElement?.parentElement?.outerHTML.slice(0,2000)}))}''')
+            print('DOM CONFIG',json.dumps(inspect,ensure_ascii=False),flush=True)
+            eles=page.get_by_text('Конфигурации',exact=True).all()
+            clicked=False
+            for el in eles:
+              if el.is_visible():
+                try:
+                  el.click(timeout=6500)
+                  clicked=True
+                  break
+                except Exception as e:print('CLICK ERROR',str(e)[:160],flush=True)
+            print('CLICKED',clicked,flush=True)
+            page.wait_for_timeout(1700)
+            print('AFTER CLICK URL',page.url,flush=True)
+            print('AFTER CLICK NETWORK',json.dumps(network[-20:],ensure_ascii=False),flush=True)
             browser.close()
-          with open('setec-category-links.json','w',encoding='utf-8') as f:json.dump(result,f,ensure_ascii=False,indent=2)
-          print('TOTAL LINKS',len(result['all']),'ERRORS',len(result['errors']),flush=True)
           PY
-          python /tmp/discover.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: setec-category-links
-          path: setec-category-links.json
-          if-no-files-found: warn
+          python /tmp/inspect.py
