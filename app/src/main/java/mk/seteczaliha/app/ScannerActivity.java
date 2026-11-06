@@ -1,5 +1,7 @@
 package mk.seteczaliha.app;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -19,6 +21,8 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -43,6 +47,8 @@ public final class ScannerActivity extends ComponentActivity {
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final AtomicBoolean busy = new AtomicBoolean(false);
     private ProcessCameraProvider provider;
+    private ActivityResultLauncher<String> cameraPermission;
+    private boolean cameraStarted = false;
     private TextView detected;
     private String lastSku = null;
     private int hits = 0;
@@ -51,6 +57,10 @@ public final class ScannerActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        cameraPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (granted) startCamera();
+            else detected.setText("Дозволи пристап до камера во поставките на апликацијата или внеси шифра рачно.");
+        });
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
 
@@ -108,6 +118,17 @@ public final class ScannerActivity extends ComponentActivity {
         cancel.setOnClickListener(v -> finish());
         manual.setOnClickListener(v -> manualCode());
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera();
+        } else {
+            detected.setText("Потребна е дозвола за камера…");
+            cameraPermission.launch(Manifest.permission.CAMERA);
+        }
+    }
+    private void startCamera() {
+        if (cameraStarted || isFinishing() || isDestroyed()) return;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return;
+        cameraStarted = true;
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
         future.addListener(() -> {
             if (isFinishing() || isDestroyed()) return;
@@ -126,7 +147,8 @@ public final class ScannerActivity extends ComponentActivity {
                 // Modest optical/digital zoom makes the tiny shop-label digits legible.
                 camera.getCameraControl().setZoomRatio(1.8f);
             } catch (Exception e) {
-                detected.setText("Не можам да ја стартувам камерата. Внеси шифра рачно.");
+                cameraStarted = false;
+                detected.setText("Не можам да ја стартувам камерата. Провери дозвола за камера или внеси шифра рачно.");
             }
         }, ContextCompat.getMainExecutor(this));
     }
