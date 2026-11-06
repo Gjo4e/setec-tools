@@ -695,9 +695,9 @@ window.showResults=function(json,reset){
   else if(a.length)unfilteredResults=a;
   if(!a.length&&categoryRetryPending&&categoryAlternates.length){const next=categoryAlternates.shift();categoryRetryPending=categoryAlternates.length>0;search(next);return}
   if(a.length||!categoryAlternates.length)categoryRetryPending=false;
-  if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched)updateRecentProduct(matched)}
+  if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched){try{updateRecentProduct(matched)}catch(historyError){console.warn('Recent history:',historyError)}}}
   displayResults();
- }catch(e){setStatus('Проблем со прикажувањето на резултатите.')}
+ }catch(e){console.error('Results UI:',e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
 };
 
 function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreBusy=true;$('moreResultsBtn').textContent='Вчитувам…';$('moreResultsInfo').textContent='Проверувам дали Setec има следни резултати…';SetecApp.moreResults();}
