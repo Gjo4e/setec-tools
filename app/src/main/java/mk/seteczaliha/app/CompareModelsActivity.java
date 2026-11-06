@@ -36,7 +36,7 @@ import java.util.Map;
  * Only up to five key specs appear side by side, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
-    private static final int ORANGE=0xFFF58220;
+    private static final int ORANGE=0xFF258BFF;
     private int INK=0xFF202531;
     private boolean darkMode=false;
     private int theme(int light,int dark){return darkMode?dark:light;}
@@ -123,7 +123,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         super.onCreate(state);
         darkMode=getSharedPreferences("setec_preferences",MODE_PRIVATE).getBoolean("dark_theme",false);
         INK=theme(0xFF202531,0xFFF0F4FA);
-        getWindow().setStatusBarColor(0xFF1B1C21);
+        getWindow().setStatusBarColor(0xFF0B1423);
         getWindow().setNavigationBarColor(Color.BLACK);
         skuScanner=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
             if(result.getResultCode()!=RESULT_OK||result.getData()==null)return;
@@ -147,18 +147,18 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         LinearLayout screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(theme(0xFFF6F7FA,0xFF11141B));
+        screen.setBackgroundColor(theme(0xFFEEF3FA,0xFF0A111C));
         setContentView(screen);
 
         LinearLayout header=new LinearLayout(this);
-        header.setBackgroundColor(0xFF1C1C21);
+        header.setBackgroundColor(0xFF10243D);
         header.setPadding(dp(9),dp(10),dp(9),dp(11));
         header.setGravity(Gravity.CENTER_VERTICAL);
         screen.addView(header);
-        Button back=button("‹ Назад",0xFF3C3C43);
+        Button back=button("‹ Назад",0xFF1E3D61);
         header.addView(back,new LinearLayout.LayoutParams(dp(90),dp(45)));
         back.setOnClickListener(v->finish());
-        TextView title=text("⚖ Спореди модели",19,true,Color.WHITE);
+        TextView title=text("⚖ Спореди модели",20,true,Color.WHITE);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
         lp.leftMargin=dp(12);
         header.addView(title,lp);
