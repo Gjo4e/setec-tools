@@ -384,7 +384,45 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 .recentMeta{font-size:10px;color:#a6bad0;line-height:1.5}
 .recentArrow{font-size:23px;color:#48b5ff}
 .recentEmpty{font-size:12px;color:var(--subcopy);padding:14px}
-.categorySubheading{font-size:12px;font-weight:900;letter-spacing:.06em;color:#57c2ff;margin:12px 0 10px}.categorySubheading+.liveCategory{margin-top:6px}.categoryProducts{margin-top:20px}.liveCategory:active{transform:scale(.99);border-color:#47bdff}.categoryNotice{line-height:1.55}</style></head>
+.categorySubheading{font-size:12px;font-weight:900;letter-spacing:.06em;color:#57c2ff;margin:12px 0 10px}.categorySubheading+.liveCategory{margin-top:6px}.categoryProducts{margin-top:20px}.liveCategory:active{transform:scale(.99);border-color:#47bdff}.categoryNotice{line-height:1.55}
+/* Redesigned Setec category navigator: large, fast tap targets, clear drilldown. */
+#categoriesPanel{color:#eef6ff;padding-bottom:30px}
+.categorySearchRow{display:flex;gap:8px;align-items:center;margin:12px 0}
+.categorySearchRow .categoryFilter{margin:0;flex:1;min-width:0;min-height:47px;background:#102033!important;border:1px solid #2b5678!important;color:#f0f7ff!important}
+.categoryHomeBtn{border:1px solid #3376ad;background:#14304b;color:#8ed2ff;border-radius:12px;font-weight:800;padding:12px 10px;white-space:nowrap}
+.categoryBreadcrumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px;color:#78bfff;line-height:1.7;font-size:11px}
+.categoryCrumbLink{border:0;background:transparent;color:#63b5ff;padding:4px 0;font-size:11px;font-weight:800}
+.categoryCrumbCurrent{color:#eaf5ff;font-weight:800}
+.categoryCrumbSep{color:#6685a4}
+#categoriesPanel .categoryNotice{background:linear-gradient(120deg,#102337,#111b2a)!important;border:1px solid #244663!important;border-radius:12px;color:#a9c3db!important}
+.categorySectionTitle{color:#62bfff;font-size:11px;font-weight:900;letter-spacing:1.1px;margin:20px 0 10px}
+.categoryRootCard,.categorySubCard,.categoryProductCard{width:100%;display:flex;align-items:center;gap:12px;text-align:left;color:#f2f8ff;border:1px solid #2b4e6c;border-radius:14px;min-height:70px;background:linear-gradient(120deg,#12283c,#0d1b2a);padding:12px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.categoryRootCard{min-height:81px}
+.categoryRootCard:active,.categorySubCard:active,.categoryProductCard:active{background:#203d56}
+.categoryRootIcon,.categorySubIcon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:#153c5a;color:#58c5ff;font-size:24px}
+.categoryRootText,.categorySubInfo,.categoryProductInfo{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.categoryRootText strong,.categorySubInfo strong,.categoryProductInfo strong{font-size:13px;line-height:1.35;font-weight:850}
+.categoryRootText small,.categorySubInfo small,.categoryProductInfo small{font-size:11px;line-height:1.45;color:#9eb7cf}
+.categoryRootArrow{font-size:27px;color:#59bcfa;flex:none;padding:0 2px}
+#categoriesList{gap:9px}
+#categoriesList .categorySubCard{min-height:66px}
+#categoriesList .categorySubIcon{font-size:21px;width:40px;height:40px;background:#173149}
+.categoryCatalogHint{font-size:11px;line-height:1.5;color:#93afc8;margin-top:12px}
+#categoryProducts{margin-top:22px;display:flex;flex-direction:column;gap:9px}
+#categoryProducts .categorySectionTitle{margin-bottom:2px}
+.categoryProductCard{min-height:87px;padding:12px 11px}
+.categoryProductImg{height:64px;width:64px;flex:none;border-radius:11px;background:#f1f5f9;color:#4b7598;font-size:11px;display:grid;place-items:center;overflow:hidden}
+.categoryProductImg img{width:100%;height:100%;object-fit:contain}
+.categoryProductInfo .priceMini{font-size:11px;margin-top:0;display:flex;gap:5px 11px}
+.categoryProductInfo .priceMini .clubPrice{color:#ffb67d}
+.categoryProductInfo .priceMini .regularPrice{color:#a3bbd1}
+.categoryPager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:17px 0}
+.categoryPager button{background:#174c77;color:#d5efff;border:1px solid #2785c0;border-radius:11px;padding:13px 7px;font-weight:800;font-size:11px;flex:1;min-width:0}
+.categoryPager button:disabled{opacity:.4;cursor:default}
+.categoryPager span{text-align:center;font-size:11px;line-height:1.4;flex:1;color:#b4cee2}
+.categoryRetry{width:100%;padding:13px;border:1px solid #276b99;background:#102d49;border-radius:12px;color:#b4e2ff;font-weight:800;margin-top:10px}
+.categoryLoading{font-size:12px;color:#a6cdea;text-align:center;padding:18px}
+</style></head>
 <body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC <span class="brandTools">TOOLS</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
 
 <main class="wrap">
@@ -409,17 +447,17 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 <div id="offerItems" class="offerItems"></div>
 <div class="offerAddBox"><strong>Додај производ</strong><p>Пронајди го производот преку пребарување или скенирање, отвори ги деталите и притисни „Додај во листа“.</p><button onclick="offerSearch()">⌕ Пребарај производ</button></div>
 <div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><span class="offerEnabled">✓ Активно</span></div>
-<p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок и камата според бројот на рати.</p>
+<p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок. За опцијата „48 рати без камата“ се пресметуваат само тие 3%, без дополнителна камата.</p>
 <label class="installmentLabel" for="offerInstallmentMonths">Број на рати</label>
 <select id="offerInstallmentMonths" class="installmentSelect" onchange="renderInstallments()">
 <option value="3">3 рати · 1,99% камата</option><option value="6">6 рати · 2,49% камата</option>
 <option value="9">9 рати · 2,79% камата</option><option value="12" selected>12 рати · 2,99% камата</option>
 <option value="15">15 рати · 3,99% камата</option><option value="18">18 рати · 4,99% камата</option>
 <option value="24">24 рати · 5,99% камата</option><option value="36">36 рати · 8,99% камата</option>
-<option value="48">48 рати · 11,99% камата</option><option value="60">60 рати · 14,99% камата</option>
+<option value="48-zero">48 рати · БЕЗ КАМАТА (само 3% трошок)</option><option value="48">48 рати · 11,99% камата</option><option value="60">60 рати · 14,99% камата</option>
 </select>
 <div class="installmentResult" id="offerInstallmentResult" aria-live="polite"></div>
-<p class="installmentNote">Информативна пресметка: каматата и административниот трошок се додаваат еднократно на клуб цената (не се пресметува сложена камата). Потврди ги конечните услови пред продажба.</p>
+<p class="installmentNote">Информативна пресметка врз клуб цената. Кај „48 рати без камата“ се додава само еднократен административен трошок од 3%, без камата. За другите опции важат наведените стапки. Потврди ги вистинските услови и подобноста кај продавачот.</p>
 </div>
 <button class="offerCopy" onclick="copyOffer()">▤ Копирај понуда</button>
 <button class="offerClear" onclick="clearOffer()">Избриши ја листата</button>
@@ -427,14 +465,16 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 <p class="offerDisclaimer">Цените се според последните вчитани податоци и може да се променат. Пред финална продажба потврди ги цената и залихата во официјалниот систем.</p>
 </section>
 <section id="categoriesPanel" class="categoriesPanel hidden">
-<div class="categoriesHeader"><button class="categoriesBack" onclick="categoryBack()">‹ Назад</button><div><h2>Сите категории</h2><p>Преглед на SETEC каталогот</p></div></div>
-<input id="categoryFilter" class="categoryFilter" type="search" placeholder="Пребарај категорија или подкатегорија..." oninput="renderCategories()" aria-label="Пребарај категории">
-<div class="categoryNotice" id="categoryNotice">Категориите и производите се читаат директно од Setec.mk. Избери категорија за да ги видиш вистинските производи и следните страници.</div>
-<div id="categoryBreadcrumb" class="categoryBreadcrumb"></div>
+<div class="categoriesHeader"><button class="categoriesBack" onclick="categoryBack()">‹ Назад</button><div><h2>Каталог · SETEC</h2><p>Категории, подкатегории и производи</p></div></div>
+<div id="categoryBreadcrumb" class="categoryBreadcrumb" aria-label="Патека низ категориите"></div>
+<div class="categorySearchRow"><input id="categoryFilter" class="categoryFilter" type="search" placeholder="⌕ Пребарај категорија или производ" oninput="renderCategories()" aria-label="Пребарај категории и производи"><button class="categoryHomeBtn" onclick="categoryHome()">⌂ Сите</button></div>
+<div class="categoryNotice" id="categoryNotice" role="status" aria-live="polite">Избери главна категорија за да започнеш.</div>
+<div id="categorySummary" class="categorySummary"></div>
 <div id="categoriesList" class="categoriesList"></div>
 <div id="categoryProducts" class="categoryProducts"></div>
-<button id="categoryNext" class="categoryOfficialAll hidden" onclick="categoryNextPage()">Вчитај следна страница ↓</button>
-<button class="categoryOfficialAll" onclick="openSetecCategory(categoryCurrentUrl||'https://setec.mk/category')">Отвори на Setec.mk ↗</button>
+<div id="categoryPager" class="categoryPager hidden"><button id="categoryPrev" onclick="categoryPrevPage()">‹ Претходна</button><span id="categoryPageLabel">Страница 1</span><button id="categoryNext" onclick="categoryNextPage()">Следна ›</button></div>
+<button id="categoryRetry" class="categoryRetry hidden" onclick="categoryRetryLoad()">⟳ Обиди се повторно</button>
+<button id="categoryOfficial" class="categoryOfficialAll hidden" onclick="openSetecCategory(categoryCurrentUrl)">Отвори ја категоријата на Setec.mk ↗</button>
 </section>
 <section id="settingsPanel" class="settingsPanel hidden">
 <div class="settingsTop"><button onclick="closeSettings()" class="settingsBack">‹ Назад</button><strong>Поставки</strong></div>
@@ -500,12 +540,17 @@ function saveSetting(key,value){try{localStorage.setItem('setec_setting_'+key,va
 const setecCategories=[
 {name:'Преносни Компјутери и Таблети',icon:'💻',url:'https://setec.mk/category/prenosni-20komp-d1-98uteri-20i-20tableti-2',sub:['Преносни Компјутери','Дополнителна опрема за Преносни Компјутери','Таблети','Ташни и Ранци','Hub & Docking station','Дополнителна опрема за таблети','Ладилник (Cooler) со лежиште','Адаптери за струја','Тастатури','Пенкала']},
 {name:'Компјутери и IT опрема',icon:'🖥',url:'https://setec.mk/category/komp-d1-98uteri-20i-20it-20oprema-19',sub:['Компјутерска галантерија','Компјутери и Компјутерски Делови','Глувци и Подлоги за глувци','Мрежна опрема','Монитори и Додатоци','Слушалки','Монитори','Кабли/конектори/адаптери','Тастатури','Кулери','Печатари, Скенери и потрошен материјал','Преносна меморија','Куќишта','Рутери, Mesh, Access Point & Range Extenders','Потрошен материјал (Тонери, мастила и хартија)','РАМ Меморија','Матични Плочи','Напојувања','Мрежни Кабли, Пасивна мрежа, Алати и тестери','USB Мемории','Графички Карти','Мрежен Switch и Мрежни картички','Звучници','Тврди Дискови и SSD Дискови','Конфигурации','Столици и Бироа','Процесори','Екстерни Дискови','Wireless & Powerline & Bluetooth адаптери','Печатари','GAMING столици','Мемориски Картички и читачи','Разни компјутерски додатоци','Проектори','UPS и Продолжни кабли','Микрофони','Заштитни Очила','Веб Камери','Преносни кутии','Баркод читачи и Скенери','Оптички Уреди','Оffice столици','Држачи за Монитори','Starlink','Софтвер','TV & Звучни карти','Гејминг и Виртуелна реалност','Столици за масажа','GAMING Бироа']},
-{name:'ТВ/Аудио/Видео',icon:'📺',url:'https://setec.mk/category',sub:['Телевизори','Smart TV','OLED телевизори','QLED телевизори','TV држачи','Soundbar','Домашно кино','Звучници','Слушалки','Проектори','Далечински управувачи','Аудио и видео кабли']},
-{name:'Телефони/Фото и Навигација',icon:'📱',url:'https://setec.mk/category',sub:['Мобилни телефони','Дополнителна опрема за мобилни телефони','Bluetooth слушалки','Футроли за мобилни','Адаптери','Кабли за мобилни','Power bank','Држачи','Жичани слушалки','Заштитни фолии','Фотоапарати','Mirrorless','DSLR','Камери','Акциони Камери','Навигација']},
+{name:'ТВ/Аудио/Видео',icon:'📺',url:'',sub:['Телевизори','Smart TV','OLED телевизори','QLED телевизори','TV држачи','Soundbar','Домашно кино','Звучници','Слушалки','Проектори','Далечински управувачи','Аудио и видео кабли']},
+{name:'Телефони/Фото и Навигација',icon:'📱',url:'',sub:['Мобилни телефони','Дополнителна опрема за мобилни телефони','Bluetooth слушалки','Футроли за мобилни','Адаптери','Кабли за мобилни','Power bank','Држачи','Жичани слушалки','Заштитни фолии','Фотоапарати','Mirrorless','DSLR','Камери','Акциони Камери','Навигација']},
 {name:'Бела Техника',icon:'🧺',url:'https://setec.mk/category/bela-20tekhnika-90',sub:['Вградна техника','Фрижидери','Аспиратори','Бојлери','Машини за перење на алишта','Вградни плотни','Машини за перење на алишта со предно полнење','Комбинирани фрижидери','Вградни фурни','Шпорети','Бојлери за бања','Електрични','Машини за миење на садови','Вградни машини за миење садови 60cm','Машини за сушење на алишта','Side by Side Фрижидери','Замрзнувачи','Микробранови печки','Дополнителна опрема Бела техника','Вградни фрижидери','Проточни бојлери','Вградни микробранови печки','Машини за перење и сушење на алишта','Машини за миење садови 60цм','Машини за миење садови 45цм','Вградни машини за миење садови 45цм','Кујнски бојлери','Вградни плотни и фурни (Комплети)','Вински фрижидери','Садопери','Машини за перење на алишта со горно полнење','Чешми и опрема за тоалет','Автомати за вода','Мини шпорети','Машини за миење садови за на маса','Соларни бојлери']},
-{name:'Спорт и рекреација',icon:'🚴',url:'https://setec.mk/category',sub:['Велосипеди','Електрични тротинети','Фитнес опрема','Спортски часовници','Рекреација','Опрема за вежбање']},
-{name:'Ладење и Греење',icon:'❄',url:'https://setec.mk/category',sub:['Kлиматизери','Инвертер сплит системи','Инвертер Multi Split клима уреди','Самостоечки клима уреди','Преносни клима уреди','Каналски клима уреди','Касетни клима уреди','Конзолни клима уреди','On Off Сплит системи','Електрични греалки','Панелен конвектор','Калорифер','Греалка за бања','Електрични радијатори','Инфраред греалка','Електричен камин','Кварцна греалка','Вентилатори','Прочистувачи на воздух','Одвлажнувачи']},
+{name:'Спорт и рекреација',icon:'🚴',url:'',sub:['Велосипеди','Електрични тротинети','Фитнес опрема','Спортски часовници','Рекреација','Опрема за вежбање']},
+{name:'Ладење и Греење',icon:'❄',url:'',sub:['Kлиматизери','Инвертер сплит системи','Инвертер Multi Split клима уреди','Самостоечки клима уреди','Преносни клима уреди','Каналски клима уреди','Касетни клима уреди','Конзолни клима уреди','On Off Сплит системи','Електрични греалки','Панелен конвектор','Калорифер','Греалка за бања','Електрични радијатори','Инфраред греалка','Електричен камин','Кварцна греалка','Вентилатори','Прочистувачи на воздух','Одвлажнувачи']},
 {name:'Мали Апарати',icon:'☕',url:'https://setec.mk/category/mali-20aparati-124',sub:['Апарати за домаќинство','Кујнски апарати','Апарати за лична нега и убавина','Правосмукалки','Tави и тенџериња','Пегли','Кафемати','Додатоци за Правосмукалки','Блендери','Кујнски прибор','Апарати за филтрирање вода','Обликувачи за коса','Машинки за потстрижување','Фенови','Тостери','Ел. Четки за заби','Фритези/Airfyers','Машини за шиење','Соковници','Миксери','Електрични бокали','Нега на бебиња','Депилатори','Масажери','Разни апарати','Кујнски роботи','Машинки за бричење','Чистач со пареа','Подни ваги','Кујнски ваги','Решоа','Готвачи на пареа','Електрични скари','Чистачи под притисок','Додатоци за Airfyers','Сецкалници','Електрични машини за мелење месо','Капсули за чај и кафе','Апарати за правење леб','Средства за чистење и дезинфекција','Мелница за кафе','Машини за рендање и нарежување','Чистач за облека','Маникир и педикир','Диспанзер за сапун']}
+,{name:'Конзоли за играње',icon:'🎮',url:'https://setec.mk/category/konzoli-20za-20igranje-190',sub:['Игри за Конзоли','Контролери и Волани','Конзоли','Играчки']}
+,{name:'Дом, Градина и Алати',icon:'⌂',url:'https://setec.mk/category/dom-20i-20gradina-10313',sub:['Чинии, чаши, прибор и сервирање','Алати','Разно за дома','SMART HOME','Видео надзор','Декорации']}
+,{name:'Осветлување и Батерии',icon:'☼',url:'',sub:['ЛЕД Светилки','Полначи за батерии','Батерии']}
+,{name:'Зелена Енергија и системи за складирање',icon:'⚡',url:'https://setec.mk/category/zelena-20energi-d1-98a-20i-20sistemi-20za-20skladiranje-10311',sub:['Соларни панели','Батерии за складирање','Инвертери']}
+
 ];
 let categoriesOpen=false,expandedCategory=-1;
 
@@ -518,7 +563,7 @@ function offerTotals(){let club=0,regular=0,clubMissing=0,regularMissing=0,count
 const INSTALLMENT_RATES=Object.freeze({3:1.99,6:2.49,9:2.79,12:2.99,15:3.99,18:4.99,24:5.99,36:8.99,48:11.99,60:14.99});
 function renderInstallments(){
  const el=$('offerInstallmentResult');if(!el)return;
- const t=offerTotals(),months=Number($('offerInstallmentMonths').value),interest=INSTALLMENT_RATES[months];
+ const t=offerTotals(),choice=$('offerInstallmentMonths').value,zeroInterest=choice==='48-zero',months=zeroInterest?48:Number(choice),interest=zeroInterest?0:INSTALLMENT_RATES[months];
  el.replaceChildren();
  if(!Number.isFinite(interest)){el.appendChild(elem('div','installmentWarning','Избери валиден број на рати.'));return}
  if(t.count===0||t.clubMissing>0||!Number.isFinite(t.club)||t.club<=0){
@@ -528,7 +573,7 @@ function renderInstallments(){
  const row=(label,value,cls='')=>{const r=elem('div','installmentRow '+cls);r.append(elem('span','',label),elem('strong','',value));el.appendChild(r)};
  row('Клуб цена на целата листа',offerMoney(t.club));
  row('Административен трошок (3%)',offerMoney(adminAmount));
- row('Камата ('+interest.toFixed(2).replace('.',',')+'%)',offerMoney(interestAmount));
+ row(zeroInterest?'Камата (0% · без камата)':'Камата ('+interest.toFixed(2).replace('.',',')+'%)',offerMoney(interestAmount));
  row('Вкупен додаток ('+totalRate.toFixed(2).replace('.',',')+'%)',offerMoney(adminAmount+interestAmount));
  row('Вкупно за плаќање',offerMoney(total),'installmentTotal');
  row('Месечна рата ('+months+' ×)',offerMoney(monthly),'installmentMonthly');
@@ -573,86 +618,207 @@ function copyOffer(){
 }
 function clearOffer(){if(!offerItems.length)return;if(!confirm('Да се избришат сите производи од листата?'))return;offerItems=[];offerSave();offerRender();$('offerFeedback').textContent='Листата е избришана.'}
 offerLoad();
+
+/* Category explorer: local instant hierarchy, live SETEC pages and real pagination. */
 let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false,categorySelectedRoot=null,categoryLiveSubs=[];
+let categoryRootView=true,categoryActiveSub='',categoryFilterActive=false,categoryAppend=false,categoryPage=1,categoryTotal=0,categoryPageSize=20,categoryFirstUrl='',categoryNextKind='url';
+const CATEGORY_DIRECT_LINKS={
+ 'Компјутери и IT опрема':{'Конфигурации':'https://www.setec.mk/category/konfiguratsii-32'},
+ 'ТВ/Аудио/Видео':{'Телевизори':'https://www.setec.mk/category/televizori-55'},
+ 'Телефони/Фото и Навигација':{'Дополнителна опрема за мобилни телефони':'https://www.setec.mk/category/dopolnitelna-20oprema-20za-20mobilni-20telefoni-71'},
+ 'Бела Техника':{'Бојлери':'https://www.setec.mk/category/bo-d1-98leri-119'},
+ 'Ладење и Греење':{'Електрични греалки':'https://www.setec.mk/category/elektrichni-20grealki-174'},
+ 'Осветлување и Батерии':{'Полначи за батерии':'https://www.setec.mk/category/polnachi-20za-20baterii-215'}
+};
+function categorySafeUrl(raw){try{const u=new URL(raw);return u.protocol==='https:'&&/^(?:www\.)?setec\.mk$/i.test(u.hostname)&&/^\/category(?:\/|$)/.test(u.pathname)}catch(e){return false}}
+function categoryKey(raw){try{const u=new URL(raw);return u.pathname.replace(/\/$/,'')+u.search}catch(e){return String(raw||'')}}
+function categoryNormal(raw){return String(raw||'').normalize('NFKC').toLocaleLowerCase().replace(/\s*\(\d+\)\s*$/,'').replace(/\s+/g,' ').trim()}
+function categoryQuery(){return $('categoryFilter').value.trim().toLocaleLowerCase()}
+function categoryShowMessage(msg){$('categoryNotice').textContent=msg}
+function categoryHome(){
+ categoryRootView=true;categoryCurrentUrl='';categoryFirstUrl='';categoryNextUrl='';categoryHistory=[];categorySelectedRoot=null;categoryActiveSub='';categoryFilterActive=false;categoryAppend=false;categoryBusy=false;categoryPage=1;categoryTotal=0;
+ categoryEntries=[];categoryLiveSubs=[];categoryProductsCache.clear();$('categoryFilter').value='';
+ $('categoryRetry').classList.add('hidden');categoryShowMessage('12 главни категории · избери категорија за подкатегории и производи.');renderCategories();window.scrollTo(0,0);
+}
 function showCategories(){
  if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}
  if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}
- categoriesOpen=true;
- $('categoriesPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');
+ categoriesOpen=true;$('categoriesPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');
  ['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));
- $('categoryFilter').value='';categoryHistory=[];categorySelectedRoot=null;categoryProductsCache.clear();categoryLoad('https://www.setec.mk/category');window.scrollTo(0,0);
+ categoryHome();
 }
 function closeCategories(){categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('scan');window.scrollTo(0,0)}
-function categoryBack(){if(categoryHistory.length){const url=categoryHistory.pop();if(/\/category\/?$/.test(new URL(url).pathname))categorySelectedRoot=null;categoryLoad(url,false)}else closeCategories()}
-function categoryLoad(url,remember=true){if(!/^https:\/\/(?:www\.)?setec\.mk\/category(?:\/|$|\?)/i.test(url))return;
- if(remember&&categoryCurrentUrl&&categoryCurrentUrl!==url)categoryHistory.push(categoryCurrentUrl);
- categoryCurrentUrl=url;categoryNextUrl='';categoryEntries=[];categoryLiveSubs=[];categoryProductsCache.clear();categoryPageTitle='';
- $('categoryFilter').value='';$('categoryProducts').replaceChildren();$('categoriesList').replaceChildren();$('categoryNext').classList.add('hidden');
- $('categoryNotice').textContent='Вчитувам вистински категории и производи од Setec.mk…';
- $('categoryBreadcrumb').textContent=categoryHistory.length?'‹ Назад кон претходната категорија':'Каталог на Setec.mk';
- categoryBusy=true;renderCategories();SetecApp.loadCategory(url);
+function categoryBack(){
+ if(categoryRootView){closeCategories();return}
+ const prev=categoryHistory.pop();if(!prev||prev.home){categoryHome();return}
+ categorySelectedRoot=prev.root;categoryActiveSub=prev.sub||'';categoryFilterActive=false;categoryLoad(prev.url,false,false);window.scrollTo(0,0);
 }
-window.onCategorySearchFallback=function(url,name){categoryCurrentUrl=url;categoryLiveSubs=[];categoryEntries=[];categoryProductsCache.clear();categoryBusy=true;$('categoryNotice').textContent='Пребарувам производи за „'+name+'“ на Setec.mk…';renderCategories()};
-window.onCategoryLoading=function(){categoryBusy=true;$('categoryNotice').textContent='Вчитувам од Setec.mk…'};
-window.onCategoryError=function(message){categoryBusy=false;$('categoryNotice').textContent=message};
-window.onCategoryData=function(raw){if(!categoriesOpen)return;try{
- const data=JSON.parse(raw);if(data.url!==categoryCurrentUrl)return;
- categoryBusy=false;categoryPageTitle=String(data.title||'SETEC категории').slice(0,120);
- if(Array.isArray(data.subcategories))categoryLiveSubs=data.subcategories.filter(x=>typeof x==='string'&&x.length>1).slice(0,120);
- if(Array.isArray(data.categories))categoryEntries=data.categories.filter(x=>x&&/^https:\/\/(?:www\.)?setec\.mk\/category\//i.test(x.url)&&x.name).slice(0,350);
- if(Array.isArray(data.products))for(const p of data.products){if(p&&validUrl(p.url))categoryProductsCache.set(p.url,p)}
- categoryNextUrl=typeof data.next==='string'&&/^https:\/\/(?:www\.)?setec\.mk\/(?:category|search-result)/i.test(data.next)?data.next:'';
- $('categoryNotice').textContent='Директно од Setec.mk · '+categoryPageTitle+' · '+categoryProductsCache.size+' производи';
+function categoryOpenRoot(cat){
+ categorySelectedRoot=cat;categoryActiveSub='';categoryFilterActive=false;
+ if(!categorySafeUrl(cat.url)){
+   categoryBusy=true;categoryShowMessage('Го барам точниот линк за „'+cat.name+'“ во менито на Setec.mk…');renderCategories();
+   try{SetecApp.resolveCategoryRoot(cat.name)}catch(e){categoryBusy=false;window.onCategoryError('Не можам да ја отворам оваа категорија.')}
+   return;
+ }
+ categoryHistory=[{home:true}];categoryLoad(cat.url,false,false);window.scrollTo(0,0);
+}
+window.onCategoryRootResolved=function(name,url){
+ if(!categoriesOpen||!categoryRootView)return;
+ const cat=setecCategories.find(x=>categoryNormal(x.name)===categoryNormal(name));
+ if(!cat||!categorySafeUrl(url)){window.onCategoryError('Не е пронајден сигурен линк за категоријата.');return}
+ cat.url=url;categoryOpenRoot(cat);
+};
+function categoryLoad(url,remember=false,append=false){
+ if(!categorySafeUrl(url)){window.onCategoryError('Невалидна категорија на Setec.mk.');return}
+ if(remember&&categoryCurrentUrl&&categoryKey(categoryCurrentUrl)!==categoryKey(url))categoryHistory.push({url:categoryFirstUrl||categoryCurrentUrl,root:categorySelectedRoot,sub:categoryActiveSub});
+ categoryRootView=false;categoryBusy=true;categoryAppend=append;
+ if(!append){
+  categoryProductsCache.clear();categoryEntries=[];categoryLiveSubs=[];categoryPageTitle='';categoryNextUrl='';categoryPage=Number(new URL(url).searchParams.get('page')||1);categoryTotal=0;categoryFirstUrl=url;
+ }
+ categoryCurrentUrl=url;$('categoryRetry').classList.add('hidden');
+ if(!append)$('categoryFilter').value='';
+ categoryShowMessage(append?'Се вчитува следната страница од Setec.mk…':'Се вчитуваат подкатегории и производи од Setec.mk…');
  renderCategories();
- }catch(e){window.onCategoryError('Не можам да ги прочитам категориите. Пробај повторно.')}}
-function renderCategories(){
- const host=$('categoriesList');host.replaceChildren();
- const filter=$('categoryFilter').value.trim().toLocaleLowerCase();
- let list=categoryEntries.filter(x=>x.name.toLocaleLowerCase().includes(filter));
- const root=/\/category\/?$/.test(new URL(categoryCurrentUrl).pathname);
- if(root){
-   // Keep visible, clickable category tiles even while Setec's dynamic menu loads.
-   const roots=setecCategories.filter(cat=>cat.name.toLocaleLowerCase().includes(filter)||cat.sub.some(s=>s.toLocaleLowerCase().includes(filter)));
-   for(const cat of roots){
-     const found=categoryEntries.find(x=>x.name.toLocaleLowerCase()===cat.name.toLocaleLowerCase());
-     const known=cat.url&&cat.url!=='https://setec.mk/category'?cat.url:'';
-     const b=elem('button','liveCategory'),name=elem('span','',cat.name);
-     b.append(elem('span','liveCategoryIcon',cat.icon),name,elem('span','liveCategoryArrow','›'));
-     b.onclick=()=>{categorySelectedRoot=cat;const url=found?.url||known;if(url)categoryLoad(url);else{$('categoryNotice').textContent='Setec.mk сѐ уште не го достави линкот за оваа категорија. Отвори го каталогот и пробај повторно.'}};
-     host.appendChild(b);
-   }
-   list=list.filter(x=>!roots.some(cat=>cat.name.toLocaleLowerCase()===x.name.toLocaleLowerCase()));
- }
- if(!root){
-   // Setec displays most subcategories as real checkbox filters, not links.
-   // Prefer their actual labels over unrelated global menu links.
-   const live=categoryLiveSubs.filter(n=>n.toLocaleLowerCase().includes(filter));
-   if(live.length){
-     host.appendChild(elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+(categorySelectedRoot?.name||categoryPageTitle)));
-     for(const name of live){
-       const button=elem('button','liveCategory');
-       button.append(elem('span','liveCategoryIcon','▦'),elem('span','',name),elem('span','liveCategoryArrow','›'));
-       button.onclick=()=>{categoryProductsCache.clear();$('categoryProducts').replaceChildren();SetecApp.filterCategory(name)};
-       host.appendChild(button);
-     }
-     // Category navigation links are often the global site menu, not children.
-     list=[];
-   }else if(categorySelectedRoot&&categoryHistory.length===1){
-     const preferred=categorySelectedRoot.sub||[];
-     const normalize=s=>String(s||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
-     list=list.filter(x=>preferred.some(s=>normalize(s)===normalize(x.name)));
-     host.appendChild(elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+categorySelectedRoot.name));
-     if(!list.length)host.appendChild(elem('div','categoryEmpty','Се вчитуваат подкатегориите од филтрите на Setec.mk…'));
-   }
- }
- for(const item of list){const b=elem('button','liveCategory'),name=elem('span','',item.name);b.append(elem('span','liveCategoryIcon','▦'),name,elem('span','liveCategoryArrow','›'));b.onclick=()=>categoryLoad(item.url);host.appendChild(b)}
- const products=$('categoryProducts');products.replaceChildren();
- const found=[...categoryProductsCache.values()].filter(p=>!filter||(p.name||'').toLocaleLowerCase().includes(filter)||(p.sku||'').includes(filter));
- if(found.length){products.appendChild(elem('h3','categoryProductsTitle',(!root&&categorySelectedRoot&&categoryHistory.length===1?'Производи од целата категорија · ':'Производи · ')+found.length));for(const p of found){const b=elem('button','liveProduct'),pic=elem('span','liveProductImg'),img=safeImage(p.img);if(img){const i=elem('img');i.src=img;i.alt='';pic.appendChild(i)}else pic.textContent='SETEC';const info=elem('span','liveProductInfo');info.append(elem('strong','',p.name||'Производ'),elem('small','',p.sku?'Шифра: '+p.sku:'Отвори за детали'));b.append(pic,info,elem('span','liveCategoryArrow','›'));b.onclick=()=>{categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('search');openProduct(p)};products.appendChild(b)}}
- if(!categoryBusy&&!list.length&&!found.length)products.appendChild(elem('div','categoryEmpty','Нема прикажани производи или подкатегории на оваа страница. Отвори ја категоријата на Setec.mk за проверка.'));
- $('categoryNext').classList.toggle('hidden',!categoryNextUrl||!!filter);
+ try{SetecApp.loadCategory(url)}catch(e){window.onCategoryError('Не успеа вчитувањето на Setec.mk.')}
 }
-function categoryNextPage(){if(!categoryNextUrl)return;const url=categoryNextUrl;categoryNextUrl='';categoryCurrentUrl=url;categoryBusy=true;$('categoryNotice').textContent='Вчитувам следна страница од Setec.mk…';SetecApp.loadCategory(url)}
+function categoryOpenSub(name,url){
+ if(categoryBusy)return;
+ categoryHistory.push({url:categoryFirstUrl||categoryCurrentUrl,root:categorySelectedRoot,sub:categoryActiveSub});
+ categoryActiveSub=name;categoryFilterActive=false;
+ if(categorySafeUrl(url)){categoryLoad(url,false,false);return}
+ // The SETEC sidebar often uses live checkbox filters instead of category links.
+ categoryFilterActive=true;categoryNextUrl='';categoryPage=1;categoryTotal=0;categoryProductsCache.clear();categoryLiveSubs=[];categoryAppend=false;
+ $('categoryFilter').value='';categoryBusy=true;categoryShowMessage('Се применува подкатегоријата „'+name+'“ на Setec.mk…');
+ renderCategories();
+ try{SetecApp.filterCategory(name)}catch(e){window.onCategoryError('Не може да се активира подкатегоријата.')}
+}
+window.onCategoryLoading=function(){if(!categoriesOpen)return;categoryBusy=true;renderCategories()};
+window.onCategoryError=function(message){
+ if(!categoriesOpen)return;categoryBusy=false;categoryAppend=false;categoryNextUrl='';
+ categoryShowMessage(message||'Вчитувањето не успеа.');$('categoryRetry').classList.remove('hidden');renderCategories();
+};
+window.onCategorySearchFallback=function(url,name){window.onCategoryError('Не успеа филтерот „'+name+'“. Пробај друга подкатегорија.')};
+function categoryRetryLoad(){
+ if(categoryRootView){categoryHome();return}
+ if(categoryFilterActive&&categoryActiveSub){const name=categoryActiveSub;categoryFilterActive=false;categoryOpenSub(name,'');return}
+ categoryLoad(categoryFirstUrl||categoryCurrentUrl,false,false);
+}
+window.onCategoryData=function(raw){
+ if(!categoriesOpen||categoryRootView)return;
+ try{
+  const data=JSON.parse(raw);
+  if(categoryKey(data.url)!==categoryKey(categoryCurrentUrl))return;
+  const batch=Array.isArray(data.products)?data.products.filter(p=>p&&validUrl(p.url)):[];
+  if(!batch.length&&!Array.isArray(data.subcategories)&&!Array.isArray(data.categories))return;
+  let added=0;
+  for(const p of batch){if(!categoryProductsCache.has(p.url))added++;categoryProductsCache.set(p.url,p)}
+  if(categoryAppend&&batch.length&&added===0){
+   categoryNextUrl='';categoryBusy=false;categoryAppend=false;
+   categoryShowMessage('Нема повеќе различни производи на следната страница.');renderCategories();return;
+  }
+  categoryPageTitle=String(data.title||categoryPageTitle||categoryActiveSub||categorySelectedRoot?.name||'Каталог').slice(0,120);
+  if(Array.isArray(data.subcategories)&&!categoryFilterActive)categoryLiveSubs=data.subcategories.filter(x=>(typeof x==='string'&&x.length>1)||(x&&typeof x.name==='string')).slice(0,160);
+  if(Array.isArray(data.categories))categoryEntries=data.categories.filter(x=>x&&categorySafeUrl(x.url)&&x.name).slice(0,500);
+  const p=Number(data.page)||Number(new URL(categoryCurrentUrl).searchParams.get('page'))||1;
+  if(categoryAppend)categoryPage=Math.max(categoryPage+1,p);else categoryPage=p;
+  categoryTotal=Number.isFinite(+data.total)?Math.max(0,+data.total):0;
+  if(Number(data.pageSize)>0)categoryPageSize=Number(data.pageSize);
+  categoryNextUrl=categorySafeUrl(data.next)?data.next:'';
+  if(!categoryNextUrl&&categoryTotal>categoryPage*categoryPageSize&&!categoryFilterActive){
+    const u=new URL(categoryCurrentUrl);u.searchParams.set('page',String(categoryPage+1));categoryNextUrl=u.href;
+  }
+  categoryBusy=false;categoryAppend=false;$('categoryRetry').classList.add('hidden');
+  const howMany=categoryProductsCache.size;
+  categoryShowMessage('Од Setec.mk · '+categoryPageTitle+' · '+howMany+' прикажани производи'+(categoryTotal?' од '+categoryTotal:'')+'.');
+  renderCategories();
+ }catch(e){window.onCategoryError('Не можам да ги прочитам податоците од категоријата.')}
+};
+function categoryChildren(){
+ const atRoot=categorySelectedRoot&&categoryKey(categoryCurrentUrl)===categoryKey(categorySelectedRoot.url);
+ const fromSite=categoryLiveSubs.map(x=>typeof x==='string'?{name:x}:x).filter(x=>x&&x.name);
+ const fromCurated=atRoot?(categorySelectedRoot.sub||[]).map(name=>({name})): [];
+ const merged=new Map();
+ for(const x of [...fromCurated,...fromSite])merged.set(categoryNormal(x.name),x);
+ return [...merged.values()].filter(x=>x.name&&categoryNormal(x.name)!==categoryNormal(categoryPageTitle));
+}
+function categoryKnownUrl(name){
+ if(!categorySelectedRoot)return '';
+ const byRoot=CATEGORY_DIRECT_LINKS[categorySelectedRoot.name]||{};
+ if(categorySafeUrl(byRoot[name]))return byRoot[name];
+ const inLinks=categoryEntries.find(x=>categoryNormal(x.name)===categoryNormal(name));
+ return inLinks&&categorySafeUrl(inLinks.url)?inLinks.url:'';
+}
+function renderCategories(){
+ const host=$('categoriesList'),products=$('categoryProducts'),summary=$('categorySummary'),crumb=$('categoryBreadcrumb'),pager=$('categoryPager');
+ host.replaceChildren();products.replaceChildren();summary.replaceChildren();crumb.replaceChildren();
+ const q=categoryQuery();
+ $('categoryOfficial').classList.toggle('hidden',categoryRootView||!categorySafeUrl(categoryCurrentUrl));
+ if(categoryRootView){
+  crumb.appendChild(elem('span','categoryCrumbCurrent','Сите категории'));
+  const roots=[...setecCategories].sort((a,b)=>{const order=['Компјутери и IT опрема','Преносни Компјутери и Таблети','Конзоли за играње','ТВ/Аудио/Видео','Телефони/Фото и Навигација','Бела Техника','Мали Апарати','Ладење и Греење','Спорт и рекреација','Дом, Градина и Алати','Осветлување и Батерии','Зелена Енергија и системи за складирање'];return order.indexOf(a.name)-order.indexOf(b.name)});
+  let shown=0;
+  for(const cat of roots){
+   if(q&&!categoryNormal(cat.name).includes(q)&&!(cat.sub||[]).some(x=>categoryNormal(x).includes(q)))continue;
+   shown++;const b=elem('button','categoryRootCard'),icon=elem('span','categoryRootIcon',cat.icon),text=elem('span','categoryRootText');
+   text.append(elem('strong','',cat.name),elem('small','',(cat.sub||[]).length+' подкатегории · Прегледај производи'));
+   b.append(icon,text,elem('span','categoryRootArrow','›'));b.onclick=()=>categoryOpenRoot(cat);host.appendChild(b);
+  }
+  if(!shown)host.appendChild(elem('div','categoryEmpty','Нема категорија со овој назив.'));
+  pager.classList.add('hidden');return;
+ }
+ const title=categoryActiveSub||categoryPageTitle||categorySelectedRoot?.name||'Категорија';
+ const home=elem('button','categoryCrumbLink','Сите категории');home.onclick=categoryHome;crumb.append(home,elem('span','categoryCrumbSep',' / '));
+ if(categorySelectedRoot&&categoryActiveSub){
+  const b=elem('button','categoryCrumbLink',categorySelectedRoot.name);b.onclick=()=>{const root=categorySelectedRoot;categoryHistory=[{home:true}];categoryActiveSub='';categoryFilterActive=false;categoryLoad(root.url,false,false)};crumb.append(b,elem('span','categoryCrumbSep',' / '));
+ }
+ crumb.append(elem('span','categoryCrumbCurrent',title));
+ const children=categoryChildren().filter(x=>!q||categoryNormal(x.name).includes(q));
+ if(children.length){
+  summary.appendChild(elem('div','categorySectionTitle',categoryActiveSub?'ПОДКАТЕГОРИИ':'ИЗБЕРИ ПОДКАТЕГОРИЈА'));
+  for(const child of children){
+   const name=String(child.name).replace(/\s*\(\d+\)\s*$/,'').trim(),c=elem('button','categorySubCard');
+   const info=elem('span','categorySubInfo');info.append(elem('strong','',name));
+   const number=child.count===undefined?'':String(child.count);
+   info.append(elem('small','',number?number+' производи · Отвори':'Погледни производи'));
+   c.append(elem('span','categorySubIcon','▦'),info,elem('span','categoryRootArrow','›'));
+   c.onclick=()=>categoryOpenSub(name,categoryKnownUrl(name));host.appendChild(c);
+  }
+ }
+ if(!categoryActiveSub&&categorySelectedRoot)summary.appendChild(elem('div','categoryCatalogHint','Подолу се прикажани производите од главната категорија.'));
+ const matches=[...categoryProductsCache.values()].filter(p=>!q||categoryNormal(p.name||'').includes(q)||String(p.sku||'').includes(q));
+ if(matches.length){
+  products.appendChild(elem('div','categorySectionTitle','ПРОИЗВОДИ · '+matches.length+' вчитани'));
+  for(const p of matches){
+   const b=elem('button','categoryProductCard'),pic=elem('span','categoryProductImg'),img=safeImage(p.img);
+   if(img){const el=elem('img');el.src=img;el.alt='';pic.appendChild(el)}else pic.textContent='SETEC';
+   const info=elem('span','categoryProductInfo');
+   info.append(elem('strong','',p.name||'Производ'),elem('small','',p.sku?'Шифра: '+p.sku:'Провери детали'));
+   const prices=miniPrices(p);if(prices.childElementCount)info.appendChild(prices);
+   b.append(pic,info,elem('span','categoryRootArrow','›'));
+   b.onclick=()=>{categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('search');openProduct(p)};
+   products.appendChild(b);
+  }
+ }else if(!categoryBusy&&!children.length)products.appendChild(elem('div','categoryEmpty','Нема вчитани производи. Пробај повторно или отвори на Setec.mk.'));
+ const hasNext=!!categoryNextUrl;
+ pager.classList.toggle('hidden',!matches.length||!!q);
+ $('categoryPrev').disabled=categoryBusy||categoryPage<=1||categoryFilterActive;
+ $('categoryNext').disabled=categoryBusy||!hasNext;
+ $('categoryPageLabel').textContent='Страница '+categoryPage+(categoryTotal?' · '+categoryTotal+' вкупно':'');
+ if(categoryBusy)products.appendChild(elem('div','categoryLoading','◌ Се вчитува од Setec.mk…'));
+}
+function categoryNextPage(){
+ if(categoryBusy||!categoryNextUrl)return;
+ if(categoryFilterActive){
+  categoryAppend=true;categoryBusy=true;categoryShowMessage('Се вчитува следната страница со активниот филтер…');renderCategories();
+  try{SetecApp.nextCategoryPage()}catch(e){window.onCategoryError('Не може да се отвори следната страница.')}return;
+ }
+ const next=categoryNextUrl;categoryLoad(next,false,true);
+}
+function categoryPrevPage(){
+ if(categoryBusy||categoryPage<=1||categoryFilterActive)return;
+ const u=new URL(categoryCurrentUrl);u.searchParams.set('page',String(categoryPage-1));
+ categoryLoad(u.href,false,false);
+}
 function openSetecCategory(url){try{SetecApp.openCategory(url)}catch(e){window.location.href=url}}
 function showSettings(){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsTab').classList.add('active');$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
 function closeSettings(){$('settingsTab').classList.remove('active');settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
