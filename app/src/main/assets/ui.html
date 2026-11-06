@@ -444,7 +444,7 @@ body.availabilityOnly #resultsPanel .price,body.availabilityOnly #resultsPanel .
 </section>
 
 <section id="scanPanel"><div class="frame"><div class="capture"><div class="corners"></div><div><div class="glyph">▣</div><strong>Читање на шифра од етикета</strong><p>Насочи ја камерата кон Data Matrix кодот на етикетата.</p></div></div></div><div class="scanBtns"><button class="cta" onclick="startAvailabilityScan()">▣ Скенирај Data Matrix</button><button class="secondary" onclick="refresh()" aria-label="Освежи">⟳</button></div>
-<button class="secondary" onclick="SetecApp.scan()" style="width:100%;margin:10px 0 3px;font-size:14px;font-weight:800">▣ Скенирај стара шифра (OCR)</button><button id="resetScanBtn" class="back hidden" onclick="resetScan()">‹ Назад · Нова шифра</button>
+<button class="secondary" onclick="SetecApp.scan()" style="width:100%;margin:10px 0 3px;font-size:14px;font-weight:800">▣ Скенирај стара шифра (OCR)</button><button id="resetScanBtn" class="back hidden" style="background:linear-gradient(135deg,#0964a9,#168fd3);color:#fff;border:1px solid #36b8ff" onclick="resetScan()">‹ Назад · Нова шифра</button>
 <div id="recognized" class="recognition hidden"><span class="symbol">✓</span><div>Препознаена шифра: <strong id="scanCode"></strong></div></div>
 <button id="retrySkuBtn" class="cta hidden" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button>
 <div class="note">За постарите етикети можеш да користиш OCR:<div class="chips"><span class="chip">Шифра: 12959</span><span class="chip">шифра/код: 84558</span></div></div></section>
