@@ -173,6 +173,16 @@ public final class MainActivity extends ComponentActivity {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
     private final class UiBridge {
+        @JavascriptInterface public void openReleasePage() {
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Gjo4e/setec-zaliha/actions"));
+                    startActivity(intent);
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "Не може да се отвори GitHub.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
         @JavascriptInterface public void setTheme(String theme) {
             getSharedPreferences("setec_preferences",MODE_PRIVATE).edit().putBoolean("dark_theme","dark".equals(theme)).apply();
         }
