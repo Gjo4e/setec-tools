@@ -261,7 +261,11 @@ public final class MainActivity extends ComponentActivity {
                     boolean safe = "https".equalsIgnoreCase(u.getScheme())
                             && ("setec.mk".equalsIgnoreCase(u.getHost()) || "www.setec.mk".equalsIgnoreCase(u.getHost()))
                             && path != null && ("/category".equals(path) || path.startsWith("/category/"));
-                    if (safe) startActivity(new Intent(Intent.ACTION_VIEW, u));
+                    if (safe) {
+                        Intent intent = new Intent(MainActivity.this, CategoryBrowserActivity.class);
+                        intent.putExtra(CategoryBrowserActivity.EXTRA_URL, u.toString());
+                        startActivity(intent);
+                    }
                 } catch (Exception e) {
                     Toast.makeText(MainActivity.this, "Не може да се отвори категоријата.", Toast.LENGTH_SHORT).show();
                 }
