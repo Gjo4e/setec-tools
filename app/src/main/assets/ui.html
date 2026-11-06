@@ -382,7 +382,7 @@ body.availabilityOnly #resultsPanel .price,body.availabilityOnly #resultsPanel .
 .recentMeta{font-size:10px;color:#a6bad0;line-height:1.5}
 .recentArrow{font-size:23px;color:#48b5ff}
 .recentEmpty{font-size:12px;color:var(--subcopy);padding:14px}
-</style></head>
+.categorySubheading{font-size:12px;font-weight:900;letter-spacing:.06em;color:#57c2ff;margin:12px 0 10px}.categorySubheading+.liveCategory{margin-top:6px}.categoryProducts{margin-top:20px}.liveCategory:active{transform:scale(.99);border-color:#47bdff}.categoryNotice{line-height:1.55}</style></head>
 <body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC <span class="brandTools">TOOLS</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
 
 <main class="wrap">
@@ -569,17 +569,17 @@ function copyOffer(){
 }
 function clearOffer(){if(!offerItems.length)return;if(!confirm('Да се избришат сите производи од листата?'))return;offerItems=[];offerSave();offerRender();$('offerFeedback').textContent='Листата е избришана.'}
 offerLoad();
-let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false;
+let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false,categorySelectedRoot=null;
 function showCategories(){
  if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}
  if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}
  categoriesOpen=true;
  $('categoriesPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');
  ['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));
- $('categoryFilter').value='';categoryHistory=[];categoryProductsCache.clear();categoryLoad('https://www.setec.mk/category');window.scrollTo(0,0);
+ $('categoryFilter').value='';categoryHistory=[];categorySelectedRoot=null;categoryProductsCache.clear();categoryLoad('https://www.setec.mk/category');window.scrollTo(0,0);
 }
 function closeCategories(){categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('scan');window.scrollTo(0,0)}
-function categoryBack(){if(categoryHistory.length){categoryLoad(categoryHistory.pop(),false)}else closeCategories()}
+function categoryBack(){if(categoryHistory.length){const url=categoryHistory.pop();if(/\/category\/?$/.test(new URL(url).pathname))categorySelectedRoot=null;categoryLoad(url,false)}else closeCategories()}
 function categoryLoad(url,remember=true){if(!/^https:\/\/(?:www\.)?setec\.mk\/category(?:\/|$|\?)/i.test(url))return;
  if(remember&&categoryCurrentUrl&&categoryCurrentUrl!==url)categoryHistory.push(categoryCurrentUrl);
  categoryCurrentUrl=url;categoryNextUrl='';categoryEntries=[];categoryProductsCache.clear();categoryPageTitle='';
@@ -612,15 +612,28 @@ function renderCategories(){
      const known=cat.url&&cat.url!=='https://setec.mk/category'?cat.url:'';
      const b=elem('button','liveCategory'),name=elem('span','',cat.name);
      b.append(elem('span','liveCategoryIcon',cat.icon),name,elem('span','liveCategoryArrow','›'));
-     b.onclick=()=>{const url=found?.url||known;if(url)categoryLoad(url);else{$('categoryNotice').textContent='Setec.mk сѐ уште не го достави линкот за оваа категорија. Отвори го каталогот и пробај повторно.'}};
+     b.onclick=()=>{categorySelectedRoot=cat;const url=found?.url||known;if(url)categoryLoad(url);else{$('categoryNotice').textContent='Setec.mk сѐ уште не го достави линкот за оваа категорија. Отвори го каталогот и пробај повторно.'}};
      host.appendChild(b);
    }
    list=list.filter(x=>!roots.some(cat=>cat.name.toLocaleLowerCase()===x.name.toLocaleLowerCase()));
  }
+ if(!root&&categorySelectedRoot&&categoryHistory.length===1){
+   // The current category is a parent: show matching subcategories before products.
+   const preferred=categorySelectedRoot.sub||[];
+   const ranked=list.map(x=>({x,score:preferred.findIndex(s=>s.toLocaleLowerCase()===x.name.toLocaleLowerCase())}));
+   ranked.sort((a,b)=>(a.score<0?999:a.score)-(b.score<0?999:b.score));
+   list=ranked.map(v=>v.x);
+   const intro=elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+categorySelectedRoot.name);
+   host.appendChild(intro);
+   if(!list.length){
+      const note=elem('div','categoryEmpty','Подкатегориите се вчитуваат од Setec.mk. Ако страницата не ги врати, отвори ја официјалната категорија.');
+      host.appendChild(note);
+   }
+ }
  for(const item of list){const b=elem('button','liveCategory'),name=elem('span','',item.name);b.append(elem('span','liveCategoryIcon','▦'),name,elem('span','liveCategoryArrow','›'));b.onclick=()=>categoryLoad(item.url);host.appendChild(b)}
  const products=$('categoryProducts');products.replaceChildren();
  const found=[...categoryProductsCache.values()].filter(p=>!filter||(p.name||'').toLocaleLowerCase().includes(filter)||(p.sku||'').includes(filter));
- if(found.length){products.appendChild(elem('h3','categoryProductsTitle','Производи · '+found.length));for(const p of found){const b=elem('button','liveProduct'),pic=elem('span','liveProductImg'),img=safeImage(p.img);if(img){const i=elem('img');i.src=img;i.alt='';pic.appendChild(i)}else pic.textContent='SETEC';const info=elem('span','liveProductInfo');info.append(elem('strong','',p.name||'Производ'),elem('small','',p.sku?'Шифра: '+p.sku:'Отвори за детали'));b.append(pic,info,elem('span','liveCategoryArrow','›'));b.onclick=()=>{categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('search');openProduct(p)};products.appendChild(b)}}
+ if(found.length){products.appendChild(elem('h3','categoryProductsTitle',(!root&&categorySelectedRoot&&categoryHistory.length===1?'Производи од целата категорија · ':'Производи · ')+found.length));for(const p of found){const b=elem('button','liveProduct'),pic=elem('span','liveProductImg'),img=safeImage(p.img);if(img){const i=elem('img');i.src=img;i.alt='';pic.appendChild(i)}else pic.textContent='SETEC';const info=elem('span','liveProductInfo');info.append(elem('strong','',p.name||'Производ'),elem('small','',p.sku?'Шифра: '+p.sku:'Отвори за детали'));b.append(pic,info,elem('span','liveCategoryArrow','›'));b.onclick=()=>{categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('search');openProduct(p)};products.appendChild(b)}}
  if(!categoryBusy&&!list.length&&!found.length)products.appendChild(elem('div','categoryEmpty','Нема прикажани производи или подкатегории на оваа страница. Отвори ја категоријата на Setec.mk за проверка.'));
  $('categoryNext').classList.toggle('hidden',!categoryNextUrl||!!filter);
 }
