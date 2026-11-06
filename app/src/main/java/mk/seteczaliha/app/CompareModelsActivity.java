@@ -36,7 +36,7 @@ import java.util.Map;
  * Only up to five key specs appear side by side, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
-    private static final int ORANGE=0xFF258BFF;
+    private static final int ORANGE=0xFF279DFF;
     private int INK=0xFF202531;
     private boolean darkMode=false;
     private int theme(int light,int dark){return darkMode?dark:light;}
@@ -147,15 +147,15 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         LinearLayout screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(theme(0xFFEEF3FA,0xFF0A111C));
+        screen.setBackgroundColor(theme(0xFFEEF3FA,0xFF080D14));
         setContentView(screen);
 
         LinearLayout header=new LinearLayout(this);
-        header.setBackgroundColor(0xFF10243D);
+        header.setBackgroundColor(0xFF101E32);
         header.setPadding(dp(9),dp(10),dp(9),dp(11));
         header.setGravity(Gravity.CENTER_VERTICAL);
         screen.addView(header);
-        Button back=button("‹ Назад",0xFF1E3D61);
+        Button back=button("‹ Назад",0xFF1D3E60);
         header.addView(back,new LinearLayout.LayoutParams(dp(90),dp(45)));
         back.setOnClickListener(v->finish());
         TextView title=text("⚖ Спореди модели",20,true,Color.WHITE);
