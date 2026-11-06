@@ -25,7 +25,7 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
 <section id="home">
   <div class="row wrap"><div class="title">Избери компоненти</div><span id="progress" class="small">0 / 8</span></div>
   <div class="categories" id="categories"></div>
-  <div class="summary"><b>🛠 PC алатки</b><p class="small">Избери алатка:</p><div class="row wrap" style="justify-content:flex-start"><button class="ghost" onclick="document.getElementById('ramSlots').scrollIntoView({behavior:'smooth'})">▤ RAM слотови</button><button class="ghost" onclick="document.getElementById('powerEstimate').scrollIntoView({behavior:'smooth'})">⚡ Напојување</button><button class="ghost" onclick="document.getElementById('budgetIdeas').scrollIntoView({behavior:'smooth'})">💰 Буџет</button><button class="ghost" onclick="document.getElementById('gamingIdeas').scrollIntoView({behavior:'smooth'})">🎮 Gaming</button></div></div>
+  <div class="summary"><b>🛠 PC алатки</b><p class="small">Избери алатка:</p><div class="row wrap" style="justify-content:flex-start"><button class="ghost" onclick="document.getElementById('ramSlots').scrollIntoView({behavior:'smooth'})">▤ RAM слотови</button><button class="ghost" onclick="document.getElementById('powerEstimate').scrollIntoView({behavior:'smooth'})">⚡ Напојување</button><button class="ghost" onclick="document.getElementById('gamingIdeas').scrollIntoView({behavior:'smooth'})">🎮 Gaming</button></div></div>
   <div class="summary">
     <div class="row"><b>Твоја конфигурација</b><button class="ghost" style="font-size:11px" onclick="copyBuild()">Копирај</button></div>
     <div id="selected"></div>
@@ -35,7 +35,6 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
     <div id="smartIdeas" aria-live="polite"></div>
     <div id="ramSlots" aria-live="polite"></div>
     <div id="powerEstimate" aria-live="polite"></div>
-    <div id="budgetIdeas" aria-live="polite"></div>
     <div id="gamingIdeas" aria-live="polite"></div>
     <div id="sharedStore" class="small"></div>
   </div>
@@ -283,108 +282,104 @@ function candidateReason(p,id,check){
 
 function specValue(p,regex){if(!p)return null;const text=String(p.name||'')+' '+String(p.specs||'');const m=text.match(regex);return m?Number(m[1]):null}
 
-let pcInputs={};try{pcInputs=JSON.parse(localStorage.getItem('setec_pc_manual_specs')||'{}')}catch(e){}
-function numericField(card,title,key,placeholder,max,rerender){
- const row=el('div','row wrap');row.style.margin='9px 0';const label=el('label','small',title);
- const input=el('input');input.type='number';input.min='0';input.max=String(max);input.placeholder=placeholder;input.value=pcInputs[key]||'';
- input.style.cssText='width:105px;max-width:42%;padding:9px;border:1px solid #d9dce1;border-radius:8px';
- input.setAttribute('aria-label',title);
- input.onchange=()=>{const v=Math.max(0,Math.min(max,Math.round(Number(input.value)||0)));if(v)pcInputs[key]=v;else delete pcInputs[key];localStorage.setItem('setec_pc_manual_specs',JSON.stringify(pcInputs));rerender()};
- row.append(label,input);card.appendChild(row);
-}
+
 function nameCapacity(p){
- if(!p)return null;
- const s=String(p.name||'');
+ if(!p)return null;const s=String(p.name||'');
  const kit=s.match(/\b([248])\s*[x×]\s*(\d{1,3})\s*GB\b/i);
- if(kit)return {perPurchase:Number(kit[1])*Number(kit[2]),modules:Number(kit[1]),source:'комплет '+kit[1]+'×'+kit[2]+' GB'};
- const one=s.match(/\b(\d{1,3})\s*GB\b/i);
- return one?{perPurchase:Number(one[1]),modules:1,source:'означени '+one[1]+' GB (провери пакување)'}:null;
+ if(kit)return {gb:Number(kit[1])*Number(kit[2]),modules:Number(kit[1])};
+ const single=s.match(/\b(\d{1,3})\s*GB\b/i);
+ return single?{gb:Number(single[1]),modules:1}:null;
+}
+function findSpec(p,patterns){
+ if(!p)return null;
+ const name=String(p.name||''),specs=String(p.specs||'');
+ for(const text of [name,specs])for(const re of patterns){const m=text.match(re);if(m)return Number(m[1])}
+ return null;
 }
 function ramSlotsInfo(){
- const out=$('ramSlots');out.replaceChildren();
- const card=el('div','summary');card.appendChild(el('div','title','▤ RAM слотови и капацитет'));
- const ram=chosen.ram,board=chosen.board;
- if(!ram){card.appendChild(el('div','small','Избери RAM за да го пресметаме вкупниот капацитет.'))}
- const cap=nameCapacity(ram),count=ramQuantity,modules=cap?cap.modules*count:count;
- if(cap){
-  card.appendChild(el('div','total',cap.perPurchase*count+' GB вкупно · '+modules+' RAM модули (проценка)'));
-  card.appendChild(el('div','small',count+' купени пакувања · '+cap.source));
- }else if(ram)card.appendChild(el('div','small',count+' купени пакувања · капацитетот не е препознаен.'));
- const t=String(board?.name||'')+' '+String(board?.specs||'');
- const slotMatch=t.match(/(?:RAM|MEMORY|DIMM|DDR[345])\s*(?:SLOTS?|СЛОТОВИ|СЛОТА)\s*[:\-]?\s*([248])\b/i)||t.match(/\b([248])\s*[x×]\s*(?:DDR[345]\s*)?(?:DIMM|RAM\s*SLOTS?|MEMORY\s*SLOTS?)\b/i);
- const maxMatch=t.match(/(?:MAX(?:IMUM)?\s*(?:MEMORY|RAM)|МАКС(?:ИМАЛНА)?\s*(?:RAM|МЕМОРИЈА))\s*[:\-]?\s*(\d{1,3})\s*GB\b/i);
- const slotsKnown=pcInputs.slots|| (slotMatch?Number(slotMatch[1]):null);
- const maxKnown=pcInputs.maxram||(maxMatch?Number(maxMatch[1]):null);
- numericField(card,'RAM слотови на матичната', 'slots','Пр. 4',16,ramSlotsInfo);
- numericField(card,'Максимум RAM (GB)', 'maxram','Пр. 128',2048,ramSlotsInfo);
- if(!board)card.appendChild(el('div','warning','Избери матична плоча. Внесените вредности се рачни и не се потврдени.'));
- if(slotsKnown&&ram)card.appendChild(el('div',modules>slotsKnown?'error':'checked',modules>slotsKnown?'✕ Потребни се '+modules+' слотови, а има '+slotsKnown+'.':'✓ '+modules+' од '+slotsKnown+' слотови ќе се користат.'));
- if(maxKnown&&cap)card.appendChild(el('div',cap.perPurchase*count>maxKnown?'error':'checked',(cap.perPurchase*count>maxKnown?'✕':'✓')+' '+(cap.perPurchase*count)+' GB од максимум '+maxKnown+' GB.'));
- if(!slotsKnown||!maxKnown)card.appendChild(el('div','small','Ако спецификацијата не е прочитана, внеси го бројот на слотови и максимумот од официјалната страница на матичната.'));
- card.appendChild(el('div','small','Рачно внесените податоци важат за тековната конфигурација. Провери BIOS/QVL и дали RAM е kit.'));
+ const out=$('ramSlots');out.replaceChildren();const card=el('div','summary');
+ card.appendChild(el('div','title','▤ RAM — автоматска проверка'));
+ const cap=nameCapacity(chosen.ram);
+ if(!cap){card.appendChild(el('div','small','Избери RAM за автоматска проверка.'));out.appendChild(card);return}
+ const modules=cap.modules*ramQuantity,gb=cap.gb*ramQuantity;
+ card.appendChild(el('div','total',gb+' GB RAM · '+modules+' модули (според називот)'));
+ const board=chosen.board;
+ if(!board){card.appendChild(el('div','small','Избери матична плоча за проверка на слотови.'));out.appendChild(card);return}
+ const count=findSpec(board,[/(?:RAM|MEMORY|DIMM|DDR[345])\s*(?:SLOTS?|СЛОТОВИ|СЛОТА)\s*[:\-]?\s*([248])\b/i,/\b([248])\s*[x×]\s*(?:DDR[345]\s*)?(?:DIMM|RAM\s*SLOTS?|MEMORY\s*SLOTS?)\b/i,/(?:MEMORY|DIMM)\s*(?:SLOTS?|СЛОТА)\s*[:\-]?\s*([248])\b/i]);
+ const max=findSpec(board,[/(?:MAX(?:IMUM)?\s*(?:MEMORY|RAM)|МАКС(?:ИМАЛНА)?\s*(?:RAM|МЕМОРИЈА))\s*[:\-]?\s*(\d{1,3})\s*GB\b/i]);
+ if(count)card.appendChild(el('div',modules>count?'error':'checked',(modules>count?'✕':'✓')+' RAM слотови: '+modules+' потребни / '+count+' на матичната.'));
+ else card.appendChild(el('div','small','Бројот на RAM слотови не е наведен во достапните податоци за оваа матична. Не може сигурно да се потврди.'));
+ if(max)card.appendChild(el('div',gb>max?'error':'checked',(gb>max?'✕':'✓')+' Капацитет: '+gb+' / '+max+' GB.'));
+ card.appendChild(el('div','small','Автоматски податоци од производот. За непознати спецификации не се претпоставува вредност.'));
  out.appendChild(card);
 }
 function powerInfo(){
- const out=$('powerEstimate');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','⚡ Калкулатор за напојување'));
- const watt=(p)=>{if(!p)return null;const name=String(p.name||''),specs=String(p.specs||'');const re=/\b(?:TDP|TGP|TBP|TOTAL\s*BOARD\s*POWER|PROCESSOR\s*BASE\s*POWER)\s*[:\-]?\s*(\d{2,4})\s*W\b/i;let m=name.match(re);if(m)return Number(m[1]);m=specs.match(re);if(m)return Number(m[1]);return null};
- // CPU product names often include an explicit wattage (e.g. Ryzen 5 ... / 65W).
- const cpuName=String(chosen.cpu?.name||'');
- const cpuExplicit=cpuName.match(/(?:^|[\s/|])(\d{2,3})\s*W\b/i);
- const cpu=pcInputs.cpuwatts||watt(chosen.cpu)||(cpuExplicit?Number(cpuExplicit[1]):null);
- const gpu=pcInputs.gpuwatts||watt(chosen.gpu);
- const psu=chosen.psu?specValue(chosen.psu,/\b(\d{3,4})\s*W(?:ATT)?\b/i):null;
- numericField(card,'CPU потрошувачка / TDP (W)','cpuwatts','Пр. 65',1000,powerInfo);
- numericField(card,'GPU потрошувачка / TBP (W)','gpuwatts','Пр. 200',1500,powerInfo);
- if(cpu&&gpu){
-  const other=75,base=cpu+gpu+other,rec=Math.ceil(base*1.3/50)*50;
-  card.appendChild(el('div','total','Препорачано: најмалку '+rec+' W'));
-  card.appendChild(el('div','small','CPU '+cpu+' W + GPU '+gpu+' W + останати ~75 W = '+base+' W; плус 30% резерва.'));
-  if(psu)card.appendChild(el('div',psu<rec?'error':'checked',(psu<rec?'✕':'✓')+' Избрано напојување '+psu+' W'+(psu<rec?' — под проценката.':' — доволно според оваа проценка.')));
- }else{
-  card.appendChild(el('div','warning','Внеси ги ватите за '+(!cpu?'CPU':'')+(!cpu&&!gpu?' и ':'')+(!gpu?'GPU':'')+' од спецификациите. Тогаш ќе добиеш конкретна препорака.'));
-  if(psu)card.appendChild(el('div','small','Избрано напојување: '+psu+' W.'));
+ const out=$('powerEstimate');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','⚡ Напојување — автоматска проценка'));
+ const cpu=chosen.cpu,gpu=chosen.gpu,psu=chosen.psu;
+ const cpuW=findSpec(cpu,[/\b(?:TDP|PROCESSOR\s*BASE\s*POWER)\s*[:\-]?\s*(\d{2,3})\s*W\b/i,/(?:^|[\s/|])(\d{2,3})\s*W\b/i]);
+ const gpuW=findSpec(gpu,[/\b(?:TGP|TBP|TOTAL\s*BOARD\s*POWER|BOARD\s*POWER)\s*[:\-]?\s*(\d{2,4})\s*W\b/i]);
+ const psuW=psu?findSpec(psu,[/\b(\d{3,4})\s*W(?:ATT)?\b/i]):null;
+ if(!cpu||!gpu){card.appendChild(el('div','small','Избери CPU и GPU за пресметка.'));out.appendChild(card);return}
+ // Manufacturer reference envelopes for identifiable desktop GPU series. These are estimates, not measured board power.
+ const gn=String(gpu.name||'').toUpperCase().replace(/\s/g,'');
+ let gpuEstimate=null;
+ if(!gpuW){
+  if(/RX9060XT/.test(gn))gpuEstimate=160;
+  else if(/RTX5060TI/.test(gn))gpuEstimate=180;
+  else if(/RTX5060(?!TI)/.test(gn))gpuEstimate=145;
+  else if(/RTX5070TI/.test(gn))gpuEstimate=300;
+  else if(/RTX5070/.test(gn))gpuEstimate=250;
+  else if(/RX9070XT/.test(gn))gpuEstimate=304;
+  else if(/RX9070/.test(gn))gpuEstimate=220;
  }
- card.appendChild(el('div','small','Ориентациска пресметка: TDP/TBP не ги опфаќа сите пикови. Провери GPU конектори, квалитет на PSU и официјални препораки.'));
- out.appendChild(card);
-}
-let budgetLimit=0;try{budgetLimit=Math.max(0,Math.round(Number(localStorage.getItem('setec_pc_budget')||0))||0)}catch(e){}
-function changeBudget(value){budgetLimit=Math.max(0,Math.min(10000000,Math.round(Number(value)||0)));localStorage.setItem('setec_pc_budget',String(budgetLimit));renderBudget()}
-function renderBudget(){
- const out=$('budgetIdeas');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','💰 PC според буџет'));
- const row=el('div','row wrap'),label=el('label','small','Буџет во денари: '),input=el('input');input.type='number';input.min='0';input.max='10000000';input.step='1000';input.placeholder='Пр. 50000';input.value=budgetLimit||'';input.style.cssText='width:145px;padding:9px;border:1px solid #ddd;border-radius:8px';input.setAttribute('aria-label','Буџет во денари');input.onchange=()=>changeBudget(input.value);row.append(label,input);card.appendChild(row);
- const selected=slots.filter(id=>chosen[id]),missing=slots.filter(id=>!chosen[id]);
- let total=0,unknown=[];for(const id of selected){const p=chosen[id],price=cash(p.clubPrice);if(price===null)unknown.push(labelFor(id));else total+=price*(id==='ram'?ramQuantity:1)}
- card.appendChild(el('div','small','Збир на познати клуб цени: '+money(total)+'. Избрани категории: '+selected.length+'/8.'));
- if(budgetLimit){
-  const left=budgetLimit-total;
-  card.appendChild(el('div',left<0?'error':'checked',left<0?'Надминат буџет за '+money(-left):'Преостануваат '+money(left)+' според познатите цени.'));
-  if(missing.length)card.appendChild(el('div','small','Следни категории за избор: '+missing.slice(0,4).map(labelFor).join(', ')+'. Кликни на категорија погоре за реални Setec производи.'));
-  if(unknown.length)card.appendChild(el('div','warning','Не се вклучени цени за: '+unknown.map(labelFor).join(', ')+'. Не може да се потврди дека конфигурацијата е во буџет.'));
-  if(left>=0&&missing.length)card.appendChild(el('div','small','Ориентациски просек по преостаната категорија: '+money(Math.floor(left/missing.length))+'. Ова не е цена на производ или автоматски избор.'));
- }else card.appendChild(el('div','small','Внеси буџет и избирај компоненти од каталогот; ќе добиваш автоматска проверка на преостанатиот износ.'));
+ const usedGpu=gpuW||gpuEstimate;
+ if(cpuW&&usedGpu){
+  const rec=Math.ceil(((cpuW+usedGpu+75)*1.3)/50)*50;
+  card.appendChild(el('div','total','Ориентациски PSU: '+rec+' W или повеќе'));
+  card.appendChild(el('div','small','CPU '+cpuW+' W · GPU ~'+usedGpu+' W · други ~75 W · 30% резерва.'));
+  if(psuW)card.appendChild(el('div',psuW>=rec?'checked':'error',(psuW>=rec?'✓':'✕')+' Избрано '+psuW+' W'+(psuW>=rec?' — над проценката.':' — под проценката.')));
+  if(gpuEstimate)card.appendChild(el('div','small','GPU ватите се ориентациска вредност за препознаената серија, не потврдена спецификација за конкретниот модел.'));
+ }else{
+  card.appendChild(el('div','small','За овие модели нема доволно сигурни податоци за автоматска пресметка на вати.'));
+  if(psuW)card.appendChild(el('div','small','Избрано PSU: '+psuW+' W.'));
+ }
+ card.appendChild(el('div','small','Провери ги PCIe конекторите, пиковите на потрошувачка и препораките на производителот.'));
  out.appendChild(card);
 }
 function renderGaming(){
- const out=$('gamingIdeas');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','🎮 Gaming проверка'));
- const cpu=chosen.cpu,gpu=chosen.gpu,ram=chosen.ram,cap=nameCapacity(ram);
- const items=[
-  [!!cpu,'Процесор','Избери CPU'],
-  [!!gpu,'Графичка карта','Избери GPU'],
-  [!!ram,'RAM','Избери RAM'],
-  [!!chosen.storage,'Диск','Избери SSD/HDD'],
-  [!!chosen.psu,'Напојување','Избери PSU']
- ];
- const ready=items.filter(x=>x[0]).length;
- card.appendChild(el('div','total','Комплетност за gaming: '+ready+' / '+items.length));
- for(const [ok,label,tip] of items)card.appendChild(el('div',ok?'checked':'small',(ok?'✓ ':'○ ')+label+(ok?' — избрано':' — '+tip)));
- if(cap)card.appendChild(el('div','small','RAM: '+cap.perPurchase*ramQuantity+' GB (според називот и количината).'));
- if(gpu){
-  const vram=String(gpu.name||'').match(/(?:^|[-\s])(\d{1,2})\s*G(?:B)?(?:\b|[-])/i);
-  if(vram)card.appendChild(el('div','small','GPU меморија според називот: '+vram[1]+' GB (провери точен модел).'));
+ const out=$('gamingIdeas');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','🎮 FPS во Fortnite, CS2 и GTA V'));
+ const gpu=chosen.gpu,cpu=chosen.cpu;
+ if(!gpu||!cpu){card.appendChild(el('div','small','Избери CPU и GPU за да видиш приближни FPS.'));out.appendChild(card);return}
+ const gn=String(gpu.name||'').toUpperCase().replace(/\s/g,'');
+ // Approximate 1080p performance tiers, not actual benchmark measurements.
+ let tier=null;
+ if(/(?:RX9060XT|RTX5060TI|RTX4070|RX7700XT)/.test(gn))tier=3;
+ else if(/(?:RTX5070TI|RTX5080|RX9070XT|RTX4080)/.test(gn))tier=5;
+ else if(/(?:RTX5070|RX9070|RTX4070SUPER|RX7800XT)/.test(gn))tier=4;
+ else if(/(?:RTX5060|RTX4060TI|RX7600XT|RX7600)/.test(gn))tier=2;
+ else if(/(?:RTX4060|RTX3060|RX6600|RX6650)/.test(gn))tier=1;
+ const levels={
+  1:[[80,140],[110,180],[75,120]],
+  2:[[110,180],[140,220],[95,145]],
+  3:[[140,230],[170,270],[120,180]],
+  4:[[170,280],[190,310],[140,210]],
+  5:[[200,330],[220,350],[160,240]]
+ };
+ if(tier){
+  const data=levels[tier],names=['Fortnite','Counter-Strike 2','GTA V (оригинална)'];
+  const desc=['1080p, High, без RT','1080p, competitive/Low','1080p, Very High, без RT'];
+  for(let i=0;i<3;i++){
+   const row=el('div','result');row.style.margin='8px 0';row.style.padding='10px';
+   row.appendChild(el('div','resultName',names[i]));
+   row.appendChild(el('div','total','~'+data[i][0]+'–'+data[i][1]+' FPS'));
+   row.appendChild(el('div','small',desc[i]));
+   card.appendChild(row);
+  }
+  card.appendChild(el('div','warning','Ова се груби ориентациски FPS опсези според класата на GPU, НЕ измерени тестови на твојата конфигурација. CPU, RAM, верзијата на играта и поставките може значително да ги сменат резултатите.'));
+ }else{
+  card.appendChild(el('div','small','Не ја препознавам графичката за да прикажам одговорен FPS опсег. Избери GPU со препознатлива серија.'));
  }
- if(cpu&&gpu)card.appendChild(el('div','checked','CPU и GPU се избрани. Провери реални тестови за точната комбинација и игра.'));
- if(chosen.storage&&!/\bSSD\b|\bNVME\b|\bM\.2\b/i.test(String(chosen.storage.name||'')))card.appendChild(el('div','small','За пократко вчитување на игри, размисли за SSD.'));
- card.appendChild(el('div','small','Ова е практична проверка на конфигурацијата, не FPS benchmark. За точни FPS се потребни тестови по игра, резолуција и графички поставки.'));
+ card.appendChild(el('div','small','Избран GPU: '+gpu.name));
  out.appendChild(card);
 }
 
@@ -401,7 +396,7 @@ function rebuild(){
  if(check.issues.length)area.appendChild(el('div','error','НЕСООДВЕТНО: '+check.issues.join(' ')));
  else if(n>0)area.appendChild(el('div','warning','Нема потврдена основна некомпатибилност. Ова не значи целосно проверена конфигурација.'));
  for(const msg of check.notes)area.appendChild(el('div','small','• '+msg));
- renderSmartAdvice();ramSlotsInfo();powerInfo();renderBudget();renderGaming();
+ renderSmartAdvice();ramSlotsInfo();powerInfo();renderGaming();
  const stocked=slots.filter(x=>chosen[x]), common=stocked.length?stocked.map(x=>new Set(uniqueStores(chosen[x]))).reduce((a,b)=>new Set([...a].filter(y=>b.has(y)))):new Set();
  $('sharedStore').textContent=stocked.length>1?'Заеднички потврдени локации: '+(common.size?[...common].join(' · '):'не е пронајдена иста локација за сите избрани делови'):'';
 }
