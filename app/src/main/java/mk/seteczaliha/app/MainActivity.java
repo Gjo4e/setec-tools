@@ -238,6 +238,9 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void loadCategory(String url) {
             runOnUiThread(()->startCategoryPage(url));
         }
+        @JavascriptInterface public void filterCategory(String name) {
+            runOnUiThread(() -> selectCategoryFilter(name));
+        }
         @JavascriptInterface public void openCategory(String url) {
             runOnUiThread(() -> {
                 try {
@@ -331,10 +334,39 @@ public final class MainActivity extends ComponentActivity {
         js("window.onCategoryLoading();");
         categoryMerchant.loadUrl(url);
     }
+    // Setec renders subcategories as checkboxes rather than <a> links.
+    // Activate the real website filter instead of guessing category URLs.
+    private void selectCategoryFilter(String name){
+        if(categoryMerchant==null||name==null||name.trim().isEmpty()||categoryUrl.isEmpty())return;
+        final int serial=categorySerial;
+        String script="(function(){let target="+JSONObject.quote(name)+";"+
+            "let norm=s=>String(s||'').replace(/\\\\s*\\\\(\\\\d+\\\\)\\\\s*$/,'').replace(/\\\\s+/g,' ').trim().toLocaleLowerCase();"+
+            "let labels=[...document.querySelectorAll('label')];"+
+            "let label=labels.find(x=>norm(x.innerText||x.textContent)===norm(target));"+
+            "if(!label)return 'missing';"+
+            "let input=label.querySelector('input[type=checkbox]')||"+
+            "(label.htmlFor?document.getElementById(label.htmlFor):null);"+
+            "if(input&&input.type==='checkbox'){if(!input.checked)input.click();return 'selected'}"+
+            "label.click();return 'selected';})()";
+        categoryMerchant.evaluateJavascript(script,result->{
+            if(serial!=categorySerial)return;
+            if("missing".equals(decodeJsString(result))){
+                js("window.onCategoryError('Подкатегоријата не е достапна во филтрите на Setec.mk.');");
+            }else{
+                js("window.onCategoryLoading();");
+                for(long delay:new long[]{800,1900,3400,5500})
+                    handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
+            }
+        });
+    }
+
     private void readCategoryPage(int serial,String url){
         if(serial!=categorySerial||categoryMerchant==null||!url.equals(categoryMerchant.getUrl()))return;
         String script="(function(){"+labelledPricesJs()+
-            "let categories=new Map(),products=new Map();"+
+            "let categories=new Map(),products=new Map(),subcategories=[];"+
+            "let heads=[...document.querySelectorAll('h2,h3,h4,button,div,span')].filter(x=>x.children.length<4&&/^(Подкатегории|Subcategories)$/i.test((x.innerText||'').trim()));"+
+            "for(let head of heads){let panel=head.parentElement;for(let d=0;d<4&&panel;d++,panel=panel.parentElement){let labels=[...panel.querySelectorAll('label')].filter(x=>x.querySelector('input[type=checkbox]')||(x.htmlFor&&document.getElementById(x.htmlFor)));if(labels.length>1){for(let l of labels){let n=(l.innerText||l.textContent||'').replace(/\\\\s*\\\\(\\\\d+\\\\)\\\\s*$/,'').trim();if(n.length>1&&n.length<100&&!subcategories.includes(n))subcategories.push(n)}break}}if(subcategories.length)break}"+
+
             "for(let a of document.querySelectorAll('a[href]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
             "if(!['setec.mk','www.setec.mk'].includes(u.hostname))continue;"+
@@ -356,7 +388,7 @@ public final class MainActivity extends ComponentActivity {
             "for(let a of document.querySelectorAll('a[href]')){let txt=(a.innerText||a.getAttribute('aria-label')||'').trim();"+
             "if(a.rel==='next'||/^(следна|next|›|»|→)$/i.test(txt)){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&u.href!==location.href){next=u.href;break}}catch(e){}}}"+
             "if(!next){let current=Number(new URL(location.href).searchParams.get('page')||1);for(let a of document.querySelectorAll('a[href]')){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&Number(u.searchParams.get('page'))===current+1){next=u.href;break}}catch(e){}}}"+
-            "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:location.href,categories:[...categories.values()].slice(0,350),products:[...products.values()].slice(0,150),next:next});})()";
+            "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:location.href,categories:[...categories.values()].slice(0,350),subcategories:subcategories.slice(0,120),products:[...products.values()].slice(0,150),next:next});})()";
         categoryMerchant.evaluateJavascript(script,encoded->{
             if(serial!=categorySerial||!url.equals(categoryUrl))return;
             String result=decodeJsString(encoded);
