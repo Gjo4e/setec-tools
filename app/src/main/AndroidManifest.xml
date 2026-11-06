@@ -27,6 +27,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
         <activity android:name=".PcConfiguratorActivity" android:exported="false" android:screenOrientation="unspecified" />
+        <activity android:name=".DataMatrixScannerActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".ModelScannerActivity" android:exported="false" android:screenOrientation="unspecified" />
         <activity android:name=".CompareModelsActivity" android:exported="false" android:screenOrientation="unspecified" />
         <activity android:name=".ScannerActivity" android:exported="false" android:screenOrientation="portrait" />
