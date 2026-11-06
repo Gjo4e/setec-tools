@@ -1,0 +1,38 @@
+name: Probe web catalog data format
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feature/datamatrix-setec-scan-2026-11-06']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Test public category data and CORS
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          u='https://www.setec.mk/api/strapi/category?locale=mk-MK&withSubcategories=true'
+          req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Accept':'application/json'})
+          with urllib.request.urlopen(req,timeout=22) as r:d=json.load(r)
+          x=d.get('categories',[{}])[0]
+          print('CATEGORY KEYS',list(x),flush=True)
+          print('CATEGORY HEAD',json.dumps({k:v for k,v in x.items() if not isinstance(v,(list,dict))},ensure_ascii=False)[:1500],flush=True)
+          print('SUB KEYS',list((x.get('categories') or [{}])[0]),flush=True)
+          url='https://search.sp.solslab.dev/indexes/products/search'
+          obj={'q':'','hitsPerPage':20,'page':1,'filter':"product_categories.id = 'pcat_01JFZ1W6PYQMK01N93VXT67DJ9' AND status = 'published' AND is_web_active = 'true'",'matchingStrategy':'all'}
+          for method in ['OPTIONS','POST']:
+            req=urllib.request.Request(url,data=(json.dumps(obj).encode() if method=='POST' else None),method=method,
+              headers={'Content-Type':'application/json','Origin':'https://gjo4e.github.io','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type','User-Agent':'Mozilla/5.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:
+                print('SEARCH',method,r.status,'CORS',r.headers.get('Access-Control-Allow-Origin'),r.headers.get('Access-Control-Allow-Headers'),flush=True)
+                if method=='POST':
+                  d=json.load(r)
+                  print('SEARCH KEYS',list(d),flush=True)
+                  xs=d.get('hits') or d.get('results') or []
+                  print('HITS',len(xs),'SAMPLE',json.dumps(xs[0] if xs else {},ensure_ascii=False)[:5500],flush=True)
+            except Exception as e:print('SEARCH ERROR',method,str(e)[:450],flush=True)
+          PY
