@@ -49,6 +49,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         String name,club,regular,sku,description="",source="";
         Map<String,String> facts=new LinkedHashMap<>();
         List<String> details=new ArrayList<>();
+        List<String> highlights=new ArrayList<>();
         Map<String,String> sourceByLabel=new LinkedHashMap<>();
         static Product parse(String json){
             try{
@@ -75,6 +76,14 @@ public final class CompareModelsActivity extends ComponentActivity {
                         }
                     if(p.details.isEmpty())
                         p.details=SetecCompareRows.parseLines(p.description);
+                    JSONArray highlightArray=obj.optJSONArray("highlights");
+                    if(highlightArray!=null)
+                        for(int i=0;i<highlightArray.length()&&p.highlights.size()<5;i++){
+                            String line=highlightArray.optString(i).trim();
+                            if(line.length()>=3&&line.length()<=230&&
+                               !SetecCompareRows.isUiOrSalesText(line)&&
+                               !p.highlights.contains(line))p.highlights.add(line);
+                        }
                 }
                 JSONArray arr=obj.optJSONArray("facts");
                 if(arr!=null)for(int i=0;i<arr.length();i++){
@@ -86,6 +95,14 @@ public final class CompareModelsActivity extends ComponentActivity {
                     if(!safeSource(url))continue;
                     p.facts.put(label,value);
                     p.sourceByLabel.put(label,url);
+                }
+                if(safeSource(p.source)){
+                    List<String> fromSetec=SetecCompareRows.highlights(
+                        p.name,p.facts,p.details,p.description);
+                    for(String line:fromSetec){
+                        if(p.highlights.size()>=5)break;
+                        if(!p.highlights.contains(line))p.highlights.add(line);
+                    }
                 }
                 return p;
             }catch(Exception e){return null;}
@@ -276,7 +293,24 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         row("Клуб цена", left==null?"—":price(left.club),right==null?"—":price(right.club),false);
         row("Редовна цена",left==null?"—":price(left.regular),right==null?"—":price(right.regular),false);
+
+        TextView keyTitle=text("5 НАЈВАЖНИ ПОДАТОЦИ ЗА СЕКОЈ ПРОИЗВОД",15,true,INK);
+        LinearLayout.LayoutParams kh=new LinearLayout.LayoutParams(-1,-2);
+        kh.topMargin=dp(20);
+        table.addView(keyTitle,kh);
+        LinearLayout keyColumns=new LinearLayout(this);
+        keyColumns.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams kp=new LinearLayout.LayoutParams(-1,-2);
+        kp.topMargin=dp(9);
+        table.addView(keyColumns,kp);
+        keyColumns.addView(highlightCard(left,1),columnParams(false));
+        keyColumns.addView(highlightCard(right,2),columnParams(true));
+
         if(left==null||right==null)return;
+        TextView compareHeading=text("СПОРЕДБА ПО ЗАЕДНИЧКИ КАРАКТЕРИСТИКИ",14,true,INK);
+        LinearLayout.LayoutParams chp=new LinearLayout.LayoutParams(-1,-2);
+        chp.topMargin=dp(23);
+        table.addView(compareHeading,chp);
         List<SetecCompareRows.Row> rows=SetecCompareRows.build(
             left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
@@ -310,6 +344,27 @@ public final class CompareModelsActivity extends ComponentActivity {
         table.addView(references,rp);
         addSource(references,left,false);
         addSource(references,right,true);
+    }
+
+    private TextView highlightCard(Product product,int slot){
+        StringBuilder t=new StringBuilder("МОДЕЛ "+slot+"\n");
+        if(product==null){
+            t.append("Скенирај или внеси шифра.");
+        }else if(product.highlights.isEmpty()){
+            t.append("Нема потврдени технички детали на Setec.");
+        }else{
+            for(int i=0;i<product.highlights.size()&&i<5;i++)
+                t.append("\n• ").append(product.highlights.get(i));
+        }
+        TextView v=text(t.toString(),13,false,INK);
+        v.setPadding(dp(10),dp(12),dp(10),dp(12));
+        v.setMinHeight(dp(135));
+        GradientDrawable bg=new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(12));
+        bg.setStroke(dp(1),0xFFE1E6EE);
+        v.setBackground(bg);
+        return v;
     }
 
     private String subtitle(Product p){
