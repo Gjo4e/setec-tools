@@ -44,6 +44,22 @@ body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .g
 body.dark .header{background:linear-gradient(125deg,#0b1423,#162c49)!important}
 body.dark .small{color:#aabdd3!important}
 body.dark input,body.dark select{background:#0f1c2d!important;color:#f1f6ff!important;border-color:#3c5572!important}
+
+/* Reference-inspired color pass; PC builder layout and logic unchanged */
+:root{--orange:#279dff}
+.header{background:radial-gradient(ellipse at 95% 0%,rgba(0,120,255,.26),transparent 55%),linear-gradient(135deg,#080d15,#13263e)!important;border-bottom-color:#275782!important}
+.header .back{background:#182b43!important;border-color:#36628c!important;color:#e7f5ff!important}
+.header .headname b{color:#58c0ff!important}
+body.dark{--bg:#080d14;--ink:#f2f7ff;--muted:#a6bad0;--line:#2b415a;background:#080d14!important}
+body.dark .card,body.dark .summary,body.dark .result,body.dark .slot{background:linear-gradient(145deg,#17283a,#101b29)!important;border-color:#2a4e70!important;color:#f3f8ff!important}
+body.dark .cat:nth-child(4n+1){background:linear-gradient(145deg,#10334a,#101b29)!important;border-color:#19658b!important}
+body.dark .cat:nth-child(4n+2){background:linear-gradient(145deg,#262341,#121a2a)!important;border-color:#50427e!important}
+body.dark .cat:nth-child(4n+3){background:linear-gradient(145deg,#103b35,#111c29)!important;border-color:#116e63!important}
+body.dark .cat:nth-child(4n){background:linear-gradient(145deg,#283049,#111b2a)!important;border-color:#3e5582!important}
+body.dark .ghost{background:#172537!important;border-color:#365375!important;color:#b6dfff!important}
+body.dark input,body.dark select{background:#0c1827!important;color:#eff7ff!important;border-color:#365b80!important}
+body.dark .small{color:#aec2d8!important}
+body.dark .primary,body.dark .cta{background:linear-gradient(115deg,#1479e8,#28b3ff)!important;border-color:#299cfa!important;color:white!important}
 </style></head><body><script>try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}</script>
 <header class="header"><div class="headrow"><button class="back" onclick="PcApp.close()">‹ Назад</button><div><div class="headname"><b>SETEC</b> · Состави PC</div><div class="sub">Конфигуратор на компоненти · каталог од Setec.mk</div></div></div></header>
 <main>
