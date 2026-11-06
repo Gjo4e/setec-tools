@@ -173,6 +173,9 @@ public final class MainActivity extends ComponentActivity {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
     private final class UiBridge {
+        @JavascriptInterface public void openCompare() {
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, CompareModelsActivity.class)));
+        }
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
