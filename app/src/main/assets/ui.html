@@ -479,6 +479,8 @@ function renderProductPrices(p){const host=$('pprices');host.replaceChildren();c
 
 
 let unfilteredResults=[];
+// Optional category-search fallback state; initialize before any search results arrive.
+let categoryRetryPending=false, categoryAlternates=[];
 function getRecent(){try{const x=JSON.parse(localStorage.getItem('setec_recent_searches')||'[]');return Array.isArray(x)?x.slice(0,5).map(v=>typeof v==='string'?{q:v,model:v,sku:'',at:null}:v).filter(v=>v&&typeof v.q==='string'):[]}catch(e){return []}}
 function rememberSearch(q){q=String(q||'').trim();if(!q||setting('history','1')==='0')return;const old=getRecent();const prev=old.find(x=>x.q.toLowerCase()===q.toLowerCase());const record={q,model:prev?.model||q,sku:prev?.sku||'',at:Date.now()};const v=[record,...old.filter(x=>x.q.toLowerCase()!==q.toLowerCase())].slice(0,5);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
 function updateRecentProduct(p){if(setting('history','1')==='0'||!p)return;const q=lastQuery||lastScannedSku;if(!q)return;let items=getRecent(),record=items.find(x=>x.q.toLowerCase()===q.toLowerCase());if(!record){record={q,model:q,sku:'',at:Date.now()};items.unshift(record)}record.model=String(p.name||record.model||q).slice(0,130);record.sku=String(p.sku||record.sku||(/^[0-9]{4,13}$/.test(q)?q:'')).slice(0,16);if(!record.at)record.at=Date.now();items=[record,...items.filter(x=>x!==record)].slice(0,5);try{localStorage.setItem('setec_recent_searches',JSON.stringify(items))}catch(e){}renderRecent()}
