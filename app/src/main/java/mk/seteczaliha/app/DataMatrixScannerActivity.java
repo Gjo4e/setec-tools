@@ -65,7 +65,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         GradientDrawable border=new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(dp(14));
-        border.setStroke(dp(3),0xFFFF8A1C);
+        border.setStroke(dp(3),0xFF258BFF);
         guide.setBackground(border);
         FrameLayout.LayoutParams gp=new FrameLayout.LayoutParams(dp(230),dp(230),Gravity.CENTER);
         root.addView(guide,gp);
@@ -73,12 +73,12 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         hint.setText("Скенирај Data Matrix · Насочи го квадратниот код во рамката");
         hint.setTextColor(Color.WHITE);hint.setTextSize(18);
         hint.setGravity(Gravity.CENTER);hint.setPadding(dp(20),dp(20),dp(20),dp(20));
-        hint.setBackgroundColor(0xCC1D1C20);
+        hint.setBackgroundColor(0xDD10243D);
         root.addView(hint,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));
         LinearLayout bottom=new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setPadding(dp(16),dp(14),dp(16),dp(18));
-        bottom.setBackgroundColor(0xDD1D1C20);
+        bottom.setBackgroundColor(0xF010243D);
         root.addView(bottom,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         status=new TextView(this);
         status.setText("Барам квадратен Data Matrix код…");
@@ -86,7 +86,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         bottom.addView(status);
         LinearLayout actions=new LinearLayout(this);
         bottom.addView(actions);
-        Button back=button("Назад",Color.DKGRAY),manual=button("Внеси шифра",0xFFFF8A1C);
+        Button back=button("Назад",0xFF1E3D61),manual=button("Внеси шифра",0xFF258BFF);
         actions.addView(back,new LinearLayout.LayoutParams(0,dp(52),1));
         actions.addView(manual,new LinearLayout.LayoutParams(0,dp(52),1));
         back.setOnClickListener(v->finish());
