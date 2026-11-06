@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Real-time camera preview with on-device OCR; no shutter, retry or camera app. */
 public final class ScannerActivity extends ComponentActivity {
     public static final String EXTRA_SKU = "setec_sku";
-    private static final int ORANGE = Color.rgb(255,138,28);
+    private static final int ORANGE = Color.rgb(35,177,248);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final AtomicBoolean busy = new AtomicBoolean(false);
@@ -88,7 +88,7 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
         top.setPadding(dp(20),dp(20),dp(20),dp(18));
-        top.setBackgroundColor(0xDD0B1C2E);
+        top.setBackgroundColor(0xF00C1C30);
         FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1,-2, Gravity.TOP);
         root.addView(top, tp);
         TextView title = new TextView(this);
@@ -96,14 +96,14 @@ public final class ScannerActivity extends ComponentActivity {
         title.setTextSize(21);title.setTypeface(null,Typeface.BOLD);title.setTextColor(Color.WHITE);
         top.addView(title);
         TextView hint = new TextView(this);
-        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во портокаловата рамка. Приближи го телефонот за јасни цифри.");
+        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во сината рамка. Приближи го телефонот за јасни цифри.");
         hint.setTextSize(14);hint.setTextColor(0xFFE3E5E9);hint.setPadding(0,dp(8),0,0);
         top.addView(hint);
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setPadding(dp(20),dp(17),dp(20),dp(20));
-        bottom.setBackgroundColor(0xF00B1C2E);
+        bottom.setBackgroundColor(0xF00C1C30);
         root.addView(bottom, new FrameLayout.LayoutParams(-1,-2, Gravity.BOTTOM));
         detected = new TextView(this);
         detected.setText("Барам шифра…");detected.setTextColor(Color.WHITE);
@@ -113,7 +113,7 @@ public final class ScannerActivity extends ComponentActivity {
         actions.setGravity(Gravity.CENTER);actions.setPadding(0,dp(16),0,0);
         bottom.addView(actions);
         Button cancel = makeButton("Назад", 0xFF173B60);
-        Button manual = makeButton("Внеси рачно", ORANGE);
+        Button manual = makeButton("Внеси рачно", 0xFF197EC2);
         actions.addView(cancel, new LinearLayout.LayoutParams(0,dp(52),1));
         actions.addView(manual, new LinearLayout.LayoutParams(0,dp(52),1));
         cancel.setOnClickListener(v -> finish());
