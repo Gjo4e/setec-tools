@@ -108,10 +108,10 @@ let queryFilters=null,unfilteredResults=[];
 function getRecent(){try{const x=JSON.parse(localStorage.getItem('setec_recent_searches')||'[]');return Array.isArray(x)?x.slice(0,6):[]}catch(e){return []}}
 function rememberSearch(q){if(!q)return;const v=[q,...getRecent().filter(x=>x!==q)].slice(0,6);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
 function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Нема пребарувања — започни со полето погоре.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>smartSearch(q);host.appendChild(b)}}
-function toggleTheme(){document.body.classList.toggle('dark');try{localStorage.setItem('setec_theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}updateThemeButton()}
+function toggleTheme(){document.body.classList.toggle('dark');const mode=document.body.classList.contains('dark')?'dark':'light';try{localStorage.setItem('setec_theme',mode)}catch(e){}try{SetecApp.setTheme(mode)}catch(e){}updateThemeButton()}
 function updateThemeButton(){$('themeToggle').textContent=document.body.classList.contains('dark')?'☀ Светла':'🌙 Темна'}
 try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}
-updateThemeButton();
+updateThemeButton();try{SetecApp.setTheme(document.body.classList.contains('dark')?'dark':'light')}catch(e){}
 function priceNumber(value){
  let t=String(value||'').replace(/[^0-9.,]/g,'');
  if(!t)return null;
