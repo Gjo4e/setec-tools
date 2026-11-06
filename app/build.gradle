@@ -10,12 +10,12 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId = parallelCatalog ? 'mk.setecsifri.compare60.catalog61' : 'mk.setecsifri.compare60'
-        manifestPlaceholders = [appLabel: parallelCatalog ? 'Setec Tools v61' : 'Setec Tools']
+        applicationId = parallelCatalog ? 'mk.setecsifri.compare60.catalog62' : 'mk.setecsifri.compare60'
+        manifestPlaceholders = [appLabel: parallelCatalog ? 'Setec Tools v62' : 'Setec Tools']
         minSdk 26
         targetSdk 35
-        versionCode 61
-        versionName '1.1-catalog'
+        versionCode 62
+        versionName '1.2-native-catalog'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
