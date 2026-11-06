@@ -85,6 +85,7 @@ public final class ModelScannerActivity extends ComponentActivity {
     private boolean compareSkuSearchFallback=false;
     private String compareModel="",compareSku="",compareClub="",compareRegular="";
     private String compareDescription="";
+    private List<String> compareDetailLines=new ArrayList<>();
     private List<GoogleModelResearch.Fact> compareFacts=new ArrayList<>();
     private boolean compareResearchBusy=false;
     private TextView status, internetStatus, facts, selectedLabel, setecStatus;
@@ -431,6 +432,7 @@ public final class ModelScannerActivity extends ComponentActivity {
         compareResearchBusy=!model.isEmpty();
         compareSku="";compareClub="";compareRegular="";
         compareDescription="";
+        compareDetailLines=new ArrayList<>();
         compareFacts=new ArrayList<>();
     }
 
@@ -457,6 +459,19 @@ public final class ModelScannerActivity extends ComponentActivity {
             setStatus("Сѐ уште ги читам спецификациите од Setec.mk. Пробај „Зачувај“ повторно.");
             return;
         }
+        // Transfer the real Setec bullets already visible in this picker,
+        // including products without standard named specifications.
+        if(compareDetailLines.isEmpty()&&
+           SetecPageData.isOfficialProductUrl(bestSetecUrl)){
+            compareDetailLines=SetecCompareRows.parseLines(
+                googleFacts.getText().toString());
+        }
+        if(compareFacts.isEmpty()&&compareDetailLines.isEmpty()){
+            setStatus("Не се прочитани техничките детали од Setec.mk. "+
+                "Почекај да се вчитаат и провери повторно пред зачувување.");
+            readCompareSkuSpecs(setecSerial,lookupGeneration);
+            return;
+        }
         try{
             JSONObject record=new JSONObject();
             record.put("name",compareModel);
@@ -464,7 +479,11 @@ public final class ModelScannerActivity extends ComponentActivity {
             record.put("club",compareClub);
             record.put("regular",compareRegular);
             record.put("source",SetecPageData.isOfficialProductUrl(bestSetecUrl)?bestSetecUrl:"");
-            record.put("description",compareDescription);
+            record.put("description",SetecCompareRows.asDescription(compareDetailLines));
+            JSONArray detailsArr=new JSONArray();
+            for(String line:compareDetailLines)
+                detailsArr.put(line);
+            record.put("details",detailsArr);
             JSONArray arr=new JSONArray();
             for(GoogleModelResearch.Fact fact:compareFacts){
                 if(fact==null||!SetecPageData.isOfficialProductUrl(fact.url))continue;
@@ -785,6 +804,8 @@ public final class ModelScannerActivity extends ComponentActivity {
                 activeSetecModel=cleanModel;
                 compareModel=cleanModel;
                 compareFacts=new ArrayList<>();
+                compareDetailLines=new ArrayList<>();
+                compareDescription="";
                 compareResearchBusy=true;
                 setecMatched=true;
                 setecStage=3;
@@ -822,7 +843,7 @@ public final class ModelScannerActivity extends ComponentActivity {
 
     private void readCompareSkuSpecs(int serial,int generation){
         if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=3||
-           !comparePicker||setecBrowser==null||compareFacts.size()>=5)return;
+           !comparePicker||setecBrowser==null)return;
         setecBrowser.evaluateJavascript(SetecPageData.READ_PRODUCT_SCRIPT,encoded->{
             if(serial!=setecSerial||generation!=lookupGeneration||setecStage!=3||
                !compareSkuRequested.equals(compareSku))return;
@@ -848,14 +869,20 @@ public final class ModelScannerActivity extends ComponentActivity {
         String rawSummary=SetecDescriptionFallback.summary(
             model,technical,shortDescription,fullTitle);
         if(comparePicker&&model.equals(compareModel)){
-            // Don't lose previously found details when the site re-renders its
-            // accordion on a later read.
+            // The site may render its technical accordion AFTER SKU/prices.
+            // Merge progressively so later page reads do not erase details.
             if(chosen.size()>=compareFacts.size())
                 compareFacts=new ArrayList<>(chosen);
-            if(rawSummary.length()>compareDescription.length())
-                compareDescription=rawSummary.length()>750
-                    ?rawSummary.substring(0,750):rawSummary;
-            if(chosen.size()>=5)compareResearchBusy=false;
+            if(original.size()>compareDetailLines.size())
+                compareDetailLines=new ArrayList<>(original);
+            else for(String line:original){
+                if(compareDetailLines.size()>=5)break;
+                if(!compareDetailLines.contains(line))
+                    compareDetailLines.add(line);
+            }
+            compareDescription=SetecCompareRows.asDescription(compareDetailLines);
+            if(chosen.size()>=5||compareDetailLines.size()>=5)
+                compareResearchBusy=false;
         }
         if(chosen.isEmpty()&&original.isEmpty()){
             if(googleFacts.getText().length()==0)
