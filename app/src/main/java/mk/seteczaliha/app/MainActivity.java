@@ -47,6 +47,7 @@ public final class MainActivity extends ComponentActivity {
     private final java.util.HashSet<String> moreSeenUrls = new java.util.HashSet<>();
     private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
+    private ActivityResultLauncher<Intent> dataMatrixLauncher;
 
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
@@ -59,6 +60,15 @@ public final class MainActivity extends ComponentActivity {
                 if (sku != null && sku.matches("[0-9]{4,8}")) {
                     js((nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
                     nextScanBatch = false;
+                }
+            }
+        });
+        dataMatrixLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if(result.getResultCode()==RESULT_OK && result.getData()!=null){
+                String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
+                if(sku!=null && sku.matches("[0-9]{4,8}")){
+                    nextScanBatch=false;
+                    js("window.onScanned("+JSONObject.quote(sku)+");");
                 }
             }
         });
@@ -163,7 +173,7 @@ public final class MainActivity extends ComponentActivity {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
         @JavascriptInterface public void openModelScanner() {
-            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, ModelScannerActivity.class)));
+            runOnUiThread(() -> dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)));
         }
         @JavascriptInterface public void moreResults() {
             runOnUiThread(MainActivity.this::startMoreResults);
