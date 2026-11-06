@@ -350,8 +350,7 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .offerInstallment .installmentNote{font-size:10px;line-height:1.6;margin:12px 0 0}
 body.dark .installmentSelect,body.dark .installmentResult{background:#0f1c2b!important;border-color:#2b506d!important;color:#f2f7ff!important}
 
-/* Availability is a dedicated minimal view: model, SKU, image, stock, official source only. */
-body.availabilityOnly #detail #pprices,
+/* Availability view: show verified product prices alongside SKU, stock, and official source. */
 body.availabilityOnly #detail .offerAddDetail,
 body.availabilityOnly #detail #offerAddFeedback,
 body.availabilityOnly #detail #manufacturerSpecs,
@@ -360,7 +359,10 @@ body.availabilityOnly #detail button[onclick="retrySameSku()"]{display:none!impo
 body.availabilityOnly #detail .productCard{background:linear-gradient(145deg,#112b3e,#101b29)!important;border-color:#2873a1!important}
 body.availabilityOnly #detail .stockLocationRow{border-color:#1b7e8d!important}
 body.availabilityOnly #detail .official{background:linear-gradient(115deg,#1476d5,#26b6ff)!important}
-body.availabilityOnly #resultsPanel .price,body.availabilityOnly #resultsPanel .prices,body.availabilityOnly #resultsPanel .productPrices{display:none!important}
+body.availabilityOnly #detail #pprices{display:block!important;margin-top:10px}
+body.availabilityOnly #detail #pprices .priceMini{display:flex;gap:8px 14px;align-items:center;font-size:13px;line-height:1.55}
+body.availabilityOnly #detail #pprices .priceMini strong{font-size:15px}
+body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size:12px}
 
 /* Live category browser and clean five-item history */
 .categoryBreadcrumb{font-size:12px;color:#65b9ff;margin:10px 0 12px}
@@ -390,10 +392,10 @@ body.availabilityOnly #resultsPanel .price,body.availabilityOnly #resultsPanel .
 <div class="dashHero"><div class="dashEyebrow">ДОБРЕДОЈДЕ!</div><div class="dashTitle">Брзо пребарување и<br><span>корисни алатки.</span></div><p class="dashIntro">Провери производ, цена или залиха — сè на едно место.</p></div>
 <div class="dashWorkspace"><form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" placeholder="Пребарај производ, модел или SETEC шифра" aria-label="Пребарување"><button type="submit">⌕</button></form>
 <div class="dashQuick">
-<button class="dashTile dashTilePrimary" onclick="startAvailabilityScan()"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Провери достапност</b><small>Скенирај ценовник</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile dashTilePrimary" onclick="startAvailabilityScan()"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Провери достапност</b><small>Скенирај · провери залиха и цена</small></span><span class="dashChevron">›</span></button>
 <button class="dashTile" onclick="SetecApp.openCompare()"><span class="dashTileIcon">⚖</span><span class="dashTileText"><b>Спореди производи</b><small>Детална споредба</small></span><span class="dashChevron">›</span></button>
 <button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span class="dashTileIcon">▤</span><span class="dashTileText"><b>Состави PC</b><small>Конфигурација и FPS</small></span><span class="dashChevron">›</span></button>
-<button class="dashTile" onclick="SetecApp.openModelScanner()"><span class="dashTileIcon">▥</span><span class="dashTileText"><b>Data Matrix</b><small>Брза проверка</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="switchTab('batch')"><span class="dashTileIcon">▤</span><span class="dashTileText"><b>Листа</b><small>Скенирани производи</small></span><span class="dashChevron">›</span></button>
 </div>
 <button class="allCategoriesEntry" onclick="showOffer()"><span class="allCategoriesIcon">▤</span><span><strong>Листа на купувач</strong><small>Повеќе производи · вкупни цени · копирај понуда</small></span><span class="allCategoriesArrow">›</span></button>
 <button class="allCategoriesEntry" onclick="showCategories()"><span class="allCategoriesIcon">▦</span><span><strong>Сите категории</strong><small>8 главни категории · подкатегории од SETEC</small></span><span class="allCategoriesArrow">›</span></button>
@@ -474,7 +476,7 @@ const validUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&['se
 const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'&&(['setec.mk','www.setec.mk'].includes(u.hostname)||u.hostname.endsWith('.digitaloceanspaces.com'))?u.href:''}catch(e){return ''}};
 function elem(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function miniPrices(p){const box=elem('div','priceMini');for(const [key,label,cls] of [['clubPrice','Клуб','clubPrice'],['regularPrice','Редовна','regularPrice']]){const value=String((p&&p[key])||'').trim();if(!/^\d[\d.,]*$/.test(value)||value.length>16)continue;const part=elem('span',cls,label+': ');part.appendChild(elem('strong','',value+' ден.'));box.appendChild(part)}return box}
-function renderProductPrices(p){const host=$('pprices');host.replaceChildren();const prices=miniPrices(p);if(prices.childElementCount)host.appendChild(prices)}
+function renderProductPrices(p){const host=$('pprices');host.replaceChildren();const prices=miniPrices(p);if(prices.childElementCount)host.appendChild(prices);else if(availabilityOnly)host.appendChild(elem('div','priceUnavailable','Цена: непотврдено од Setec.mk'))}
 
 
 
