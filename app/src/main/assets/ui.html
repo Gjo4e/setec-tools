@@ -653,6 +653,7 @@ function closeCategories(){categoriesOpen=false;$('categoriesPanel').classList.a
 function categoryBack(){
  if(categoryRootView){closeCategories();return}
  const prev=categoryHistory.pop();if(!prev||prev.home){categoryHome();return}
+ if(prev.localRoot){categorySelectedRoot=prev.root;categoryActiveSub='';categoryFilterActive=false;categoryRootView=false;categoryBusy=false;categoryPage=1;categoryNextUrl='';categoryPageTitle=prev.root.name;categoryCurrentUrl='';categoryFirstUrl='';categoryLiveSubs=[];categoryProductsCache.clear();categoryShowMessage('Избери подкатегорија.');renderCategories();window.scrollTo(0,0);return}
  categorySelectedRoot=prev.root;categoryActiveSub=prev.sub||'';categoryFilterActive=false;categoryLoad(prev.url,false,false);window.scrollTo(0,0);
 }
 function categoryOpenRoot(cat){
@@ -702,7 +703,7 @@ function categoryOpenSub(name,url){
  const target=categorySafeUrl(url)?url:categoryKnownUrl(name);
  if(categorySafeUrl(target)){
     if(categoryCurrentUrl)categoryHistory.push({url:categoryFirstUrl||categoryCurrentUrl,root:categorySelectedRoot,sub:categoryActiveSub});
-    else categoryHistory=[{home:true}];
+    else categoryHistory.push({localRoot:true,root:categorySelectedRoot});
     categoryActiveSub=name;categoryFilterActive=false;categoryLoad(target,false,false);return;
  }
  // A missing Setec category URL must not lead to an inert card or a long spinner.
