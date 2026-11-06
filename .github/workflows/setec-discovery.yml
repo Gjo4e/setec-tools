@@ -17,7 +17,7 @@ jobs:
       - name: Inspect category menu internals
         shell: bash
         run: |
-          cat > /tmp/inspect.py <<'PY'
+          cat > /tmp/inspect_setec_site.py <<'PY'
           from playwright.sync_api import sync_playwright
           import json
           network=[]
@@ -53,4 +53,4 @@ jobs:
             print('AFTER CLICK NETWORK',json.dumps(network[-20:],ensure_ascii=False),flush=True)
             browser.close()
           PY
-          python /tmp/inspect.py
+          python /tmp/inspect_setec_site.py
