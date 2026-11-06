@@ -369,7 +369,7 @@ public final class MainActivity extends ComponentActivity {
         String script="(function(){"+
             "const target="+JSONObject.quote(name)+";"+
             "const norm=s=>String(s||'').normalize('NFKC').toLocaleLowerCase().replace(/\\s+/g,' ').trim();"+
-            "function find(){for(const a of document.querySelectorAll('a[href*=\\"/category/\\"]')){"+
+            "function find(){for(const a of document.querySelectorAll('a[href]')){"+
             "const title=a.innerText||a.getAttribute('title')||a.getAttribute('aria-label')||'';"+
             "if(norm(title)===norm(target)){try{let u=new URL(a.href,location.href);if(/^https:$/.test(u.protocol)&&/^(?:www\\.)?setec\\.mk$/.test(u.hostname)&&u.pathname.startsWith('/category/'))return u.href}catch(e){}}}return '';}"+
             "let url=find();if(url)return url;"+
