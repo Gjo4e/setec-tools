@@ -268,22 +268,8 @@ public final class MainActivity extends ComponentActivity {
             runOnUiThread(MainActivity.this::advanceCategoryFilterPage);
         }
         @JavascriptInterface public void openCategory(String url) {
-            runOnUiThread(() -> {
-                try {
-                    Uri u = Uri.parse(url);
-                    String path = u.getPath();
-                    boolean safe = "https".equalsIgnoreCase(u.getScheme())
-                            && ("setec.mk".equalsIgnoreCase(u.getHost()) || "www.setec.mk".equalsIgnoreCase(u.getHost()))
-                            && path != null && ("/category".equals(path) || path.startsWith("/category/"));
-                    if (safe) {
-                        Intent intent = new Intent(MainActivity.this, CategoryBrowserActivity.class);
-                        intent.putExtra(CategoryBrowserActivity.EXTRA_URL, u.toString());
-                        startActivity(intent);
-                    }
-                } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Не може да се отвори категоријата.", Toast.LENGTH_SHORT).show();
-                }
-            });
+            // Even legacy calls must import products into the app, never open Setec pages.
+            runOnUiThread(() -> startCategoryPage(url));
         }
         @JavascriptInterface public void openOfficial(String url) {
             runOnUiThread(() -> {
