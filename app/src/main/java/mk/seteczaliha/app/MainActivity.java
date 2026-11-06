@@ -39,6 +39,7 @@ public final class MainActivity extends ComponentActivity {
     private WebView categoryMerchant;
     private int categorySerial=0;
     private String categoryUrl="";
+    private String categoryResolveName="";
     private boolean batchMerchantLoaded = false;
     private String batchCurrentSku = null;
     private int batchSerial = 0;
@@ -165,11 +166,16 @@ public final class MainActivity extends ComponentActivity {
         categoryMerchant.getSettings().setLoadsImagesAutomatically(false);
         categoryMerchant.setWebViewClient(new WebViewClient(){
             @Override public void onPageFinished(WebView view,String url){
-                if(!safeCategoryUrl(url)||!url.equals(categoryUrl))return;
                 int serial=categorySerial;
-                for(long delay:new long[]{650,1700,3500}){
-                    handler.postDelayed(()->readCategoryPage(serial,url),delay);
+                if(!categoryResolveName.isEmpty() && isHome(url)){
+                    String name=categoryResolveName;
+                    for(long delay:new long[]{500,1200,2400,4400,7000})
+                        handler.postDelayed(()->resolveCategoryFromMenu(serial,name,delay==7000),delay);
+                    return;
                 }
+                if(!safeCategoryUrl(url)||!sameCategoryPath(url,categoryUrl))return;
+                for(long delay:new long[]{700,1650,3300,5700,8600})
+                    handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
             }
         });
         root.addView(categoryMerchant,new FrameLayout.LayoutParams(-1,-1));
@@ -240,6 +246,12 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public void filterCategory(String name) {
             runOnUiThread(() -> selectCategoryFilter(name));
+        }
+        @JavascriptInterface public void resolveCategoryRoot(String name) {
+            runOnUiThread(() -> startResolveCategoryRoot(name));
+        }
+        @JavascriptInterface public void nextCategoryPage() {
+            runOnUiThread(MainActivity.this::advanceCategoryFilterPage);
         }
         @JavascriptInterface public void openCategory(String url) {
             runOnUiThread(() -> {
@@ -326,57 +338,115 @@ public final class MainActivity extends ComponentActivity {
                 && u.getPath()!=null&&(u.getPath().equals("/category")||u.getPath().startsWith("/category/")||u.getPath().equals("/search-result"));
         }catch(Exception ignored){return false;}
     }
+    private boolean sameCategoryPath(String left,String right){
+        if(left==null||right==null)return false;
+        try{
+            Uri a=Uri.parse(left), b=Uri.parse(right);
+            return "https".equalsIgnoreCase(a.getScheme())
+                && "https".equalsIgnoreCase(b.getScheme())
+                && ("setec.mk".equalsIgnoreCase(a.getHost())||"www.setec.mk".equalsIgnoreCase(a.getHost()))
+                && ("setec.mk".equalsIgnoreCase(b.getHost())||"www.setec.mk".equalsIgnoreCase(b.getHost()))
+                && a.getPath()!=null && a.getPath().equals(b.getPath());
+        }catch(Exception ignored){return false;}
+    }
     private void startCategoryPage(String url){
         if(!safeCategoryUrl(url)||categoryMerchant==null){
             js("window.onCategoryError('Невалидна категорија.');");return;
         }
+        categoryResolveName="";
         categoryUrl=url;categorySerial++;
         js("window.onCategoryLoading();");
         categoryMerchant.loadUrl(url);
     }
-    // Setec renders subcategories as checkboxes rather than <a> links.
-    // Activate the real website filter instead of guessing category URLs.
+    private void startResolveCategoryRoot(String name){
+        if(categoryMerchant==null||name==null||name.trim().isEmpty())return;
+        categoryResolveName=name.trim().substring(0,Math.min(100,name.trim().length()));
+        categoryUrl="";categorySerial++;
+        categoryMerchant.loadUrl(HOME);
+    }
+    private void resolveCategoryFromMenu(int serial,String name,boolean finalAttempt){
+        if(serial!=categorySerial||!name.equals(categoryResolveName)||categoryMerchant==null)return;
+        String script="(function(){"+
+            "const target="+JSONObject.quote(name)+";"+
+            "const norm=s=>String(s||'').normalize('NFKC').toLocaleLowerCase().replace(/\\s+/g,' ').trim();"+
+            "function find(){for(const a of document.querySelectorAll('a[href*=\\"/category/\\"]')){"+
+            "const title=a.innerText||a.getAttribute('title')||a.getAttribute('aria-label')||'';"+
+            "if(norm(title)===norm(target)){try{let u=new URL(a.href,location.href);if(/^https:$/.test(u.protocol)&&/^(?:www\\.)?setec\\.mk$/.test(u.hostname)&&u.pathname.startsWith('/category/'))return u.href}catch(e){}}}return '';}"+
+            "let url=find();if(url)return url;"+
+            "let controls=[...document.querySelectorAll('button,[role=button]')];"+
+            "let menu=controls.find(x=>/производи/i.test((x.innerText||x.getAttribute('aria-label')||'').trim()));"+
+            "if(menu){menu.click();return find()}return '';})()";
+        categoryMerchant.evaluateJavascript(script,outcome->{
+            if(serial!=categorySerial||!name.equals(categoryResolveName))return;
+            String url=decodeJsString(outcome);
+            if(safeCategoryUrl(url)){
+                categoryResolveName="";
+                js("window.onCategoryRootResolved("+JSONObject.quote(name)+","+JSONObject.quote(url)+");");
+            }else if(finalAttempt){
+                categoryResolveName="";
+                js("window.onCategoryError('Setec не го објави точниот линк за оваа категорија. Отвори го каталогот на Setec.mk.');");
+            }
+        });
+    }
+    // Prefer an actual child-category URL; otherwise activate Setec's own checkbox.
     private void selectCategoryFilter(String name){
         if(categoryMerchant==null||name==null||name.trim().isEmpty()||categoryUrl.isEmpty())return;
-        final int serial=categorySerial;
-        // Search actual rendered text and clickable ancestors, not only <label>.
+        final int originalSerial=categorySerial;
         String script="(function(){let target="+JSONObject.quote(name)+";"+
-            "let norm=s=>String(s||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase();"+
+            "let norm=s=>String(s||'').normalize('NFKC').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase();"+
             "let all=[...document.querySelectorAll('label,button,span,div,p,a,[role=checkbox],input[type=checkbox]')];"+
             "let matches=all.filter(x=>norm(x.innerText||x.textContent||x.getAttribute('aria-label'))===norm(target));"+
             "let el=matches.sort((a,b)=>a.querySelectorAll('*').length-b.querySelectorAll('*').length)[0];"+
             "if(!el)return 'missing';"+
             "let link=el.closest('a[href]')||el.querySelector('a[href]');"+
-            "if(link&&link.href&&link.href.startsWith('https://www.setec.mk/category/'))return 'link:'+link.href;"+
+            "if(link){try{const u=new URL(link.href,location.href);if(/^(?:www\\.)?setec\\.mk$/.test(u.hostname)&&u.pathname.startsWith('/category/'))return 'link:'+u.href}catch(e){}}"+
             "let row=el.closest('label,[role=checkbox]')||el.parentElement||el;"+
             "let box=row.querySelector('input[type=checkbox],[role=checkbox]')||"+
             "(row.parentElement&&row.parentElement.querySelector('input[type=checkbox],[role=checkbox]'));"+
             "if(box){if(box.type==='checkbox'&&box.checked)return 'selected';box.click()}"+
             "else row.click();return 'selected';})()";
         categoryMerchant.evaluateJavascript(script,result->{
-            if(serial!=categorySerial)return;
+            if(originalSerial!=categorySerial)return;
             String outcome=decodeJsString(result);
             if(outcome!=null&&outcome.startsWith("link:")&&safeCategoryUrl(outcome.substring(5))){
-                startCategoryPage(outcome.substring(5));return;
-            }
-            if("missing".equals(outcome)){
-                // Do not strand the user with a missing-filter error. Search Setec's
-                // actual catalog for the selected subcategory label instead.
-                String url="https://www.setec.mk/search-result?q="+Uri.encode(name.trim());
-                categoryUrl=url;
-                categorySerial++;
-                js("window.onCategorySearchFallback("+JSONObject.quote(url)+","+JSONObject.quote(name)+");");
-                categoryMerchant.loadUrl(url);
+                js("window.onCategoryFilterLink("+JSONObject.quote(outcome.substring(5))+");");
                 return;
             }
+            if(!"selected".equals(outcome)){
+                js("window.onCategoryError('Подкатегоријата не се појавува во филтрите на Setec.mk.');");
+                return;
+            }
+            final int serial=++categorySerial;
             js("window.onCategoryLoading();");
-            for(long delay:new long[]{900,2000,3800,6000})
+            for(long delay:new long[]{850,1900,3300,5300,8000})
+                handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
+        });
+    }
+    private void advanceCategoryFilterPage(){
+        if(categoryMerchant==null||categoryUrl.isEmpty())return;
+        final int serial=++categorySerial;
+        String script="(function(){"+
+            "let u=new URL(location.href),now=Number(u.searchParams.get('page')||window.__setecCategoryPage||1),next=now+1;"+
+            "let visible=e=>{let r=e.getBoundingClientRect(),st=getComputedStyle(e);return r.width>0&&r.height>0&&st.display!=='none'};"+
+            "let elements=[...document.querySelectorAll('button,a,[role=button]')].filter(visible);"+
+            "let pager=elements.filter(x=>x.closest('nav,[class*=pagin],[class*=Pagin],[aria-label*=agin]'));"+
+            "let buttons=pager.length?pager:elements;"+
+            "let candidate=buttons.find(x=>(x.innerText||x.textContent||'').trim()===String(next))||"+
+            "buttons.find(x=>/^(next|следна|›|»|→)$/i.test((x.innerText||x.getAttribute('aria-label')||'').trim()));"+
+            "if(!candidate)return 'missing';window.__setecCategoryPage=next;candidate.click();return 'clicked';})()";
+        categoryMerchant.evaluateJavascript(script,result->{
+            if(serial!=categorySerial)return;
+            if(!"clicked".equals(decodeJsString(result))){
+                js("window.onCategoryError('Setec не прикажа копче за следната страница со овој филтер.');");return;
+            }
+            js("window.onCategoryLoading();");
+            for(long delay:new long[]{900,2100,3600,6000,8800})
                 handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
         });
     }
 
     private void readCategoryPage(int serial,String url){
-        if(serial!=categorySerial||categoryMerchant==null||!url.equals(categoryMerchant.getUrl()))return;
+        if(serial!=categorySerial||categoryMerchant==null||!sameCategoryPath(url,categoryMerchant.getUrl()))return;
         String script="(function(){"+labelledPricesJs()+
             "let categories=new Map(),products=new Map(),subcategories=[];"+
             "let headings=[...document.querySelectorAll('*')].filter(x=>x.children.length<3&&/^(Подкатегории|Subcategories)$/i.test((x.innerText||'').trim()));"+
@@ -407,7 +477,11 @@ public final class MainActivity extends ComponentActivity {
             "for(let a of document.querySelectorAll('a[href]')){let txt=(a.innerText||a.getAttribute('aria-label')||'').trim();"+
             "if(a.rel==='next'||/^(следна|next|›|»|→)$/i.test(txt)){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&u.href!==location.href){next=u.href;break}}catch(e){}}}"+
             "if(!next){let current=Number(new URL(location.href).searchParams.get('page')||1);for(let a of document.querySelectorAll('a[href]')){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&Number(u.searchParams.get('page'))===current+1){next=u.href;break}}catch(e){}}}"+
-            "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:location.href,categories:[...categories.values()].slice(0,350),subcategories:subcategories.slice(0,120),products:[...products.values()].slice(0,150),next:next});})()";
+            "let page=Number(new URL(location.href).searchParams.get('page')||window.__setecCategoryPage||1);"+
+            "let summary=(document.body?.innerText||'').slice(0,6000);"+
+            "let tm=summary.match(/(?:^|\\s)([0-9]{1,6})\\s*Производи/i),total=tm?Number(tm[1]):0;"+
+            "if(!next&&products.size>=12&&(total>page*20||(!total&&products.size>=20))){let u=new URL(location.href);u.searchParams.set('page',String(page+1));next=u.href;}"+
+            "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:"+JSONObject.quote(url)+",categories:[...categories.values()].slice(0,350),subcategories:subcategories.slice(0,160),products:[...products.values()].slice(0,150),next:next,total:total,page:page,pageSize:20});})()";
         categoryMerchant.evaluateJavascript(script,encoded->{
             if(serial!=categorySerial||!url.equals(categoryUrl))return;
             String result=decodeJsString(encoded);
