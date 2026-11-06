@@ -454,7 +454,7 @@ body.availabilityOnly #resultsPanel .price,body.availabilityOnly #resultsPanel .
 <section id="resultsPanel"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div><div id="pprices"></div></div></div>
 <button class="offerAddDetail" onclick="addCurrentToOffer()">＋ Додај во листа на купувач</button><p id="offerAddFeedback" class="offerFeedback" aria-live="polite"></p>
-<div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations">Отвори производ за проверка на достапноста.</div>
+<div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations hidden" aria-live="polite"></div><div style="display:none"></div><div id="stockLocations" class="stockLocations">Отвори производ за проверка на достапноста.</div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">Се прикажуваат само локации што се прочитани од официјалната проверка. Ако податоците не се целосни, статусот останува непотврден.</p>
 <div id="manufacturerSpecs" class="detailTool"></div><button class="official" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button><button class="cta" onclick="SetecApp.scan()">▣ Скенирај повторно</button></section>
 <p class="mutedFoot">Неофицијална апликација. Податоците за производите се преземаат од Setec.mk. Автоматската достапност во Годи сè уште не е потврдена.</p>
@@ -716,6 +716,24 @@ function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreB
 window.showMoreResults=function(json){if(!moreBusy)return;let oldCount=lastList.length;let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}const seen=new Set(unfilteredResults.map(x=>x.url));let fresh=arr.filter(x=>x&&validUrl(x.url)&&!seen.has(x.url));moreBusy=false;if(fresh.length){window.showResults(JSON.stringify(unfilteredResults.concat(fresh)),false);$('moreResultsInfo').textContent='Додадени '+fresh.length+' производи.';}else{moreCanLoad=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='Setec не врати дополнителни производи за ова пребарување.';}};
 function search(q,fromScan=false){if(fromScan)rememberSearch(q);if(!fromScan){availabilityOnly=false;document.body.classList.remove('availabilityOnly')}q=(q||'').trim();if(!fromScan){rememberSearch(q);$('dashQuery').value=q;}lastQuery=q;lastList=[];unfilteredResults=[];moreCanLoad=true;moreBusy=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='';if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
 $('form').addEventListener('submit',ev=>{ev.preventDefault();search($('query').value)});
+function renderStockLocations(){
+ const status=$('godiStatus'),container=$('stockLocations');
+ if(!status)return;
+ const stores=Array.isArray(window.verifiedStockStores)?window.verifiedStockStores:[];
+ if(container){container.replaceChildren();container.classList.toggle('hidden',stores.length===0);
+  for(const name of stores)container.appendChild(elem('div','stockStoreItem','✓ '+name));
+ }
+ status.className='stockState';
+ if(stores.length){status.textContent='✓ '+stores.length+' локации';status.classList.add('yes')}
+ else status.textContent='Непотврдено';
+}
+window.showStoreAvailability=function(raw){
+ try{
+  const data=JSON.parse(raw),stores=Array.isArray(data.stores)?data.stores:[];
+  window.verifiedStockStores=[...new Set(stores.filter(s=>typeof s==='string'&&s.length<100))];
+  renderStockLocations();
+ }catch(e){window.showGodiStatus('unknown')}
+};
 function openProduct(p){updateRecentProduct(p);document.body.classList.toggle('availabilityOnly',availabilityOnly);window.verifiedStockStores=[];renderStockLocations();$("dashboard").classList.add("hidden");manufacturerLink(p);currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
 window.showProductLoading=()=>{if(!currentProduct.sku&&!lastScannedSku)$('psku').textContent='Ја вчитувам шифрата…'};
