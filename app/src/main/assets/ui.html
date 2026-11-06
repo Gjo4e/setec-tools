@@ -571,7 +571,7 @@ function copyOffer(){
 }
 function clearOffer(){if(!offerItems.length)return;if(!confirm('Да се избришат сите производи од листата?'))return;offerItems=[];offerSave();offerRender();$('offerFeedback').textContent='Листата е избришана.'}
 offerLoad();
-let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false,categorySelectedRoot=null;
+let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false,categorySelectedRoot=null,categoryLiveSubs=[];
 function showCategories(){
  if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}
  if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}
@@ -584,7 +584,7 @@ function closeCategories(){categoriesOpen=false;$('categoriesPanel').classList.a
 function categoryBack(){if(categoryHistory.length){const url=categoryHistory.pop();if(/\/category\/?$/.test(new URL(url).pathname))categorySelectedRoot=null;categoryLoad(url,false)}else closeCategories()}
 function categoryLoad(url,remember=true){if(!/^https:\/\/(?:www\.)?setec\.mk\/category(?:\/|$|\?)/i.test(url))return;
  if(remember&&categoryCurrentUrl&&categoryCurrentUrl!==url)categoryHistory.push(categoryCurrentUrl);
- categoryCurrentUrl=url;categoryNextUrl='';categoryEntries=[];categoryProductsCache.clear();categoryPageTitle='';
+ categoryCurrentUrl=url;categoryNextUrl='';categoryEntries=[];categoryLiveSubs=[];categoryProductsCache.clear();categoryPageTitle='';
  $('categoryFilter').value='';$('categoryProducts').replaceChildren();$('categoriesList').replaceChildren();$('categoryNext').classList.add('hidden');
  $('categoryNotice').textContent='Вчитувам вистински категории и производи од Setec.mk…';
  $('categoryBreadcrumb').textContent=categoryHistory.length?'‹ Назад кон претходната категорија':'Каталог на Setec.mk';
@@ -595,6 +595,7 @@ window.onCategoryError=function(message){categoryBusy=false;$('categoryNotice').
 window.onCategoryData=function(raw){if(!categoriesOpen)return;try{
  const data=JSON.parse(raw);if(data.url!==categoryCurrentUrl)return;
  categoryBusy=false;categoryPageTitle=String(data.title||'SETEC категории').slice(0,120);
+ if(Array.isArray(data.subcategories))categoryLiveSubs=data.subcategories.filter(x=>typeof x==='string'&&x.length>1).slice(0,120);
  if(Array.isArray(data.categories))categoryEntries=data.categories.filter(x=>x&&/^https:\/\/(?:www\.)?setec\.mk\/category\//i.test(x.url)&&x.name).slice(0,350);
  if(Array.isArray(data.products))for(const p of data.products){if(p&&validUrl(p.url))categoryProductsCache.set(p.url,p)}
  categoryNextUrl=typeof data.next==='string'&&/^https:\/\/(?:www\.)?setec\.mk\/category/i.test(data.next)?data.next:'';
@@ -619,17 +620,26 @@ function renderCategories(){
    }
    list=list.filter(x=>!roots.some(cat=>cat.name.toLocaleLowerCase()===x.name.toLocaleLowerCase()));
  }
- if(!root&&categorySelectedRoot&&categoryHistory.length===1){
-   // The current category is a parent: show matching subcategories before products.
-   const preferred=categorySelectedRoot.sub||[];
-   const normalize=s=>String(s||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
-   const ranked=list.map(x=>({x,score:preferred.findIndex(s=>normalize(s)===normalize(x.name)||normalize(s).includes(normalize(x.name))||normalize(x.name).includes(normalize(s)))}));
-   list=ranked.filter(v=>v.score>=0).sort((a,b)=>a.score-b.score).map(v=>v.x);
-   const intro=elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+categorySelectedRoot.name);
-   host.appendChild(intro);
-   if(!list.length){
-      const note=elem('div','categoryEmpty','Подкатегориите сѐ уште не се пронајдени на оваа Setec страница. Отвори ја официјалната категорија за целосна листа.');
-      host.appendChild(note);
+ if(!root){
+   // Setec displays most subcategories as real checkbox filters, not links.
+   // Prefer their actual labels over unrelated global menu links.
+   const live=categoryLiveSubs.filter(n=>n.toLocaleLowerCase().includes(filter));
+   if(live.length){
+     host.appendChild(elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+(categorySelectedRoot?.name||categoryPageTitle)));
+     for(const name of live){
+       const button=elem('button','liveCategory');
+       button.append(elem('span','liveCategoryIcon','▦'),elem('span','',name),elem('span','liveCategoryArrow','›'));
+       button.onclick=()=>{categoryProductsCache.clear();$('categoryProducts').replaceChildren();SetecApp.filterCategory(name)};
+       host.appendChild(button);
+     }
+     // Category navigation links are often the global site menu, not children.
+     list=[];
+   }else if(categorySelectedRoot&&categoryHistory.length===1){
+     const preferred=categorySelectedRoot.sub||[];
+     const normalize=s=>String(s||'').toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+     list=list.filter(x=>preferred.some(s=>normalize(s)===normalize(x.name)));
+     host.appendChild(elem('div','categorySubheading','ПОДКАТЕГОРИИ · '+categorySelectedRoot.name));
+     if(!list.length)host.appendChild(elem('div','categoryEmpty','Се вчитуваат подкатегориите од филтрите на Setec.mk…'));
    }
  }
  for(const item of list){const b=elem('button','liveCategory'),name=elem('span','',item.name);b.append(elem('span','liveCategoryIcon','▦'),name,elem('span','liveCategoryArrow','›'));b.onclick=()=>categoryLoad(item.url);host.appendChild(b)}
