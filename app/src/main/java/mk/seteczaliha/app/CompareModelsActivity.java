@@ -277,38 +277,28 @@ public final class CompareModelsActivity extends ComponentActivity {
         row("Клуб цена", left==null?"—":price(left.club),right==null?"—":price(right.club),false);
         row("Редовна цена",left==null?"—":price(left.regular),right==null?"—":price(right.regular),false);
         if(left==null||right==null)return;
-        List<String> rows=ComparisonSummary.topSpecs(
-            left.name,left.facts,right.name,right.facts);
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build(
+            left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
-            if(!left.description.isEmpty()||!right.description.isEmpty()){
-                row("Оригинален опис од Setec.mk",
-                    left.description.isEmpty()?"Нема технички опис":left.description,
-                    right.description.isEmpty()?"Нема технички опис":right.description,false);
-                LinearLayout references=new LinearLayout(this);
-                references.setOrientation(LinearLayout.HORIZONTAL);
-                table.addView(references);
-                addSource(references,left,false);
-                addSource(references,right,true);
-            }else{
-                TextView empty=text("За овие модели не се најдени проверени технички спецификации. "+
-                    "Пробај повторно да ги скенираш или внеси ја точната ознака.",13,false,0xFF835A2D);
-                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
-                p.topMargin=dp(13);
-                table.addView(empty,p);
-            }
+            TextView empty=text("Setec.mk не достави технички опис за овие два производи. "+
+                "Отвори ги и зачувај ги повторно за проверка.",13,false,0xFF835A2D);
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
+            p.topMargin=dp(13);
+            table.addView(empty,p);
             return;
         }
-        for(String key:rows){
-            row(key,known(left.facts.get(key)),known(right.facts.get(key)),true);
+        boolean hasOriginal=false;
+        for(SetecCompareRows.Row spec:rows){
+            row(spec.label,spec.left,spec.right,spec.comparable);
+            if(!spec.comparable)hasOriginal=true;
         }
-        if(rows.size()<5&&(!left.description.isEmpty()||!right.description.isEmpty())){
-            row("Дополнителен технички опис од Setec.mk",
-                left.description.isEmpty()?"Не е наведен":left.description,
-                right.description.isEmpty()?"Не е наведен":right.description,false);
-        }
-        TextView count=text("Прикажани "+rows.size()+" најважни спецификации (најмногу 5). "+
-                "Ознаката ≠ покажува различни пријавени вредности, не автоматски победник.",
-                12,false,0xFF707887);
+        TextView count=text("Прикажани "+rows.size()+" технички редови (најмногу 5). "+
+            (hasOriginal
+                ?"„Опис од Setec“ е оригинална ставка: бројот не означува иста "+
+                 "карактеристика кај двата модела. "
+                :"Се означуваат разлики само за иста техничка карактеристика. ")+
+            "Податоците се само од потврдените Setec производи.",
+            12,false,0xFF707887);
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
         table.addView(count,cp);
@@ -344,7 +334,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         LinearLayout.LayoutParams vp=new LinearLayout.LayoutParams(-1,-2);
         vp.topMargin=dp(4);
         table.addView(values,vp);
-        boolean different=!a.equalsIgnoreCase(b)&&!"Непотврдено".equals(a)&&!"Непотврдено".equals(b)&&!"—".equals(a)&&!"—".equals(b);
+        boolean different=spec&&!a.equalsIgnoreCase(b)&&!"Непотврдено".equals(a)&&!"Непотврдено".equals(b)&&!"—".equals(a)&&!"—".equals(b);
         values.addView(valueBox(a,different),columnParams(false));
         values.addView(valueBox(b,different),columnParams(true));
     }
