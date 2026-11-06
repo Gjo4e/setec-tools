@@ -204,6 +204,20 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void openProduct(String url) {
             runOnUiThread(() -> loadProduct(url));
         }
+        @JavascriptInterface public void openCategory(String url) {
+            runOnUiThread(() -> {
+                try {
+                    Uri u = Uri.parse(url);
+                    String path = u.getPath();
+                    boolean safe = "https".equalsIgnoreCase(u.getScheme())
+                            && ("setec.mk".equalsIgnoreCase(u.getHost()) || "www.setec.mk".equalsIgnoreCase(u.getHost()))
+                            && path != null && ("/category".equals(path) || path.startsWith("/category/"));
+                    if (safe) startActivity(new Intent(Intent.ACTION_VIEW, u));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Не може да се отвори категоријата.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
         @JavascriptInterface public void openOfficial(String url) {
             runOnUiThread(() -> {
                 if (safeProduct(url)) {
