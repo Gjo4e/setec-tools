@@ -716,16 +716,39 @@ function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreB
 window.showMoreResults=function(json){if(!moreBusy)return;let oldCount=lastList.length;let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}const seen=new Set(unfilteredResults.map(x=>x.url));let fresh=arr.filter(x=>x&&validUrl(x.url)&&!seen.has(x.url));moreBusy=false;if(fresh.length){window.showResults(JSON.stringify(unfilteredResults.concat(fresh)),false);$('moreResultsInfo').textContent='Додадени '+fresh.length+' производи.';}else{moreCanLoad=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='Setec не врати дополнителни производи за ова пребарување.';}};
 function search(q,fromScan=false){if(fromScan)rememberSearch(q);if(!fromScan){availabilityOnly=false;document.body.classList.remove('availabilityOnly')}q=(q||'').trim();if(!fromScan){rememberSearch(q);$('dashQuery').value=q;}lastQuery=q;lastList=[];unfilteredResults=[];moreCanLoad=true;moreBusy=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='';if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
 $('form').addEventListener('submit',ev=>{ev.preventDefault();search($('query').value)});
+function setStockLocation(value){
+ if(!['all','godi','warehouse'].includes(value))value='all';
+ saveSetting('location',value);
+ if($('settingsLocation'))$('settingsLocation').value=value;
+ renderStockLocations();
+}
 function renderStockLocations(){
- const status=$('godiStatus'),container=$('stockLocations');
+ const status=$('godiStatus'),container=$('stockLocations'),label=$('stockLocationLabel');
  if(!status)return;
+ const mode=setting('location','all');
  const stores=Array.isArray(window.verifiedStockStores)?window.verifiedStockStores:[];
- if(container){container.replaceChildren();container.classList.toggle('hidden',stores.length===0);
-  for(const name of stores)container.appendChild(elem('div','stockStoreItem','✓ '+name));
+ const norm=s=>String(s||'').toLocaleLowerCase().replace(/\\s+/g,' ').trim();
+ const isGodi=s=>/\\bгoди\\b|годи|godi/i.test(norm(s));
+ const isWarehouse=s=>/главен\\s*магацин|централен\\s*магацин|main\\s*warehouse|central\\s*warehouse/i.test(norm(s));
+ const selected=mode==='godi'?stores.filter(isGodi):mode==='warehouse'?stores.filter(isWarehouse):stores;
+ const name=mode==='godi'?'Годи':mode==='warehouse'?'Главен магацин':'Сите локации';
+ if(label)label.textContent='Достапност · '+name;
+ if(container){
+  container.replaceChildren();
+  container.classList.remove('hidden');
+  if(stores.length){
+   container.appendChild(elem('div','',mode==='all'?'Потврдени локации од Setec.mk:':'Сите потврдени локации од Setec.mk:'));
+   for(const store of stores)container.appendChild(elem('div','stockStoreItem','✓ '+store));
+  }else container.appendChild(elem('div','', 'Нема потврдени податоци за локациите.'));
  }
  status.className='stockState';
- if(stores.length){status.textContent='✓ '+stores.length+' локации';status.classList.add('yes')}
- else status.textContent='Непотврдено';
+ if(selected.length){
+  status.textContent=mode==='all'?'✓ ИМА · '+selected.length+' локации':'✓ ИМА · '+name;
+  status.classList.add('yes');
+ }else if(stores.length){
+  // Other stores appearing does not prove this particular warehouse has zero stock.
+  status.textContent=mode==='all'?'Непотврдено':'Непотврдено · '+name;
+ }else status.textContent='Непотврдено · '+name;
 }
 window.showStoreAvailability=function(raw){
  try{
@@ -738,13 +761,10 @@ function openProduct(p){updateRecentProduct(p);document.body.classList.toggle('a
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
 window.showProductLoading=()=>{if(!currentProduct.sku&&!lastScannedSku)$('psku').textContent='Ја вчитувам шифрата…'};
 window.showProduct=function(json){try{const p=JSON.parse(json);manufacturerLink(p);if(!validUrl(p.url))return;const code=(p.sku||currentProduct.sku||'').trim();currentProduct={...currentProduct,...p,sku:code,clubPrice:p.clubPrice||currentProduct.clubPrice||'',regularPrice:p.regularPrice||currentProduct.regularPrice||''};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=code?'Шифра: '+code:(lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена од Setec':'Шифрата не е наведена на страницата');setHero(currentProduct.img);renderProductPrices(currentProduct);updateRecentProduct(currentProduct)}catch(e){}};
-window.showGodiStatus=function(status){if(status==='checking'){window.verifiedStockStores=[];renderStockLocations();return}if(status==='unknown'){window.verifiedStockStores=[];renderStockLocations();return}if(Array.isArray(window.verifiedStockStores)&&window.verifiedStockStores.length){renderStockLocations();return}
-  const el=$('godiStatus'); if(!el)return;
-  el.className='stockState';
-  if(status==='yes'){el.textContent='✓ ИМА';el.classList.add('yes')}
-  else if(status==='no'){el.textContent='НЕМА';el.classList.add('no')}
-  else if(status==='checking'){el.textContent='Проверувам…'}
-  else{el.textContent='Непотврдено'}
+window.showGodiStatus=function(status){
+ if(status==='checking'||status==='unknown'){window.verifiedStockStores=[];renderStockLocations();return}
+ if(Array.isArray(window.verifiedStockStores)&&window.verifiedStockStores.length){renderStockLocations();return}
+ renderStockLocations();
 };
 window.resetScan=function(){pendingSku='';lastScannedSku='';lastQuery='';lastList=[];currentProduct={url:'',name:'',sku:'',img:''};$('query').value='';$('scanCode').textContent='';$('recognized').classList.add('hidden');$('retrySkuBtn').classList.add('hidden');$('resetScanBtn').classList.add('hidden');$('ptitle').textContent='Производ';$('psku').textContent='';$('pprices').replaceChildren();$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');$('list').replaceChildren(elem('div','empty','Скенирај нова шифра од ценовникот.'));switchTab('scan');setStatus('Подготвено за ново скенирање.');window.scrollTo(0,0);SetecApp.search('');};
 window.backToResults=()=>{$('dashboard').classList.toggle('hidden',tab!=='scan');$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
