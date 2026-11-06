@@ -377,13 +377,12 @@ public final class MainActivity extends ComponentActivity {
             return;
         }
         js("window.showLoading('Пребарувам на Setec.mk...');");
-        // Restore original working homepage search.
-        if (!merchantLoaded || !isHome(merchant.getUrl())) {
-            queuedQuery=activeQuery;
-            merchant.loadUrl(HOME);
-            return;
-        }
-        runSearch(activeQuery);
+        // Navigate directly to the catalog search route. React homepage input
+        // is often absent in WebView and must not block all three search tools.
+        queuedQuery=null;
+        String url="https://www.setec.mk/search-result?q="+android.net.Uri.encode(activeQuery);
+        merchant.loadUrl(url);
+        scheduleResults(serial);
     }
     private void runSearch(String query) {
         if (merchant == null || productUrl != null || !query.equals(activeQuery)) return;
@@ -424,7 +423,7 @@ public final class MainActivity extends ComponentActivity {
             if ("submitted".equals(status)) scheduleResults(serial);
             else if (retry < 18) handler.postDelayed(
                 () -> trySubmitSearch(query, serial, retry + 1), 400);
-            else js("window.showLoading('Пребарувањето не се вчита. Притисни Барај повторно.');");
+            else { merchant.loadUrl("https://www.setec.mk/search-result?q="+android.net.Uri.encode(query)); scheduleResults(serial); }
         });
     }
     private void scheduleResults(int serial) {
@@ -447,7 +446,8 @@ public final class MainActivity extends ComponentActivity {
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
-            "if(/^\\d{4,8}$/.test(q)&&sku&&sku!==q)continue;"+
+            "if(/^\\d{4,8}$/.test(q)){if(sku&&sku!==q)continue;}"+
+            "else if(/^\\d{13}$/.test(q)){if(!(name+' '+txt+' '+u.href).includes(q)&&sku)continue;}"+
             "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
