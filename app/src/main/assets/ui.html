@@ -586,7 +586,7 @@ function categoryLoad(url,remember=true){if(!/^https:\/\/(?:www\.)?setec\.mk\/ca
  $('categoryFilter').value='';$('categoryProducts').replaceChildren();$('categoriesList').replaceChildren();$('categoryNext').classList.add('hidden');
  $('categoryNotice').textContent='Вчитувам вистински категории и производи од Setec.mk…';
  $('categoryBreadcrumb').textContent=categoryHistory.length?'‹ Назад кон претходната категорија':'Каталог на Setec.mk';
- categoryBusy=true;SetecApp.loadCategory(url);
+ categoryBusy=true;renderCategories();SetecApp.loadCategory(url);
 }
 window.onCategoryLoading=function(){categoryBusy=true;$('categoryNotice').textContent='Вчитувам од Setec.mk…'};
 window.onCategoryError=function(message){categoryBusy=false;$('categoryNotice').textContent=message};
@@ -602,7 +602,21 @@ window.onCategoryData=function(raw){if(!categoriesOpen)return;try{
 function renderCategories(){
  const host=$('categoriesList');host.replaceChildren();
  const filter=$('categoryFilter').value.trim().toLocaleLowerCase();
- const list=categoryEntries.filter(x=>x.name.toLocaleLowerCase().includes(filter));
+ let list=categoryEntries.filter(x=>x.name.toLocaleLowerCase().includes(filter));
+ const root=/\/category\/?$/.test(new URL(categoryCurrentUrl).pathname);
+ if(root){
+   // Keep visible, clickable category tiles even while Setec's dynamic menu loads.
+   const roots=setecCategories.filter(cat=>cat.name.toLocaleLowerCase().includes(filter)||cat.sub.some(s=>s.toLocaleLowerCase().includes(filter)));
+   for(const cat of roots){
+     const found=categoryEntries.find(x=>x.name.toLocaleLowerCase()===cat.name.toLocaleLowerCase());
+     const known=cat.url&&cat.url!=='https://setec.mk/category'?cat.url:'';
+     const b=elem('button','liveCategory'),name=elem('span','',cat.name);
+     b.append(elem('span','liveCategoryIcon',cat.icon),name,elem('span','liveCategoryArrow','›'));
+     b.onclick=()=>{const url=found?.url||known;if(url)categoryLoad(url);else{$('categoryNotice').textContent='Setec.mk сѐ уште не го достави линкот за оваа категорија. Отвори го каталогот и пробај повторно.'}};
+     host.appendChild(b);
+   }
+   list=list.filter(x=>!roots.some(cat=>cat.name.toLocaleLowerCase()===x.name.toLocaleLowerCase()));
+ }
  for(const item of list){const b=elem('button','liveCategory'),name=elem('span','',item.name);b.append(elem('span','liveCategoryIcon','▦'),name,elem('span','liveCategoryArrow','›'));b.onclick=()=>categoryLoad(item.url);host.appendChild(b)}
  const products=$('categoryProducts');products.replaceChildren();
  const found=[...categoryProductsCache.values()].filter(p=>!filter||(p.name||'').toLocaleLowerCase().includes(filter)||(p.sku||'').includes(filter));
