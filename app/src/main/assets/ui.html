@@ -335,6 +335,20 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .tabs .tab.active{background:linear-gradient(145deg,#17324e,#112337)!important;color:#4cb5ff!important;border:0!important}
 .tabs .tab:focus-visible{outline:2px solid #51b9ff}
 @media(min-width:720px){.tabs{max-width:720px;margin:auto;border-left:1px solid #2b4560;border-right:1px solid #2b4560}}
+
+.offerEnabled{color:#45dcb1;font-size:11px;font-weight:850}
+.installmentLabel{display:block;font-size:12px;font-weight:800;margin:15px 0 7px;color:var(--bodycopy)}
+.installmentSelect{display:block;width:100%;padding:13px 12px;border-radius:11px;border:1px solid #3382c3;background:var(--surface-alt);color:var(--bodycopy);font-size:13px;font-weight:750}
+.installmentResult{margin-top:14px;padding:13px;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border)}
+.installmentRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--subcopy)}
+.installmentRow:last-child{border-bottom:0}
+.installmentRow strong{color:var(--bodycopy);text-align:right;font-size:12px;white-space:nowrap}
+.installmentRow.installmentTotal{font-weight:800;color:var(--bodycopy)}
+.installmentRow.installmentMonthly{font-weight:850;color:#51b8ff;padding:14px 0 5px}
+.installmentRow.installmentMonthly strong{font-size:19px;color:#51b8ff}
+.installmentWarning{font-size:12px;line-height:1.6;color:var(--subcopy)}
+.offerInstallment .installmentNote{font-size:10px;line-height:1.6;margin:12px 0 0}
+body.dark .installmentSelect,body.dark .installmentResult{background:#0f1c2b!important;border-color:#2b506d!important;color:#f2f7ff!important}
 </style></head>
 <body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC <span class="brandTools">TOOLS</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
 
@@ -359,7 +373,19 @@ body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 <div class="offerCount" id="offerCount">0 производи</div>
 <div id="offerItems" class="offerItems"></div>
 <div class="offerAddBox"><strong>Додај производ</strong><p>Пронајди го производот преку пребарување или скенирање, отвори ги деталите и притисни „Додај во листа“.</p><button onclick="offerSearch()">⌕ Пребарај производ</button></div>
-<div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><span class="offerLocked">🔒 Наскоро</span></div><p>Моментално е заклучена. Ќе ја активираме кога ќе ги потврдиш каматата и бројот на рати. Нема да прикажуваме неточни износи.</p><button disabled>Пресметај рата · Заклучено</button></div>
+<div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><span class="offerEnabled">✓ Активно</span></div>
+<p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок и камата според бројот на рати.</p>
+<label class="installmentLabel" for="offerInstallmentMonths">Број на рати</label>
+<select id="offerInstallmentMonths" class="installmentSelect" onchange="renderInstallments()">
+<option value="3">3 рати · 1,99% камата</option><option value="6">6 рати · 2,49% камата</option>
+<option value="9">9 рати · 2,79% камата</option><option value="12" selected>12 рати · 2,99% камата</option>
+<option value="15">15 рати · 3,99% камата</option><option value="18">18 рати · 4,99% камата</option>
+<option value="24">24 рати · 5,99% камата</option><option value="36">36 рати · 8,99% камата</option>
+<option value="48">48 рати · 11,99% камата</option><option value="60">60 рати · 14,99% камата</option>
+</select>
+<div class="installmentResult" id="offerInstallmentResult" aria-live="polite"></div>
+<p class="installmentNote">Информативна пресметка: каматата и административниот трошок се додаваат еднократно на клуб цената (не се пресметува сложена камата). Потврди ги конечните услови пред продажба.</p>
+</div>
 <button class="offerCopy" onclick="copyOffer()">▤ Копирај понуда</button>
 <button class="offerClear" onclick="clearOffer()">Избриши ја листата</button>
 <p class="offerFeedback" id="offerFeedback" aria-live="polite"></p>
@@ -447,11 +473,30 @@ function offerMoney(n){return n.toLocaleString('mk-MK',{maximumFractionDigits:2}
 function offerSave(){try{localStorage.setItem('setec_customer_offer_v1',JSON.stringify(offerItems))}catch(e){}}
 function offerLoad(){try{const raw=JSON.parse(localStorage.getItem('setec_customer_offer_v1')||'[]');if(Array.isArray(raw))offerItems=raw.slice(0,100).filter(x=>x&&typeof x.name==='string'&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99).map(x=>({name:x.name.slice(0,200),sku:String(x.sku||'').slice(0,60),qty:x.qty,club:offerPrice(x.club),regular:offerPrice(x.regular)}))}catch(e){offerItems=[]}}
 function offerTotals(){let club=0,regular=0,clubMissing=0,regularMissing=0,count=0;for(const x of offerItems){count+=x.qty;if(x.club===null)clubMissing+=x.qty;else club+=x.club*x.qty;if(x.regular===null)regularMissing+=x.qty;else regular+=x.regular*x.qty}return{club,regular,clubMissing,regularMissing,count}}
+const INSTALLMENT_RATES=Object.freeze({3:1.99,6:2.49,9:2.79,12:2.99,15:3.99,18:4.99,24:5.99,36:8.99,48:11.99,60:14.99});
+function renderInstallments(){
+ const el=$('offerInstallmentResult');if(!el)return;
+ const t=offerTotals(),months=Number($('offerInstallmentMonths').value),interest=INSTALLMENT_RATES[months];
+ el.replaceChildren();
+ if(!Number.isFinite(interest)){el.appendChild(elem('div','installmentWarning','Избери валиден број на рати.'));return}
+ if(t.count===0||t.clubMissing>0||!Number.isFinite(t.club)||t.club<=0){
+  el.appendChild(elem('div','installmentWarning',t.clubMissing?'Не може да се пресмета: '+t.clubMissing+' производи немаат клуб цена.':'Додај производ со клуб цена за да пресметаш рати.'));return;
+ }
+ const admin=3,totalRate=admin+interest,adminAmount=t.club*admin/100,interestAmount=t.club*interest/100,total=t.club*(1+totalRate/100),monthly=total/months;
+ const row=(label,value,cls='')=>{const r=elem('div','installmentRow '+cls);r.append(elem('span','',label),elem('strong','',value));el.appendChild(r)};
+ row('Клуб цена на целата листа',offerMoney(t.club));
+ row('Административен трошок (3%)',offerMoney(adminAmount));
+ row('Камата ('+interest.toFixed(2).replace('.',',')+'%)',offerMoney(interestAmount));
+ row('Вкупен додаток ('+totalRate.toFixed(2).replace('.',',')+'%)',offerMoney(adminAmount+interestAmount));
+ row('Вкупно за плаќање',offerMoney(total),'installmentTotal');
+ row('Месечна рата ('+months+' ×)',offerMoney(monthly),'installmentMonthly');
+}
 function offerTotalText(amount,missing){return offerMoney(amount)+(missing?' + '+missing+' без цена':'')}
 function offerRender(){
  const host=$('offerItems');host.replaceChildren();const t=offerTotals();
  $('offerClubTotal').textContent=offerTotalText(t.club,t.clubMissing);$('offerRegularTotal').textContent=offerTotalText(t.regular,t.regularMissing);
  $('offerCount').textContent=t.count+' парчиња · '+offerItems.length+' различни производи';
+ renderInstallments();
  if(!offerItems.length){host.appendChild(elem('div','offerEmpty','Листата е празна. Додај производ од резултатите на пребарувањето.'))}
  offerItems.forEach((p,i)=>{
  const box=elem('div','offerItem'),top=elem('div','offerItemTop'),info=elem('div');
