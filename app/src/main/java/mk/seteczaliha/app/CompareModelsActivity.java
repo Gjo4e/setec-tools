@@ -22,6 +22,10 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebSettings;
+import android.annotation.SuppressLint;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResultLauncher;
@@ -55,6 +59,10 @@ public final class CompareModelsActivity extends ComponentActivity {
     private LinearLayout content,table;
     private TextView overview;
     private int editingSlot=0;
+    private final WebView[] lookupBrowsers=new WebView[2];
+    private final int[] lookupSerial=new int[2];
+    private final String[] lookupSku=new String[2];
+    private final boolean[] lookupProduct=new boolean[2];
 
     private static final class Product {
         String name,club,regular,sku,description="",source="";
@@ -174,7 +182,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         tl.leftMargin=dp(14);
         header.addView(titles,tl);
         titles.addView(text("SETEC TOOLS",11,true,0xFF55BFFF));
-        TextView title=text("Спореди модели",23,true,Color.WHITE);
+        TextView title=text("Спореди производи",23,true,Color.WHITE);
         titles.addView(title);
         titles.addView(text("Два производи · една јасна споредба",12,false,0xFFAAC0D7));
 
@@ -264,6 +272,72 @@ public final class CompareModelsActivity extends ComponentActivity {
         LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.topMargin=dp(20);
         content.addView(note,np);
         render();
+        for(int i=0;i<2;i++)initLookupBrowser(i);
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void initLookupBrowser(int slot){
+        WebView web=new WebView(this);
+        web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setDomStorageEnabled(true);
+        web.getSettings().setLoadsImagesAutomatically(false);
+        web.setVisibility(View.GONE);
+        lookupBrowsers[slot]=web;
+        web.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView v,String url){
+                final int serial=lookupSerial[slot];
+                for(long delay:new long[]{900,2200,4200})
+                    inputHandler.postDelayed(()->inspectLookup(slot,serial,url),delay);
+            }
+        });
+    }
+    private void inspectLookup(int slot,int serial,String url){
+        if(serial!=lookupSerial[slot]||lookupBrowsers[slot]==null||
+            !url.equals(lookupBrowsers[slot].getUrl()))return;
+        String sku=lookupSku[slot];
+        if(sku==null)return;
+        if(lookupProduct[slot]){
+            String script="(function(){let body=document.body?.innerText||'';"+
+                "let m=body.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
+                "if(!m||m[1]!=="+JSONObject.quote(sku)+")return '';"+
+                "let title=(document.querySelector('h1')?.innerText||document.title||'').trim();"+
+                "let club=body.match(/Клуб\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
+                "let regular=body.match(/Редовна\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
+                "let specs=[...document.querySelectorAll('table tr,dl div,li')].map(x=>x.innerText?.replace(/\\s+/g,' ').trim()).filter(x=>x&&x.length>8&&x.length<200).slice(0,70);"+
+                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:specs.slice(0,5),description:specs.slice(0,12).join('\\n')});})()";
+            lookupBrowsers[slot].evaluateJavascript(script,result->{
+                if(serial!=lookupSerial[slot])return;
+                String json=decodeWebString(result);
+                if(json==null||json.isEmpty())return;
+                Product p=Product.parse(json);
+                if(p==null||!sku.equals(p.sku))return;
+                products[slot]=p;
+                lookupSerial[slot]++;
+                overview.setText("✓ Пронајден "+p.name+". "+(products[1-slot]==null?"Внеси го и другиот производ.":"Споредбата е подготвена."));
+                render();
+            });
+        }else{
+            String script="(function(){let sku="+JSONObject.quote(sku)+";"+
+                "for(let a of document.querySelectorAll('a[href*=\\\"/products/\\\"]')){"+
+                "let node=a.closest('article,li,[class*=product],[class*=Product],[class*=card],[class*=Card]')||a.parentElement;"+
+                "let txt=node?.innerText||'';"+
+                "if(new RegExp('(?:Шифра|SKU)\\\\s*:?\\\\s*'+sku+'(?![0-9])','i').test(txt)){try{let u=new URL(a.href,location.href);if(['setec.mk','www.setec.mk'].includes(u.hostname))return u.href}catch(e){}}}return '';})()";
+            lookupBrowsers[slot].evaluateJavascript(script,result->{
+                if(serial!=lookupSerial[slot]||lookupProduct[slot])return;
+                String found=decodeWebString(result);
+                if(found!=null&&SetecPageData.isOfficialProductUrl(found)){
+                    lookupProduct[slot]=true;lookupBrowsers[slot].loadUrl(found);
+                }
+            });
+        }
+    }
+    private static String decodeWebString(String encoded){
+        if(encoded==null||"null".equals(encoded))return null;
+        try{return new JSONArray("["+encoded+"]").getString(0);}catch(Exception e){return null;}
+    }
+    @Override protected void onDestroy(){
+        for(WebView w:lookupBrowsers)if(w!=null)w.destroy();
+        super.onDestroy();
     }
 
     private GradientDrawable gradient(int top,int bottom,int stroke,int radius){
@@ -292,11 +366,17 @@ public final class CompareModelsActivity extends ComponentActivity {
             overview.setText("Внеси SETEC шифра од 4 до 8 цифри.");
             return;
         }
-        Intent intent=new Intent(this,ModelScannerActivity.class);
-        intent.putExtra("compare_pick",true);
-        intent.putExtra("compare_slot",editingSlot+1);
-        intent.putExtra("compare_sku",code);
-        picker.launch(intent);
+        int slot=editingSlot;
+        lookupSku[slot]=code;
+        lookupProduct[slot]=false;
+        int serial=++lookupSerial[slot];
+        overview.setText("🔎 Го барам производот со шифра "+code+" на Setec.mk…");
+        String url="https://www.setec.mk/search-result?q="+Uri.encode(code);
+        lookupBrowsers[slot].loadUrl(url);
+        inputHandler.postDelayed(()->{
+            if(serial==lookupSerial[slot]&&!lookupProduct[slot])
+                overview.setText("Сѐ уште ја проверувам шифрата "+code+". Ако нема резултат, провери ја шифрата.");
+        },10000);
     }
 
     private void enterSkuManually(int slot){
