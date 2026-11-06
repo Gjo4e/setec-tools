@@ -621,14 +621,16 @@ offerLoad();
 
 /* Category explorer: local instant hierarchy, live SETEC pages and real pagination. */
 let categoryCurrentUrl='',categoryNextUrl='',categoryHistory=[],categoryProductsCache=new Map(),categoryEntries=[],categoryPageTitle='',categoryBusy=false,categorySelectedRoot=null,categoryLiveSubs=[];
-let categoryRootView=true,categoryActiveSub='',categoryFilterActive=false,categoryAppend=false,categoryPage=1,categoryTotal=0,categoryPageSize=20,categoryFirstUrl='',categoryNextKind='url';
+let categoryRootView=true,categoryActiveSub='',categoryFilterActive=false,categoryAppend=false,categoryPage=1,categoryTotal=0,categoryPageSize=20,categoryFirstUrl='',categoryNextKind='url',categoryRequestId=0;
 const CATEGORY_DIRECT_LINKS={
- 'Компјутери и IT опрема':{'Конфигурации':'https://www.setec.mk/category/konfiguratsii-32'},
+ 'Компјутери и IT опрема':{'Конфигурации':'https://www.setec.mk/category/konfiguratsii-32','Мрежна опрема':'https://www.setec.mk/category/mrezhna-20oprema-37','Графички Карти':'https://www.setec.mk/category/grafichki-20karti-25','Процесори':'https://www.setec.mk/category/protsesori-21','Кулери':'https://www.setec.mk/category/kuleri-27','Мрежни Кабли, Пасивна мрежа, Алати и тестери':'https://www.setec.mk/category/mrezhni-20kabli-2c-20pasivna-20mrezha-2c-20alati-20i-20testeri-30386'},
  'ТВ/Аудио/Видео':{'Телевизори':'https://www.setec.mk/category/televizori-55'},
  'Телефони/Фото и Навигација':{'Дополнителна опрема за мобилни телефони':'https://www.setec.mk/category/dopolnitelna-20oprema-20za-20mobilni-20telefoni-71'},
  'Бела Техника':{'Бојлери':'https://www.setec.mk/category/bo-d1-98leri-119'},
  'Ладење и Греење':{'Електрични греалки':'https://www.setec.mk/category/elektrichni-20grealki-174'},
- 'Осветлување и Батерии':{'Полначи за батерии':'https://www.setec.mk/category/polnachi-20za-20baterii-215'}
+ 'Осветлување и Батерии':{'Полначи за батерии':'https://www.setec.mk/category/polnachi-20za-20baterii-215','ЛЕД Светилки':'https://www.setec.mk/category/rezervni-20delovi-20asus-20servis-211'},
+ 'Спорт и рекреација':{'Велосипеди':'https://www.setec.mk/category/velosipedi-273'},
+ 'Конзоли за играње':{'Играчки':'https://www.setec.mk/category/igrachki-30340'}
 };
 function categorySafeUrl(raw){try{const u=new URL(raw);return u.protocol==='https:'&&/^(?:www\.)?setec\.mk$/i.test(u.hostname)&&/^\/category(?:\/|$)/.test(u.pathname)}catch(e){return false}}
 function categoryKey(raw){try{const u=new URL(raw);return u.pathname.replace(/\/$/,'')+u.search}catch(e){return String(raw||'')}}
@@ -636,7 +638,7 @@ function categoryNormal(raw){return String(raw||'').normalize('NFKC').toLocaleLo
 function categoryQuery(){return $('categoryFilter').value.trim().toLocaleLowerCase()}
 function categoryShowMessage(msg){$('categoryNotice').textContent=msg}
 function categoryHome(){
- categoryRootView=true;categoryCurrentUrl='';categoryFirstUrl='';categoryNextUrl='';categoryHistory=[];categorySelectedRoot=null;categoryActiveSub='';categoryFilterActive=false;categoryAppend=false;categoryBusy=false;categoryPage=1;categoryTotal=0;
+ categoryRequestId++;categoryRootView=true;categoryCurrentUrl='';categoryFirstUrl='';categoryNextUrl='';categoryHistory=[];categorySelectedRoot=null;categoryActiveSub='';categoryFilterActive=false;categoryAppend=false;categoryBusy=false;categoryPage=1;categoryTotal=0;
  categoryEntries=[];categoryLiveSubs=[];categoryProductsCache.clear();$('categoryFilter').value='';
  $('categoryRetry').classList.add('hidden');categoryShowMessage('12 главни категории · избери категорија за подкатегории и производи.');renderCategories();window.scrollTo(0,0);
 }
@@ -654,13 +656,19 @@ function categoryBack(){
  categorySelectedRoot=prev.root;categoryActiveSub=prev.sub||'';categoryFilterActive=false;categoryLoad(prev.url,false,false);window.scrollTo(0,0);
 }
 function categoryOpenRoot(cat){
+ // Navigation is instant: the locally bundled subcategories never depend on network.
  categorySelectedRoot=cat;categoryActiveSub='';categoryFilterActive=false;
- if(!categorySafeUrl(cat.url)){
-   categoryBusy=true;categoryShowMessage('Го барам точниот линк за „'+cat.name+'“ во менито на Setec.mk…');renderCategories();
-   try{SetecApp.resolveCategoryRoot(cat.name)}catch(e){categoryBusy=false;window.onCategoryError('Не можам да ја отворам оваа категорија.')}
-   return;
+ categoryHistory=[{home:true}];categoryRootView=false;categoryBusy=false;
+ categoryPage=1;categoryTotal=0;categoryNextUrl='';categoryPageTitle=cat.name;
+ categoryCurrentUrl=categorySafeUrl(cat.url)?cat.url:'';
+ categoryFirstUrl=categoryCurrentUrl;categoryLiveSubs=[];categoryEntries=[];categoryProductsCache.clear();
+ $('categoryFilter').value='';$('categoryRetry').classList.add('hidden');
+ categoryShowMessage('Избери подкатегорија. Сите опции се достапни веднаш, без чекање.');
+ renderCategories();window.scrollTo(0,0);
+ // Load root products opportunistically, without blocking subcategory taps.
+ if(categoryCurrentUrl){
+    try{categoryLoad(categoryCurrentUrl,false,false)}catch(e){categoryBusy=false;renderCategories()}
  }
- categoryHistory=[{home:true}];categoryLoad(cat.url,false,false);window.scrollTo(0,0);
 }
 window.onCategoryRootResolved=function(name,url){
  if(!categoriesOpen||!categoryRootView)return;
@@ -677,20 +685,35 @@ function categoryLoad(url,remember=false,append=false){
  }
  categoryCurrentUrl=url;$('categoryRetry').classList.add('hidden');
  if(!append)$('categoryFilter').value='';
- categoryShowMessage(append?'Се вчитува следната страница од Setec.mk…':'Се вчитуваат подкатегории и производи од Setec.mk…');
+ categoryShowMessage(append?'Се вчитува следната страница од Setec.mk…':'Категоријата е отворена. Производите се вчитуваат од Setec.mk; подкатегориите можеш да ги избираш веднаш.');
  renderCategories();
+ const request=++categoryRequestId;
  try{SetecApp.loadCategory(url)}catch(e){window.onCategoryError('Не успеа вчитувањето на Setec.mk.')}
+ // React storefront can stay on its loading placeholder indefinitely in the hidden WebView.
+ // Always unblock navigation, even when the site never supplies a result.
+ setTimeout(()=>{
+    if(request!==categoryRequestId||!categoriesOpen||categoryRootView||!categoryBusy||categoryKey(categoryCurrentUrl)!==categoryKey(url))return;
+    categoryBusy=false;categoryAppend=false;categoryShowMessage('Setec.mk не одговори навреме. Подкатегориите работат; избери друга или отвори го каталогот на Setec.mk.');
+    $('categoryRetry').classList.remove('hidden');renderCategories();
+ },6500);
 }
 function categoryOpenSub(name,url){
- if(categoryBusy)return;
- categoryHistory.push({url:categoryFirstUrl||categoryCurrentUrl,root:categorySelectedRoot,sub:categoryActiveSub});
- categoryActiveSub=name;categoryFilterActive=false;
- if(categorySafeUrl(url)){categoryLoad(url,false,false);return}
- // The SETEC sidebar often uses live checkbox filters instead of category links.
- categoryFilterActive=true;categoryNextUrl='';categoryPage=1;categoryTotal=0;categoryProductsCache.clear();categoryLiveSubs=[];categoryAppend=false;
- $('categoryFilter').value='';categoryBusy=true;categoryShowMessage('Се применува подкатегоријата „'+name+'“ на Setec.mk…');
- renderCategories();
- try{SetecApp.filterCategory(name)}catch(e){window.onCategoryError('Не може да се активира подкатегоријата.')}
+ // Never ignore a tap while the background catalog is loading.
+ const target=categorySafeUrl(url)?url:categoryKnownUrl(name);
+ if(categorySafeUrl(target)){
+    if(categoryCurrentUrl)categoryHistory.push({url:categoryFirstUrl||categoryCurrentUrl,root:categorySelectedRoot,sub:categoryActiveSub});
+    else categoryHistory=[{home:true}];
+    categoryActiveSub=name;categoryFilterActive=false;categoryLoad(target,false,false);return;
+ }
+ // A missing Setec category URL must not lead to an inert card or a long spinner.
+ // Use the already-working product search as an explicit fallback.
+ categorySearchSub(name);
+}
+function categorySearchSub(name){
+ categoriesOpen=false;$('categoriesPanel').classList.add('hidden');
+ switchTab('search');search(name);
+ setStatus('Пребарување за „'+name+'“ · резултатите се од Setec.mk (резервен начин за подкатегорија).');
+ window.scrollTo(0,0);
 }
 window.onCategoryLoading=function(){if(!categoriesOpen)return;categoryBusy=true;renderCategories()};
 window.onCategoryError=function(message){
@@ -710,7 +733,7 @@ window.onCategoryData=function(raw){
   const data=JSON.parse(raw);
   if(categoryKey(data.url)!==categoryKey(categoryCurrentUrl))return;
   const batch=Array.isArray(data.products)?data.products.filter(p=>p&&validUrl(p.url)):[];
-  if(!batch.length&&!Array.isArray(data.subcategories)&&!Array.isArray(data.categories))return;
+  if(!batch.length && (!Array.isArray(data.subcategories)||!data.subcategories.length) && (!Array.isArray(data.categories)||!data.categories.length))return;
   let added=0;
   for(const p of batch){if(!categoryProductsCache.has(p.url))added++;categoryProductsCache.set(p.url,p)}
   if(categoryAppend&&batch.length&&added===0){
