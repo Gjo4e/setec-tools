@@ -36,7 +36,8 @@ def test_app_ui(browser):
     page.on("pageerror",lambda e:errors.append(str(e)))
     page.add_init_script("""window.SetecApp = {
       loadCategory: (url)=>{ window.__loaded=(window.__loaded||[]).concat(url) },
-      setTheme:()=>{}, search:()=>{}, copyText:()=>{},openCategory:()=>{},
+      openCategory: (url)=>{window.__opened=(window.__opened||[]).concat(url)},
+      setTheme:()=>{}, search:()=>{}, copyText:()=>{},
       openProduct:()=>{}, openPcConfigurator:()=>{},openCompare:()=>{},
       getVersion:()=>'',setLocation:()=>{}
     }""")
@@ -51,9 +52,12 @@ def test_app_ui(browser):
     children=page.locator("#categoriesList .categorySubCard")
     assert children.count()>=9,"Subcategory has no subcategories"
     children.filter(has_text="Матични Плочи").click()
+    opened=page.evaluate("window.__opened||[]")
+    assert opened and opened[-1].endswith("/matichni-20plochi-22"),opened
+    stub_url=opened[-1]
+    page.evaluate("u=>categoryLoad(u,false)",stub_url)
     urls=page.evaluate("window.__loaded||[]")
-    assert urls and urls[-1].endswith("/matichni-20plochi-22"), urls
-    stub_url=urls[-1]
+    assert urls and urls[-1]==stub_url,urls
     fake=[{"url":"https://www.setec.mk/products/test-product","name":"Тест матична плоча","sku":"12345","clubPrice":"1999","regularPrice":"2299"}]
     page.evaluate("""p=>window.onCategoryData(JSON.stringify(p))""",{"url":stub_url,"products":fake,"page":1,"pageSize":1,"total":2,"next":stub_url+"?page=2","title":"Матични плочи"})
     assert page.locator("#categoryProducts .categoryProductCard").count()==1,"Product card not shown"
@@ -68,7 +72,7 @@ def test_app_ui(browser):
         assert page.locator("#categoryBreadcrumb").inner_text()!="","Category did not open"
         page.evaluate("categoryHome()")
     assert not errors,"JavaScript exceptions: "+repr(errors)
-    print("PASS UI 12 roots, nested links, product rendering, pagination",flush=True)
+    print("PASS UI 12 roots, nested direct in-app-browser links, product rendering, pagination",flush=True)
     page.close()
 
 def test_site_category(browser,url):
