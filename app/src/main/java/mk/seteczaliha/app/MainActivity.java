@@ -486,7 +486,7 @@ public final class MainActivity extends ComponentActivity {
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(/^\\d{4,8}$/.test(q)){if(sku&&sku!==q)continue;}"+
-            "else if(/^\\d{13}$/.test(q)){if(!(name+' '+txt+' '+u.href).includes(q)&&sku)continue;}"+
+            "else if(/^\\d{13}$/.test(q)){/* Keep website EAN search results: their cards show SKU, not EAN. */}"+
             "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
