@@ -523,7 +523,7 @@ function displayResults(){
  $('moreResultsBtn').classList.toggle('hidden',!allowMore);
  if(!moreBusy)$('moreResultsBtn').textContent='Прикажи повеќе производи ↓';
  setStatus('Резултати: '+visible.length+'.');
- if(pendingSku){const exact=visible.filter(p=>p.sku===pendingSku);if(exact.length===1){pendingSku='';openProduct(exact[0])}}
+ if(pendingSku){const exact=visible.filter(p=>p.sku===pendingSku);const match=exact.length===1?exact[0]:(/^[0-9]{13}$/.test(pendingSku)&&visible.length===1?visible[0]:null);if(match){pendingSku='';openProduct(match)}}
 }
 window.showResults=function(json,reset){
  try{
