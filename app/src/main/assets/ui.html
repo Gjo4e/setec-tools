@@ -727,9 +727,9 @@ function renderStockLocations(){
  if(!status)return;
  const mode=setting('location','all');
  const stores=Array.isArray(window.verifiedStockStores)?window.verifiedStockStores:[];
- const norm=s=>String(s||'').toLocaleLowerCase().replace(/\\s+/g,' ').trim();
- const isGodi=s=>/\\bгoди\\b|годи|godi/i.test(norm(s));
- const isWarehouse=s=>/главен\\s*магацин|централен\\s*магацин|main\\s*warehouse|central\\s*warehouse/i.test(norm(s));
+ const norm=s=>String(s||'').toLocaleLowerCase().replace(/\s+/g,' ').trim();
+ const isGodi=s=>/годи|godi/i.test(norm(s));
+ const isWarehouse=s=>/главен\s*магацин|централен\s*магацин|магацин|main\s*warehouse|central\s*warehouse/i.test(norm(s));
  const selected=mode==='godi'?stores.filter(isGodi):mode==='warehouse'?stores.filter(isWarehouse):stores;
  const name=mode==='godi'?'Годи':mode==='warehouse'?'Главен магацин':'Сите локации';
  if(label)label.textContent='Достапност · '+name;
