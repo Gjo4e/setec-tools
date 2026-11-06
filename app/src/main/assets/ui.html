@@ -698,6 +698,7 @@ window.onCategoryError=function(message){
  categoryShowMessage(message||'Вчитувањето не успеа.');$('categoryRetry').classList.remove('hidden');renderCategories();
 };
 window.onCategorySearchFallback=function(url,name){window.onCategoryError('Не успеа филтерот „'+name+'“. Пробај друга подкатегорија.')};
+window.onCategoryFilterLink=function(url){if(!categorySafeUrl(url)){window.onCategoryError('Неважечки линк за подкатегоријата.');return}categoryFilterActive=false;categoryLoad(url,false,false)};
 function categoryRetryLoad(){
  if(categoryRootView){categoryHome();return}
  if(categoryFilterActive&&categoryActiveSub){const name=categoryActiveSub;categoryFilterActive=false;categoryOpenSub(name,'');return}
