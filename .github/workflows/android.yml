@@ -24,10 +24,22 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Test model recognition
         run: gradle --no-daemon :app:testDebugUnitTest --stacktrace
-      - name: Build APK
-        run: gradle --no-daemon :app:assembleDebug --stacktrace
+      - name: Build original-package APK
+        run: |
+          gradle --no-daemon :app:assembleDebug --stacktrace
+          mkdir -p app/build/outputs/release-candidates
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-Update-v61.apk
+      - name: Build side-by-side category APK
+        run: |
+          gradle --no-daemon -PparallelCatalog=true :app:assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-v61-Separate.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Setec-Zaliha-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/release-candidates/SETEC-TOOLS-Update-v61.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Setec-Categories-v61-Separate
+          path: app/build/outputs/release-candidates/SETEC-TOOLS-v61-Separate.apk
           if-no-files-found: error
