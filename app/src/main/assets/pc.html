@@ -346,40 +346,90 @@ function powerInfo(){
  card.appendChild(el('div','small','Провери ги PCIe конекторите, пиковите на потрошувачка и препораките на производителот.'));
  out.appendChild(card);
 }
-function renderGaming(){
- const out=$('gamingIdeas');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','🎮 FPS во Fortnite, CS2 и GTA V'));
- const gpu=chosen.gpu,cpu=chosen.cpu;
- if(!gpu||!cpu){card.appendChild(el('div','small','Избери CPU и GPU за да видиш приближни FPS.'));out.appendChild(card);return}
- const gn=String(gpu.name||'').toUpperCase().replace(/\s/g,'');
- // Approximate 1080p performance tiers, not actual benchmark measurements.
- let tier=null;
- if(/(?:RX9060XT|RTX5060TI|RTX4070|RX7700XT)/.test(gn))tier=3;
- else if(/(?:RTX5070TI|RTX5080|RX9070XT|RTX4080)/.test(gn))tier=5;
- else if(/(?:RTX5070|RX9070|RTX4070SUPER|RX7800XT)/.test(gn))tier=4;
- else if(/(?:RTX5060|RTX4060TI|RX7600XT|RX7600)/.test(gn))tier=2;
- else if(/(?:RTX4060|RTX3060|RX6600|RX6650)/.test(gn))tier=1;
- const levels={
-  1:[[80,140],[110,180],[75,120]],
-  2:[[110,180],[140,220],[95,145]],
-  3:[[140,230],[170,270],[120,180]],
-  4:[[170,280],[190,310],[140,210]],
-  5:[[200,330],[220,350],[160,240]]
- };
- if(tier){
-  const data=levels[tier],names=['Fortnite','Counter-Strike 2','GTA V (оригинална)'];
-  const desc=['1080p, High, без RT','1080p, competitive/Low','1080p, Very High, без RT'];
-  for(let i=0;i<3;i++){
-   const row=el('div','result');row.style.margin='8px 0';row.style.padding='10px';
-   row.appendChild(el('div','resultName',names[i]));
-   row.appendChild(el('div','total','~'+data[i][0]+'–'+data[i][1]+' FPS'));
-   row.appendChild(el('div','small',desc[i]));
-   card.appendChild(row);
-  }
-  card.appendChild(el('div','warning','Ова се груби ориентациски FPS опсези според класата на GPU, НЕ измерени тестови на твојата конфигурација. CPU, RAM, верзијата на играта и поставките може значително да ги сменат резултатите.'));
- }else{
-  card.appendChild(el('div','small','Не ја препознавам графичката за да прикажам одговорен FPS опсег. Избери GPU со препознатлива серија.'));
+
+let gamingResolution='1080',gamingPreset='balanced';
+try{gamingResolution=localStorage.getItem('setec_pc_fps_resolution')||'1080';gamingPreset=localStorage.getItem('setec_pc_fps_preset')||'balanced'}catch(e){}
+function fpsSelect(card,label,values,selected,change){
+ const row=el('div','row wrap');row.style.margin='10px 0';
+ row.appendChild(el('span','small',label));
+ const select=el('select');select.setAttribute('aria-label',label);
+ for(const [v,t] of values){const o=document.createElement('option');o.value=v;o.textContent=t;select.appendChild(o)}
+ select.value=selected;select.onchange=()=>change(select.value);row.appendChild(select);card.appendChild(row);
+}
+function gamingCpuScore(p){
+ if(!p)return null;const t=String(p.name||'').toUpperCase().replace(/\s+/g,'');
+ const ryzen=t.match(/RYZEN(?:[3579])?(\d{4,5})(X3D|X|G)?/);
+ if(ryzen){
+  const model=Number(ryzen[1]),gen=Math.floor(model/1000),series=Math.floor((model%1000)/100);
+  let score=gen>=9?1.17:gen>=7?1.08:gen>=5?0.94:gen>=3?0.78:0.68;
+  score*=series>=9?1.09:series>=7?1.05:series>=5?1:0.89;
+  if(ryzen[2]==='X3D')score*=1.18;
+  return Math.max(.55,Math.min(1.45,score));
  }
- card.appendChild(el('div','small','Избран GPU: '+gpu.name));
+ const intel=t.match(/(?:CORE(?:I)?[3579]|I[3579])[- ]?(\d{4,5})(KF|KS|K|F)?/);
+ if(intel){
+  const model=intel[1],gen=model.length===5?Number(model.slice(0,2)):Number(model.slice(0,1)),tier=Number(model.length===5?model[2]:model[1]);
+  let score=gen>=14?1.14:gen>=13?1.09:gen>=12?1.03:gen>=10?.90:gen>=8?.77:.63;
+  score*=tier>=9?1.10:tier>=7?1.06:tier>=5?1:0.89;
+  return Math.max(.55,Math.min(1.4,score));
+ }
+ return null;
+}
+function gamingGpuTier(p){
+ if(!p)return null;const t=String(p.name||'').toUpperCase().replace(/\s+/g,'');
+ const groups=[
+  [5,/(RTX5080|RTX5070TI|RX9070XT|RTX4080)/],
+  [4,/(RTX5070(?!TI)|RX9070(?!XT)|RTX4070SUPER|RX7800XT)/],
+  [3,/(RX9060XT|RTX5060TI|RTX4070(?!SUPER)|RX7700XT)/],
+  [2,/(RTX5060(?!TI)|RTX4060TI|RX7600XT|RX7600)/],
+  [1,/(RTX4060(?!TI)|RTX3060|RX6600|RX6650)/]
+ ];
+ for(const [tier,re] of groups)if(re.test(t))return tier;
+ return null;
+}
+function renderGaming(){
+ const out=$('gamingIdeas');out.replaceChildren();
+ const card=el('div','summary');card.appendChild(el('div','title','🎮 FPS проценка — цела конфигурација'));
+ fpsSelect(card,'Резолуција',[['1080','1920×1080'],['1440','2560×1440'],['2160','3840×2160']],gamingResolution,v=>{gamingResolution=v;localStorage.setItem('setec_pc_fps_resolution',v);renderGaming()});
+ fpsSelect(card,'Графика',[['competitive','Competitive / Low'],['balanced','High'],['ultra','Ultra / Very High']],gamingPreset,v=>{gamingPreset=v;localStorage.setItem('setec_pc_fps_preset',v);renderGaming()});
+ const cpu=chosen.cpu,gpu=chosen.gpu,ram=chosen.ram,board=chosen.board,storage=chosen.storage,psu=chosen.psu;
+ if(!cpu||!gpu){card.appendChild(el('div','warning','Избери процесор и графичка карта за FPS проценка.'));out.appendChild(card);return}
+ const tier=gamingGpuTier(gpu),cpuScore=gamingCpuScore(cpu);
+ if(tier===null||cpuScore===null){
+  card.appendChild(el('div','warning','Не можам сигурно да ја класифицирам '+(tier===null?'графичката':'')+(tier===null&&cpuScore===null?' и ':'')+(cpuScore===null?'процесорот':'')+'. Без споредливи тестови нема да измислувам FPS.'));
+  out.appendChild(card);return;
+ }
+ const cap=nameCapacity(ram),gb=cap?cap.gb*ramQuantity:null,modules=cap?cap.modules*ramQuantity:0;
+ const ddr=ram?getDdr(ram,'ram'):null;
+ const ramFactor=gb===null?.84:gb<8?.58:gb<16?.78:gb<32?.96:1;
+ const channelFactor=modules>=2?1:.91;
+ const memoryFactor=ddr==='DDR5'?1.03:ddr==='DDR4'?1:.96;
+ const storageName=String(storage?.name||'').toUpperCase();
+ const isSSD=/SSD|NVME|M\.2/.test(storageName);
+ const storageNote=!storage?'Диск не е избран.':isSSD?'SSD: подобро вчитување и помалку застои, но не значително повисок просечен FPS.':'HDD: можни подолги вчитувања и повремени застои.';
+ const gpuReference={1:[115,155,95],2:[150,195,120],3:[190,235,155],4:[235,275,185],5:[280,315,220]}[tier];
+ const cpuCaps=[240,310,230];
+ const resFactor=gamingResolution==='2160'?.46:gamingResolution==='1440'?.72:1;
+ const presetFactor=gamingPreset==='competitive'?1.30:gamingPreset==='ultra'?.79:1;
+ const names=['Fortnite','Counter-Strike 2','GTA V (оригинална)'];
+ for(let i=0;i<3;i++){
+  // GPU and CPU limits are combined using a bottleneck model; RAM modifies both.
+  const gpuFps=gpuReference[i]*resFactor*presetFactor;
+  const cpuFps=cpuCaps[i]*cpuScore*(gamingPreset==='competitive'?1.12:1);
+  const combined=Math.min(gpuFps,cpuFps)*ramFactor*channelFactor*memoryFactor;
+  const low=Math.max(20,Math.round(combined*.77/5)*5);
+  const high=Math.max(low+5,Math.round(combined*1.18/5)*5);
+  const row=el('div','result');row.style.margin='8px 0';row.style.padding='12px';
+  row.appendChild(el('div','resultName',names[i]));
+  row.appendChild(el('div','total','~'+low+'–'+high+' FPS'));
+  row.appendChild(el('div','small','GPU + CPU ограничување · RAM капацитет / модули · '+gamingResolution+'p · '+(gamingPreset==='competitive'?'Low':gamingPreset==='ultra'?'Ultra':'High')));
+  card.appendChild(row);
+ }
+ card.appendChild(el('div','checked','Вклучени во проценката: CPU ('+cpu.name+'), GPU ('+gpu.name+'), RAM ('+(gb===null?'непознат капацитет':gb+' GB')+', '+modules+' модули).'));
+ card.appendChild(el('div','small',storageNote));
+ if(board&&getSocket(cpu,'cpu')&&getSocket(board,'board')&&getSocket(cpu,'cpu')!==getSocket(board,'board'))card.appendChild(el('div','error','CPU и матичната имаат различен сокет — конфигурацијата не е функционална; FPS проценката не важи.'));
+ if(!psu)card.appendChild(el('div','small','Нема избрано напојување. PSU не додава FPS, но мора да е доволно за стабилна работа.'));
+ card.appendChild(el('div','warning','ВАЖНО: Ова е математички модел со широки опсези, не вистински benchmark. Не може точно да се предвиди FPS само од список на делови. За точни бројки потребни се реални тестови со ист CPU, GPU, RAM, игра и поставки.'));
  out.appendChild(card);
 }
 
