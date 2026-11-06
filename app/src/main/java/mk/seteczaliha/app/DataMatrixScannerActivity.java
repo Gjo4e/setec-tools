@@ -123,7 +123,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                                 finished=true;
                                 lastPayload=payload;
                                 if(provider!=null)provider.unbindAll();
-                                confirmPayload(payload);
+                                completeScan(payload);
                                 break;
                             }
                         }
@@ -134,6 +134,11 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                 provider.bindToLifecycle(this,CameraSelector.DEFAULT_BACK_CAMERA,p,analysis);
             }catch(Exception e){status.setText("Камерата не е достапна. Внеси шифра рачно.");}
         },ContextCompat.getMainExecutor(this));
+    }
+    private void completeScan(String payload) {
+        Intent data=new Intent().putExtra("data_matrix_payload",payload);
+        setResult(Activity.RESULT_OK,data);
+        finish();
     }
     private void confirmPayload(String payload) {
         // Data Matrix may encode an EAN, internal ID, or structured fields.
