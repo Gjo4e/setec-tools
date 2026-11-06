@@ -47,6 +47,7 @@ public final class ScannerActivity extends ComponentActivity {
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final AtomicBoolean busy = new AtomicBoolean(false);
     private ProcessCameraProvider provider;
+    private PreviewView preview;
     private ActivityResultLauncher<String> cameraPermission;
     private boolean cameraStarted = false;
     private TextView detected;
@@ -67,7 +68,7 @@ public final class ScannerActivity extends ComponentActivity {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
         setContentView(root);
-        PreviewView preview = new PreviewView(this);
+        preview = new PreviewView(this);
         preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
         root.addView(preview, new FrameLayout.LayoutParams(-1,-1));
 
