@@ -52,15 +52,15 @@ def test_app_ui(browser):
     children=page.locator("#categoriesList .categorySubCard")
     assert children.count()>=9,"Subcategory has no subcategories"
     children.filter(has_text="Матични Плочи").click()
-    opened=page.evaluate("window.__opened||[]")
-    assert opened and opened[-1].endswith("/matichni-20plochi-22"),opened
-    stub_url=opened[-1]
-    page.evaluate("u=>categoryLoad(u,false)",stub_url)
     urls=page.evaluate("window.__loaded||[]")
-    assert urls and urls[-1]==stub_url,urls
+    assert urls and urls[-1].endswith("/matichni-20plochi-22"),urls
+    assert not page.evaluate("window.__opened||[]"),"Unexpected redirect outside native app"
+    stub_url=urls[-1]
     fake=[{"url":"https://www.setec.mk/products/test-product","name":"Тест матична плоча","sku":"12345","clubPrice":"1999","regularPrice":"2299"}]
     page.evaluate("""p=>window.onCategoryData(JSON.stringify(p))""",{"url":stub_url,"products":fake,"page":1,"pageSize":1,"total":2,"next":stub_url+"?page=2","title":"Матични плочи"})
     assert page.locator("#categoryProducts .categoryProductCard").count()==1,"Product card not shown"
+    assert "1999" in page.locator("#categoryProducts").inner_text(),"Club price not visible"
+    assert "2299" in page.locator("#categoryProducts").inner_text(),"Regular price not visible"
     assert page.locator("#categoryNext").is_enabled(),"Next page disabled"
     page.locator("#categoryNext").click()
     urls=page.evaluate("window.__loaded||[]")
@@ -72,11 +72,11 @@ def test_app_ui(browser):
         assert page.locator("#categoryBreadcrumb").inner_text()!="","Category did not open"
         page.evaluate("categoryHome()")
     assert not errors,"JavaScript exceptions: "+repr(errors)
-    print("PASS UI 12 roots, nested direct in-app-browser links, product rendering, pagination",flush=True)
+    print("PASS UI 12 roots, 3-level native navigation, local prices and pagination, zero redirects",flush=True)
     page.close()
 
-def test_site_category(browser,url):
-    page=browser.new_page(viewport={"width":1200,"height":920},locale="mk-MK")
+def test_site_category(browser,url,viewport=430):
+    page=browser.new_page(viewport={"width":viewport,"height":920},locale="mk-MK",is_mobile=(viewport<=430),has_touch=(viewport<=430))
     page.goto(url,wait_until="domcontentloaded",timeout=25000)
     page.wait_for_timeout(3000)
     script=extract_java_script(url)
@@ -98,7 +98,8 @@ def test_site_category(browser,url):
 with sync_playwright() as p:
     browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
     test_app_ui(browser)
-    urls=["https://www.setec.mk/category/televizori-55","https://www.setec.mk/category/konfiguratsii-32","https://www.setec.mk/category/matichni-20plochi-22"]
+    urls=["https://www.setec.mk/category/televizori-55","https://www.setec.mk/category/konfiguratsii-32","https://www.setec.mk/category/matichni-20plochi-22",
+          "https://www.setec.mk/category/konfiguratsii-32?page=2"]
     results={url:test_site_category(browser,url) for url in urls}
     print("REAL SITE EXTRACT RESULTS",results,flush=True)
     browser.close()
