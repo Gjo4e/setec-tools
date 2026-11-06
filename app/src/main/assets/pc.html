@@ -25,6 +25,7 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
 <section id="home">
   <div class="row wrap"><div class="title">Избери компоненти</div><span id="progress" class="small">0 / 8</span></div>
   <div class="categories" id="categories"></div>
+  <div class="summary"><b>🛠 PC алатки</b><p class="small">Избери алатка:</p><div class="row wrap" style="justify-content:flex-start"><button class="ghost" onclick="document.getElementById('ramSlots').scrollIntoView({behavior:'smooth'})">▤ RAM слотови</button><button class="ghost" onclick="document.getElementById('powerEstimate').scrollIntoView({behavior:'smooth'})">⚡ Напојување</button><button class="ghost" onclick="document.getElementById('budgetIdeas').scrollIntoView({behavior:'smooth'})">💰 Буџет</button><button class="ghost" onclick="document.getElementById('gamingIdeas').scrollIntoView({behavior:'smooth'})">🎮 Gaming</button></div></div>
   <div class="summary">
     <div class="row"><b>Твоја конфигурација</b><button class="ghost" style="font-size:11px" onclick="copyBuild()">Копирај</button></div>
     <div id="selected"></div>
@@ -282,7 +283,7 @@ function candidateReason(p,id,check){
 
 function specValue(p,regex){if(!p)return null;const text=String(p.name||'')+' '+String(p.specs||'');const m=text.match(regex);return m?Number(m[1]):null}
 function ramSlotsInfo(){
- const out=$('ramSlots');out.replaceChildren();if(!chosen.ram)return;
+ const out=$('ramSlots');out.replaceChildren();if(!chosen.ram){const card=el('div','summary');card.appendChild(el('div','title','▤ RAM слотови'));card.appendChild(el('div','small','Избери RAM меморија за проверка на слотови и капацитет.'));out.appendChild(card);return;}
  const card=el('div','summary');card.appendChild(el('div','title','RAM слотови и капацитет'));
  const count=ramQuantity,board=chosen.board;
  card.appendChild(el('div','small','Избрани RAM единици: '+count+'× (провери дали производот е еден модул или комплет).'));
@@ -304,7 +305,7 @@ function ramSlotsInfo(){
 }
 function powerInfo(){
  const out=$('powerEstimate');out.replaceChildren();
- if(!chosen.cpu&&!chosen.gpu&&!chosen.psu)return;
+ if(!chosen.cpu&&!chosen.gpu&&!chosen.psu){const card=el('div','summary');card.appendChild(el('div','title','⚡ Калкулатор за напојување'));card.appendChild(el('div','small','Избери процесор и графичка за пресметка со потврдени спецификации.'));out.appendChild(card);return;}
  const card=el('div','summary');card.appendChild(el('div','title','⚡ Калкулатор за напојување'));
  // Only use clearly labelled TDP/TBP/TGP/board power in watts; model digits are not wattage.
  const watt=p=>{if(!p)return null;const t=String(p.name||'')+' '+String(p.specs||'');const m=t.match(/\b(?:TDP|TGP|TBP|TOTAL\s*BOARD\s*POWER|PROCESSOR\s*BASE\s*POWER)\s*[:\-]?\s*(\d{2,4})\s*W\b/i);return m?Number(m[1]):null};
@@ -340,7 +341,7 @@ function renderBudget(){
  out.appendChild(card);
 }
 function renderGaming(){
- const out=$('gamingIdeas');out.replaceChildren();if(!chosen.cpu&&!chosen.gpu)return;
+ const out=$('gamingIdeas');out.replaceChildren();if(!chosen.cpu&&!chosen.gpu){const card=el('div','summary');card.appendChild(el('div','title','🎮 Gaming анализа'));card.appendChild(el('div','small','Избери процесор и графичка за gaming насоки.'));out.appendChild(card);return;}
  const card=el('div','summary');card.appendChild(el('div','title','🎮 Gaming анализа'));
  const cpu=chosen.cpu,gpu=chosen.gpu,ram=chosen.ram;
  if(!gpu){card.appendChild(el('div','warning','Нема избрана графичка карта. Не може да се процени gaming погодноста.'))}
@@ -371,6 +372,7 @@ function rebuild(){
  if(check.issues.length)area.appendChild(el('div','error','НЕСООДВЕТНО: '+check.issues.join(' ')));
  else if(n>0)area.appendChild(el('div','warning','Нема потврдена основна некомпатибилност. Ова не значи целосно проверена конфигурација.'));
  for(const msg of check.notes)area.appendChild(el('div','small','• '+msg));
+ renderSmartAdvice();ramSlotsInfo();powerInfo();renderBudget();renderGaming();
  const stocked=slots.filter(x=>chosen[x]), common=stocked.length?stocked.map(x=>new Set(uniqueStores(chosen[x]))).reduce((a,b)=>new Set([...a].filter(y=>b.has(y)))):new Set();
  $('sharedStore').textContent=stocked.length>1?'Заеднички потврдени локации: '+(common.size?[...common].join(' · '):'не е пронајдена иста локација за сите избрани делови'):'';
 }
