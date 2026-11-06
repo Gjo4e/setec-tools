@@ -8,49 +8,26 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 4
     steps:
-      - name: Install browser tools
-        run: |
-          pip install --quiet playwright
-          python -m playwright install chromium
-      - name: Inspect category menu internals
+      - name: Retrieve official category taxonomy
         shell: bash
         run: |
-          cat > /tmp/inspect_setec_site.py <<'PY'
-          from playwright.sync_api import sync_playwright
-          import json
-          network=[]
-          def handle_response(r):
-            try:
-              typ=(r.headers.get('content-type') or '')
-              if any(token in r.url for token in ['/api/','_next/data','_next/static','category']) and len(network)<100:
-                network.append({'url':r.url[:250],'type':typ})
-            except Exception:pass
-          with sync_playwright() as p:
-            browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
-            page=browser.new_page(viewport={'width':1280,'height':980},locale='mk-MK')
-            page.on('response',handle_response)
-            page.goto('https://www.setec.mk/',wait_until='domcontentloaded',timeout=35000)
-            page.wait_for_timeout(1700)
-            page.get_by_role('button',name='ПРОИЗВОДИ').first.click()
-            page.wait_for_timeout(1000)
-            print('MENU NETWORK',json.dumps(network[-25:],ensure_ascii=False),flush=True)
-            inspect=page.evaluate('''() => {let xs=[...document.querySelectorAll('*')].filter(x=>x.children.length===0&&x.textContent.trim()==='Конфигурации');return xs.slice(0,5).map(el=>({html:el.outerHTML.slice(0,700),parent:el.parentElement?.outerHTML.slice(0,1300),grandparent:el.parentElement?.parentElement?.outerHTML.slice(0,2000)}))}''')
-            print('DOM CONFIG',json.dumps(inspect,ensure_ascii=False),flush=True)
-            eles=page.get_by_text('Конфигурации',exact=True).all()
-            clicked=False
-            for el in eles:
-              if el.is_visible():
-                try:
-                  el.click(timeout=6500)
-                  clicked=True
-                  break
-                except Exception as e:print('CLICK ERROR',str(e)[:160],flush=True)
-            print('CLICKED',clicked,flush=True)
-            page.wait_for_timeout(1700)
-            print('AFTER CLICK URL',page.url,flush=True)
-            print('AFTER CLICK NETWORK',json.dumps(network[-20:],ensure_ascii=False),flush=True)
-            browser.close()
+          python3 - <<'PY'
+          import urllib.request,json
+          url='https://www.setec.mk/api/strapi/category?locale=mk-MK&withSubcategories=true'
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 Chrome/131 Safari/537.36','Accept':'application/json'})
+          with urllib.request.urlopen(req,timeout=35) as r:
+            body=r.read().decode('utf-8')
+            print('HTTP',r.status,'length',len(body),flush=True)
+            print('PREVIEW',body[:1200],flush=True)
+          data=json.loads(body)
+          print('ROOT TYPE',type(data).__name__,flush=True)
+          print('ROOT KEYS',list(data.keys()) if isinstance(data,dict) else len(data),flush=True)
+          with open('setec-category-taxonomy.json','w',encoding='utf-8') as f:json.dump(data,f,ensure_ascii=False,indent=2)
           PY
-          python /tmp/inspect_setec_site.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: setec-category-taxonomy
+          path: setec-category-taxonomy.json
+          if-no-files-found: error
