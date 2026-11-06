@@ -12,12 +12,21 @@
  <path android:fillColor="#EAF8FF" android:pathData="M45,29 Q39,33 42,38 Q44,42 52,42 H63 Q68,42 67,46 Q65,49 58,49 H39 Q45,54 59,54 H67 Q79,52 79,43 Q79,34 66,34 H52 Q48,34 50,30Z"/>
  <path android:fillColor="#05C9FA" android:pathData="M72,49 Q68,55 57,55 H43 Q36,55 30,63 H57 Q74,63 77,49Z"/>
  <path android:fillColor="#0470ED" android:pathData="M30,63 H56 Q72,63 77,49 Q74,67 58,67 H30Z"/>
- <!-- Stylized wordmark -->
- <path android:fillColor="#F7FBFF" android:pathData="M22,76 H31 V78 H25 V79 H30 V81 H25 V82 H31 V84 H22 V82 H29 V81 H25 Q22,81 22,79 Q22,77 25,76Z"/>
- <path android:fillColor="#F7FBFF" android:pathData="M33,76 H42 V78 H36 V79 H41 V81 H36 V82 H42 V84 H33Z"/>
- <path android:fillColor="#F7FBFF" android:pathData="M44,76 H54 V78 H50 V84 H47 V78 H44Z"/>
- <path android:fillColor="#F7FBFF" android:pathData="M56,76 H65 V78 H59 V79 H64 V81 H59 V82 H65 V84 H56Z"/>
- <path android:fillColor="#F7FBFF" android:pathData="M75,76 H69 Q66,76 66,80 Q66,84 69,84 H75 V82 H70 Q69,82 69,80 Q69,78 70,78 H75Z"/>
- <path android:fillColor="#1CB8FF" android:pathData="M27,90 H39 V91.3 H34 V97 H32 V91.3 H27Z M41,90 H48 Q51,90 51,93.5 Q51,97 48,97 H41 Q39,97 39,93.5 Q39,90 41,90Z M42,92 V95 H48 V92Z M54,90 H61 Q64,90 64,93.5 Q64,97 61,97 H54 Q52,97 52,93.5 Q52,90 54,90Z M55,92 V95 H61 V92Z M66,90 H68 V95 H76 V97 H66Z M86,90 H78 V92 H85 V93 H80 Q78,93 78,95 Q78,97 80,97 H87 V95 H80 V94 H85 Q87,94 87,92 Q87,90 86,90Z"/>
- <path android:strokeColor="#149EFF" android:strokeWidth=".7" android:pathData="M16,93 Q32,87 46,95 T88,89"/>
+ <!-- Precise two-line SETEC TOOLS wordmark: letters drawn as readable Latin capitals. -->
+ <path android:fillColor="#F7FBFF" android:fillType="evenOdd" android:pathData="
+ M23,76 H30 V77.5 H24.7 V79 H28.7 Q30.5,79 30.5,80.8 V82 Q30.5,84 28.5,84 H22.8 V82.5 H28.7 V80.7 H24.5 Q22.8,80.7 22.8,79 Z
+ M32,76 H39.5 V77.5 H33.8 V79.2 H38.8 V80.7 H33.8 V82.5 H39.5 V84 H32 Z
+ M41,76 H49 V77.5 H45.9 V84 H44.1 V77.5 H41 Z
+ M50.5,76 H58 V77.5 H52.3 V79.2 H57.3 V80.7 H52.3 V82.5 H58 V84 H50.5 Z
+ M67.5,76 H62.5 Q59.5,76 59.5,79 V81 Q59.5,84 62.5,84 H67.5 V82.5 H62.8 Q61.3,82.5 61.3,81 V79 Q61.3,77.5 62.8,77.5 H67.5 Z"/>
+ <!-- T -->
+ <path android:fillColor="#29B9FF" android:pathData="M27,89 H37 V90.7 H32.9 V97 H31.1 V90.7 H27 Z"/>
+ <!-- O -->
+ <path android:fillColor="#29B9FF" android:fillType="evenOdd" android:pathData="M40.4,89 H44.6 Q47.3,89 47.3,91.7 V94.3 Q47.3,97 44.6,97 H40.4 Q37.7,97 37.7,94.3 V91.7 Q37.7,89 40.4,89 Z M40.7,90.8 Q39.5,90.8 39.5,92 V94 Q39.5,95.2 40.7,95.2 H44.3 Q45.5,95.2 45.5,94 V92 Q45.5,90.8 44.3,90.8 Z"/>
+ <!-- O -->
+ <path android:fillColor="#29B9FF" android:fillType="evenOdd" android:pathData="M51.1,89 H55.3 Q58,89 58,91.7 V94.3 Q58,97 55.3,97 H51.1 Q48.4,97 48.4,94.3 V91.7 Q48.4,89 51.1,89 Z M51.4,90.8 Q50.2,90.8 50.2,92 V94 Q50.2,95.2 51.4,95.2 H55 Q56.2,95.2 56.2,94 V92 Q56.2,90.8 55,90.8 Z"/>
+ <!-- L -->
+ <path android:fillColor="#29B9FF" android:pathData="M59.5,89 H61.3 V95.2 H67.7 V97 H59.5 Z"/>
+ <!-- S: correct Latin S, not mirrored -->
+ <path android:fillColor="#29B9FF" android:pathData="M77.8,89 H70.8 Q68.8,89 68.8,91 V92 Q68.8,93.8 70.8,93.8 H76.1 V95.2 H69 V97 H76.3 Q78,97 78,95.2 V93.6 Q78,92 76.2,92 H70.7 V90.8 H77.8 Z"/>
 </vector>
