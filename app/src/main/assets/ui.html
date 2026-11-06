@@ -217,7 +217,7 @@ body.dark .categoryNotice{background:var(--surface-alt)!important;color:var(--su
 <section id="categoriesPanel" class="categoriesPanel hidden">
 <div class="categoriesHeader"><button class="categoriesBack" onclick="closeCategories()">‹ Назад</button><div><h2>Сите категории</h2><p>Преглед на SETEC каталогот</p></div></div>
 <input id="categoryFilter" class="categoryFilter" type="search" placeholder="Пребарај категорија или подкатегорија..." oninput="renderCategories()" aria-label="Пребарај категории">
-<div class="categoryNotice">Избери подкатегорија за пребарување во апликацијата. За целосната и најнова листа отвори ја официјалната категорија на SETEC.</div>
+<div class="categoryNotice">Избери подкатегорија за пребарување во апликацијата. Дел од подкатегориите се ориентациони; за целосната и најнова листа отвори ја официјалната категорија на SETEC.</div>
 <div id="categoriesList" class="categoriesList"></div>
 <button class="categoryOfficialAll" onclick="openSetecCategory('https://setec.mk/category')">Отвори го целиот каталог на setec.mk ↗</button>
 </section>
@@ -288,7 +288,7 @@ function showCategories(){
  $('categoryFilter').value='';expandedCategory=-1;renderCategories();window.scrollTo(0,0)
 }
 function closeCategories(){categoriesOpen=false;$('categoriesPanel').classList.add('hidden');switchTab('scan');window.scrollTo(0,0)}
-function openSetecCategory(url){try{SetecApp.openOfficial(url)}catch(e){window.location.href=url}}
+function openSetecCategory(url){try{SetecApp.openCategory(url)}catch(e){window.location.href=url}}
 function categorySearch(term){categoriesOpen=false;$('categoriesPanel').classList.add('hidden');simpleSearch(term)}
 function renderCategories(){
  const host=$('categoriesList');host.replaceChildren();
