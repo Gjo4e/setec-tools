@@ -65,10 +65,14 @@ public final class MainActivity extends ComponentActivity {
         });
         dataMatrixLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if(result.getResultCode()==RESULT_OK && result.getData()!=null){
-                String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
-                if(sku!=null && sku.matches("[0-9]{4,8}")){
+                String payload=result.getData().getStringExtra("data_matrix_payload");
+                if(payload!=null && !payload.trim().isEmpty()){
                     nextScanBatch=false;
-                    js("window.onScanned("+JSONObject.quote(sku)+");");
+                    js("window.onDataMatrixScanned("+JSONObject.quote(payload.trim())+");");
+                } else {
+                    String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
+                    if(sku!=null && sku.matches("[0-9]{4,8}"))
+                        js("window.onScanned("+JSONObject.quote(sku)+");");
                 }
             }
         });
