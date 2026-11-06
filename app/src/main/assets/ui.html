@@ -61,21 +61,69 @@ body.dark .dashTile:active,body.dark .dashRecent button:active{background:#33445
 .detailTool{margin-top:20px;margin-bottom:12px;clear:both;display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
 .detailTool .official{display:block;margin:0;text-align:center;text-decoration:none}
 .detailTool .small{line-height:1.6}
+
+/* Professional dashboard: isolated from legacy card styles. */
+.dashboard{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible;margin-bottom:18px}
+.dashHero{padding:23px 21px 24px;background:linear-gradient(140deg,#171d29 0%,#202c3c 70%,#29374a 100%);border-radius:21px;color:#fff;box-shadow:0 10px 28px rgba(24,37,58,.13)}
+.dashHeroTop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px}
+.dashEyebrow{font-size:10px;font-weight:850;letter-spacing:1.5px;color:#d0dbe8;display:flex;align-items:center;gap:8px}
+.dashDot{width:7px;height:7px;border-radius:50%;background:#ff9b43;box-shadow:0 0 0 4px rgba(245,130,30,.16)}
+.dashTheme{font-size:12px;font-weight:750;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.19);color:#fff;padding:9px 11px;border-radius:11px;white-space:nowrap}
+.dashTitle{font-size:clamp(26px,6.6vw,35px);font-weight:900;letter-spacing:-1.1px;line-height:1.15;color:#fff!important}
+.dashTitle span{color:#ffab65}
+.dashIntro{color:#c9d4e0;font-size:12.5px;line-height:1.65;margin:14px 0 0;max-width:400px}
+.dashWorkspace{margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:19px;padding:18px}
+.dashSectionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;color:var(--bodycopy)}
+.dashSectionHead strong{font-size:14px;font-weight:850}
+.dashSectionHead>span{font-size:10px;color:var(--subcopy);font-weight:650}
+.dashSearch{display:flex;gap:8px;margin-top:13px}
+.dashSearch input{background:var(--field);color:var(--bodycopy);border:1px solid var(--border);border-radius:12px;min-width:0;flex:1;min-height:51px;padding:12px;font-size:13px}
+.dashSearch button{border:0;border-radius:12px;padding:0 14px;min-width:73px;background:#f5821e;color:#fff;font-size:13px;font-weight:800}
+.dashHelper{color:var(--subcopy);font-size:11px;line-height:1.55;margin:9px 0 0}
+.dashToolsHeading{margin-top:24px}
+.dashQuick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 0}
+.dashTile{min-width:0;min-height:112px;padding:13px;border-radius:14px;border:1px solid var(--border);background:var(--surface-alt);color:var(--bodycopy);display:flex;align-items:flex-start;flex-direction:column;gap:8px;text-align:left;position:relative}
+.dashTilePrimary{background:#fff4e9;border-color:#f9d9b9}
+.dashTileIcon{width:35px;height:35px;display:flex!important;align-items:center;justify-content:center;border-radius:10px;background:rgba(245,130,30,.11);color:#e47411;font-size:23px!important;margin:0!important;line-height:1}
+.dashTileText{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dashTileText b{font-size:12.5px;font-weight:850;line-height:1.25}
+.dashTileText small{font-size:10px;color:var(--subcopy);line-height:1.3}
+.dashChevron{position:absolute;top:12px;right:12px;font-size:18px;color:var(--subcopy)}
+.dashRecentWrap{margin-top:22px;padding-top:17px;border-top:1px solid var(--border)}
+.dashClear{border:0;background:transparent;color:#e2781b;font-size:11px;font-weight:800;padding:6px}
+.dashRecent{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dashRecent button{background:var(--surface-alt);color:var(--bodycopy);border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.dark .dashWorkspace{background:var(--surface)!important;border-color:var(--border)}
+body.dark .dashHero{background:linear-gradient(140deg,#101725,#1d2a3b)}
+body.dark .dashTile,body.dark .dashRecent button{background:var(--surface-alt)!important;color:var(--bodycopy)!important;border-color:var(--border)!important}
+body.dark .dashTilePrimary{background:#382d28!important;border-color:#785139!important}
+body.dark .dashTileIcon{background:rgba(245,130,30,.15)!important;color:#ffae69!important}
+body.dark .dashTheme{background:rgba(255,255,255,.1)!important;color:#fff!important;border-color:rgba(255,255,255,.2)!important}
+body.dark .dashIntro{color:#c9d4e0!important}
+@media(max-width:340px){.dashWorkspace{padding:13px}.dashTile{padding:10px}.dashSearch button{min-width:62px;padding:0 8px}.dashSearch button span{display:none}}
 </style></head>
 <body><header class="head"><div class="brand"><div class="brandLogo" aria-label="Setec Шифри"><span class="markName">Setec</span><span class="markSub">Шифри</span></div><span class="sep"></span><span>Setec Шифри</span></div><p class="notOfficial">Неофицијална апликација · пребарување по шифра</p></header>
 <nav class="tabs" aria-label="Режим"><button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>▣</span>Скенирај</button><button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button><button class="tab" id="batchTab" onclick="switchTab('batch')"><span>▣</span>Листа</button><button class="tab" onclick="SetecApp.openCompare()"><span>⇄</span>СПОРЕДИ</button><button class="tab" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC</button></nav>
 <main class="wrap">
 <section id="dashboard" class="dashboard">
-<div class="dashHeader"><div><div class="dashTitle">SETEC · Контролен центар</div><div class="small">Пребарај, скенирај и спореди побрзо</div></div><button id="themeToggle" class="secondary" style="padding:10px" onclick="toggleTheme()">🌙 Темна</button></div>
-<form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" autocomplete="off" placeholder="Што бараш? Пр. Lenovo 16GB до 40000" aria-label="Паметно пребарување"><button type="submit">Барај</button></form>
-<div class="dashHint">Разбира: „Samsung 55 инчи до 30000“, „Lenovo 16GB RAM“, „RTX 4060“.</div>
-<div class="dashQuick">
-<button class="dashTile" onclick="SetecApp.openModelScanner()"><span>▣</span>Data Matrix<small>Етикета со код</small></button>
-<button class="dashTile" onclick="SetecApp.scan()"><span>⌗</span>Скенирај шифра<small>Брза проверка</small></button>
-<button class="dashTile" onclick="SetecApp.openCompare()"><span>⇄</span>Спореди<small>Два производи</small></button>
-<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC<small>Компатибилност и FPS</small></button>
+<div class="dashHero">
+<div class="dashHeroTop"><span class="dashEyebrow"><span class="dashDot"></span> SETEC АЛАТКИ</span><button id="themeToggle" class="dashTheme" onclick="toggleTheme()" aria-label="Промени тема">🌙 Темна</button></div>
+<div class="dashTitle">Сè за производите.<br><span>На едно место.</span></div>
+<p class="dashIntro">Провери цена, најди производ, скенирај етикета или спореди модели — без непотребни чекори.</p>
 </div>
-<div class="dashSectionTitle">ПОСЛЕДНИ ПРЕБАРУВАЊА</div><div id="dashRecent" class="dashRecent"></div>
+<div class="dashWorkspace">
+<div class="dashSectionHead"><strong>Брзо пребарување</strong><span>SETEC каталог</span></div>
+<form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" autocomplete="off" placeholder="Име, модел или шифра на производ" aria-label="Пребарување производ"><button type="submit" aria-label="Пребарај">⌕ <span>Барај</span></button></form>
+<p class="dashHelper">Пример: Lenovo IdeaPad, RTX 4060 или 84558. Пребарувањето е според вистинскиот каталог.</p>
+<div class="dashSectionHead dashToolsHeading"><strong>Твои алатки</strong><span>Брз пристап</span></div>
+<div class="dashQuick">
+<button class="dashTile dashTilePrimary" onclick="SetecApp.scan()"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Скенирај шифра</b><small>Камера · ценовник</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openModelScanner()"><span class="dashTileIcon">▦</span><span class="dashTileText"><b>Data Matrix</b><small>Код од етикета</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openCompare()"><span class="dashTileIcon">⇄</span><span class="dashTileText"><b>Спореди</b><small>Два модели</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span class="dashTileIcon">▤</span><span class="dashTileText"><b>Состави PC</b><small>Делови и FPS</small></span><span class="dashChevron">›</span></button>
+</div>
+<div class="dashRecentWrap"><div class="dashSectionHead"><strong>Последни пребарувања</strong><button type="button" class="dashClear" onclick="clearRecent()">Исчисти</button></div><div id="dashRecent" class="dashRecent"></div></div>
+</div>
 </section>
 
 <section id="scanPanel"><div class="frame"><div class="capture"><div class="corners"></div><div><div class="glyph">▣</div><strong>Читање на шифра од етикета</strong><p>Насочи ја камерата кон „Шифра:“ или „шифра/код:“ на ценовникот.</p></div></div></div><div class="scanBtns"><button class="cta" onclick="SetecApp.scan()">▣ Скенирај со камера</button><button class="secondary" onclick="refresh()" aria-label="Освежи">⟳</button></div>
@@ -83,7 +131,7 @@ body.dark .dashTile:active,body.dark .dashRecent button:active{background:#33445
 <div id="recognized" class="recognition hidden"><span class="symbol">✓</span><div>Препознаена шифра: <strong id="scanCode"></strong></div></div>
 <button id="retrySkuBtn" class="cta hidden" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button>
 <div class="note">Се поддржуваат двата формати на етикета:<div class="chips"><span class="chip">Шифра: 12959</span><span class="chip">шифра/код: 84558</span></div></div></section>
-<section id="searchPanel" class="hidden"><div class="small" style="margin-bottom:9px">Паметно пребарување: напиши производ, големина, RAM или максимална цена.</div><form id="form" class="form"><input id="query" placeholder="Пребарај име или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
+<section id="searchPanel" class="hidden"><div class="small" style="margin-bottom:9px">Пребарај по име, модел или SETEC шифра.</div><form id="form" class="form"><input id="query" placeholder="Пребарај име или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
 <section id="batchPanel" class="hidden"><div class="batchTop"><strong>Скенирај повеќе шифри</strong><p class="small">Секоја нова шифра се додава во истата листа. Можеш да ги копираш сите одеднаш.</p><textarea id="batchCodes" class="batchCodes" readonly aria-label="Зачувани шифри разделени со запирка" placeholder="84558,63131,92534"></textarea><div class="batchHint" id="batchCount">0 шифри</div><div class="batchActions"><button class="cta" onclick="SetecApp.scanBatch()">▣ Скенирај</button><button class="secondary" onclick="copyBatch()">⧉ Копирај</button></div><div class="batchActions"><button class="secondary" onclick="toggleBatchManual()">+ Рачно</button><button class="secondary batchDanger" onclick="clearBatch()">Избриши сè</button></div><div class="batchManual hidden" id="batchManualBox"><input type="text" inputmode="numeric" id="batchManualInput" placeholder="Шифра или шифри со запирка" aria-label="Рачно внеси шифра"><button onclick="submitBatchManual()">Додај</button></div><div class="batchConfirm hidden" id="batchConfirmBox"><p>Сигурно сакаш да ги избришеш сите зачувани шифри?</p><div class="batchActions"><button onclick="cancelBatchClear()">Откажи</button><button class="confirmDelete" onclick="confirmBatchClear()">Избриши сè</button></div></div><div class="small" id="batchMessage" aria-live="polite">Шифрите остануваат зачувани и по затворање на апликацијата.</div></div><div class="title">Скенирани производи</div><div id="batchRows" class="batchRows"><div class="empty">Скенирај го првиот ценовник за да започнеш листа.</div></div></section>
 <div id="status" class="state">Скенирај шифра или пребарај производ.</div>
 <section id="resultsPanel"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
@@ -107,45 +155,14 @@ function renderProductPrices(p){const host=$('pprices');host.replaceChildren();c
 let queryFilters=null,unfilteredResults=[];
 function getRecent(){try{const x=JSON.parse(localStorage.getItem('setec_recent_searches')||'[]');return Array.isArray(x)?x.slice(0,6):[]}catch(e){return []}}
 function rememberSearch(q){if(!q)return;const v=[q,...getRecent().filter(x=>x!==q)].slice(0,6);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
-function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Нема пребарувања — започни со полето погоре.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>smartSearch(q);host.appendChild(b)}}
+function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Нема претходни пребарувања.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>simpleSearch(q);host.appendChild(b)}}
+function clearRecent(){try{localStorage.removeItem('setec_recent_searches')}catch(e){}renderRecent()}
 function toggleTheme(){document.body.classList.toggle('dark');const mode=document.body.classList.contains('dark')?'dark':'light';try{localStorage.setItem('setec_theme',mode)}catch(e){}try{SetecApp.setTheme(mode)}catch(e){}updateThemeButton()}
 function updateThemeButton(){$('themeToggle').textContent=document.body.classList.contains('dark')?'☀ Светла':'🌙 Темна'}
 try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}
 updateThemeButton();try{SetecApp.setTheme(document.body.classList.contains('dark')?'dark':'light')}catch(e){}
-function priceNumber(value){
- let t=String(value||'').replace(/[^0-9.,]/g,'');
- if(!t)return null;
- if(/^\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?$/.test(t))t=t.replace(/[.,](?=\d{3}(?:[.,]|$))/g,'').replace(',','.');
- else t=t.replace(',','.');
- const n=Number(t);return Number.isFinite(n)?n:null;
-}
-function parseSmart(q){
- let text=String(q||'').trim(),max=null,ram=null,inch=null;
- const money=text.match(/(?:до|под|макс(?:имум)?|under|below|<)\s*(\d[\d., ]*)\s*(?:денари|ден|мкд|mkd)?/i);
- if(money){max=priceNumber(money[1]);text=text.replace(money[0],' ')}
- const mem=text.match(/(?:^|[\s,])(\d{1,3})\s*(?:GB|ГБ)\s*(?:RAM|РАМ)?\b|(?:RAM|РАМ)\s*(\d{1,3})\s*(?:GB|ГБ)?/i);
- if(mem){ram=Number(mem[1]||mem[2]);text=text.replace(mem[0],' ')}
- const screen=text.match(/(\d{2,3})\s*(?:инчи|инч|inch|["”])/i);
- if(screen){inch=Number(screen[1]);text=text.replace(screen[0],' ')}
- text=text.replace(/\b(?:сакам|барам|покажи|најди|производи|модели|те молам|ми|со|од|за)\b/gi,' ').replace(/\s+/g,' ').trim();
- const term=text||String(q||'').trim();
- return {term,max,ram,inch,raw:q};
-}
-function matchesSmart(p,f){
- const name=String(p.name||'').toLowerCase();
- if(f.max!==null){const price=priceNumber(p.clubPrice)||priceNumber(p.regularPrice);if(price!==null&&price>f.max)return false}
- if(f.ram!==null&&!new RegExp('(?:^|[^\\d])'+f.ram+'\\s*(?:gb|гб)','i').test(name))return false;
- if(f.inch!==null&&!new RegExp('(?:^|[^\\d])'+f.inch+'\\s*(?:["”]|inch|инчи|инч|\\b)','i').test(name))return false;
- return true;
-}
-function smartSearch(q){
- q=String(q||'').trim();if(!q)return;
- const p=parseSmart(q);rememberSearch(q);
- $('dashQuery').value=q;switchTab('search');
- search(p.term,false,p);
- window.scrollTo(0,0);
-}
-$('dashForm').addEventListener('submit',e=>{e.preventDefault();smartSearch($('dashQuery').value)});
+function simpleSearch(q){q=String(q||'').trim();if(!q)return;$('dashQuery').value=q;switchTab('search');search(q);window.scrollTo(0,0)}
+$('dashForm').addEventListener('submit',e=>{e.preventDefault();simpleSearch($('dashQuery').value)});
 renderRecent();
 function manufacturerLink(p){
  const host=$('manufacturerSpecs');host.replaceChildren();
@@ -162,13 +179,13 @@ function manufacturerLink(p){
  host.appendChild(elem('div','small','Се отвора директно официјалната страница на производителот, не Google. Вметни го копираниот модел во пребарувањето на производителот. Линк до точниот модел не е потврден.'));
 }
 
-function switchTab(next){tab=next;$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
+function switchTab(next){tab=next;$("dashboard").classList.toggle("hidden",next!=="scan");$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
 function setStatus(s){$('status').textContent=s}window.showLoading=setStatus;
 
 function displayResults(){
  const wrap=$('list');wrap.replaceChildren();
  let visible=unfilteredResults;
- if(queryFilters){
+ if(false&&queryFilters){
   const filtered=unfilteredResults.filter(p=>matchesSmart(p,queryFilters));
   visible=filtered.length?filtered:unfilteredResults;
   $('moreResultsInfo').textContent=filtered.length?'Применети филтри: '+[queryFilters.ram?queryFilters.ram+' GB RAM':'',queryFilters.inch?queryFilters.inch+' инчи':'',queryFilters.max!==null?'до '+queryFilters.max+' ден.':''].filter(Boolean).join(' · '):'Нема точни совпаѓања со филтрите — прикажани се најблиските резултати од Setec.';
@@ -201,7 +218,7 @@ function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreB
 window.showMoreResults=function(json){if(!moreBusy)return;let oldCount=lastList.length;let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}const seen=new Set(unfilteredResults.map(x=>x.url));let fresh=arr.filter(x=>x&&validUrl(x.url)&&!seen.has(x.url));moreBusy=false;if(fresh.length){window.showResults(JSON.stringify(unfilteredResults.concat(fresh)),false);$('moreResultsInfo').textContent='Додадени '+fresh.length+' производи.';}else{moreCanLoad=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='Setec не врати дополнителни производи за ова пребарување.';}};
 function search(q,fromScan=false,filters=null){q=(q||'').trim();queryFilters=filters;if(!fromScan){rememberSearch(filters?filters.raw:q);$('dashQuery').value=filters?filters.raw:q;}lastQuery=q;lastList=[];unfilteredResults=[];moreCanLoad=true;moreBusy=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='';if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
 $('form').addEventListener('submit',ev=>{ev.preventDefault();search($('query').value)});
-function openProduct(p){manufacturerLink(p);currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
+function openProduct(p){$("dashboard").classList.add("hidden");manufacturerLink(p);currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
 window.showProductLoading=()=>{if(!currentProduct.sku&&!lastScannedSku)$('psku').textContent='Ја вчитувам шифрата…'};
 window.showProduct=function(json){try{const p=JSON.parse(json);manufacturerLink(p);if(!validUrl(p.url))return;const code=(p.sku||currentProduct.sku||'').trim();currentProduct={...currentProduct,...p,sku:code,clubPrice:p.clubPrice||currentProduct.clubPrice||'',regularPrice:p.regularPrice||currentProduct.regularPrice||''};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=code?'Шифра: '+code:(lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена од Setec':'Шифрата не е наведена на страницата');setHero(currentProduct.img);renderProductPrices(currentProduct)}catch(e){}};
@@ -214,7 +231,7 @@ window.showGodiStatus=function(status){
   else{el.textContent='Непотврдено'}
 };
 window.resetScan=function(){pendingSku='';lastScannedSku='';lastQuery='';lastList=[];currentProduct={url:'',name:'',sku:'',img:''};$('query').value='';$('scanCode').textContent='';$('recognized').classList.add('hidden');$('retrySkuBtn').classList.add('hidden');$('resetScanBtn').classList.add('hidden');$('ptitle').textContent='Производ';$('psku').textContent='';$('pprices').replaceChildren();$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');$('list').replaceChildren(elem('div','empty','Скенирај нова шифра од ценовникот.'));switchTab('scan');setStatus('Подготвено за ново скенирање.');window.scrollTo(0,0);SetecApp.search('');};
-window.backToResults=()=>{$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
+window.backToResults=()=>{$('dashboard').classList.toggle('hidden',tab!=='scan');$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
 window.onDataMatrixScanned=function(raw){const text=String(raw||'').trim();const match=text.match(/(?:^|[^0-9])([0-9]{13})(?![0-9])/);const code=match?match[1]:'';if(!code){setStatus('Data Matrix не содржи валидна 13-цифрена шифра. Скенирај повторно.');return;}switchTab('scan');$('recognized').classList.remove('hidden');$('retrySkuBtn').classList.remove('hidden');$('resetScanBtn').classList.remove('hidden');$('scanCode').textContent=code;lastScannedSku=code;pendingSku='';search(code,true);setStatus('Прочитан Data Matrix: '+code+'. Го барам производот на Setec…')};
 window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('retrySkuBtn').classList.remove('hidden');$('resetScanBtn').classList.remove('hidden');$('scanCode').textContent=sku;lastScannedSku=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
 function retrySameSku(){const sku=lastScannedSku||$('scanCode').textContent.trim();if(!/^(?:[0-9]{4,8}|[0-9]{13})$/.test(sku)){setStatus('Нема зачувана шифра за пребарување.');return;}pendingSku=sku;search(sku,true);setStatus('Повторно пребарувам шифра: '+sku+'...');}
