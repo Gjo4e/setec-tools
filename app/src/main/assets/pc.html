@@ -24,6 +24,26 @@ body.dark{--bg:#11141b;--ink:#edf0f5;--muted:#a4afbd;--line:#39404b;background:#
 body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .ghost,body.dark .slot{background:#1d232d!important;color:#edf0f5!important;border-color:#3a4452!important}
 body.dark input,body.dark select{background:#131923!important;color:#edf0f5!important;border-color:#485465!important}
 body.dark .small{color:#a4afbd}
+
+/* Unified blue SETEC dashboard styling */
+:root{--orange:#258bff;--bg:#eef3fa;--ink:#17263b;--muted:#6e7f96;--line:#dbe5f1}
+body{background:#eef3fa;color:#17263b}
+.header{background:linear-gradient(125deg,#0b1423,#162c49)!important;padding:21px 17px!important;border-bottom:1px solid #284567}
+.header .headrow{gap:13px}
+.header .back{background:#1d3758!important;border:1px solid #37577a!important;border-radius:12px!important}
+.header .headname{font-size:20px!important;color:#f2f7ff}
+.header .headname b{color:#69baff!important;font-style:italic;font-weight:950}
+.header .sub{color:#b8cbe1!important}
+main{padding:19px 15px 45px}
+.card,.summary,.cat,.result,.slot{border-radius:16px!important;border-color:var(--line)!important;box-shadow:0 3px 14px rgba(20,42,73,.035)}
+button{border-radius:11px!important}
+button.primary,.primary,.cta{background:#258bff!important;color:white!important;border-color:#258bff!important}
+.title{font-size:18px!important;font-weight:900!important}
+body.dark{--bg:#0a111c;--ink:#edf5ff;--muted:#acbed4;--line:#2c405a;background:#0a111c!important;color:#edf5ff!important}
+body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .ghost,body.dark .slot{background:#152236!important;border-color:#30465e!important;color:#edf5ff!important}
+body.dark .header{background:linear-gradient(125deg,#0b1423,#162c49)!important}
+body.dark .small{color:#aabdd3!important}
+body.dark input,body.dark select{background:#0f1c2d!important;color:#f1f6ff!important;border-color:#3c5572!important}
 </style></head><body><script>try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}</script>
 <header class="header"><div class="headrow"><button class="back" onclick="PcApp.close()">‹ Назад</button><div><div class="headname"><b>SETEC</b> · Состави PC</div><div class="sub">Конфигуратор на компоненти · каталог од Setec.mk</div></div></div></header>
 <main>
