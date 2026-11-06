@@ -1,15 +1,19 @@
 package mk.seteczaliha.app;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -35,6 +39,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private static final int INK=0xFF202531, ORANGE=0xFFF58220;
     private final Product[] products=new Product[2];
     private final Button[] scanButtons=new Button[2];
+    private final Button[] manualButtons=new Button[2];
     private ActivityResultLauncher<Intent> picker, skuScanner;
     private LinearLayout content,table;
     private TextView overview;
@@ -43,6 +48,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     private static final class Product {
         String name,club,regular,sku,description="",source="";
         Map<String,String> facts=new LinkedHashMap<>();
+        List<String> details=new ArrayList<>();
         Map<String,String> sourceByLabel=new LinkedHashMap<>();
         static Product parse(String json){
             try{
@@ -57,8 +63,18 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(safeSource(source)){
                     p.source=source;
                     p.description=obj.optString("description").trim();
-                    if(p.description.length()>750)
-                        p.description=p.description.substring(0,750);
+                    if(p.description.length()>800)
+                        p.description=p.description.substring(0,800);
+                    JSONArray detailArray=obj.optJSONArray("details");
+                    if(detailArray!=null)
+                        for(int i=0;i<detailArray.length()&&p.details.size()<5;i++){
+                            String line=detailArray.optString(i).trim();
+                            if(line.length()>=3&&line.length()<=230&&
+                               !SetecCompareRows.isUiOrSalesText(line)&&
+                               !p.details.contains(line))p.details.add(line);
+                        }
+                    if(p.details.isEmpty())
+                        p.details=SetecCompareRows.parseLines(p.description);
                 }
                 JSONArray arr=obj.optJSONArray("facts");
                 if(arr!=null)for(int i=0;i<arr.length();i++){
@@ -66,9 +82,10 @@ public final class CompareModelsActivity extends ComponentActivity {
                     if(f==null)continue;
                     String label=f.optString("label").trim(),value=f.optString("value").trim();
                     if(label.length()>55||value.length()>110||label.isEmpty()||value.isEmpty())continue;
-                    p.facts.put(label,value);
                     String url=f.optString("url");
-                    if(safeSource(url))p.sourceByLabel.put(label,url);
+                    if(!safeSource(url))continue;
+                    p.facts.put(label,value);
+                    p.sourceByLabel.put(label,url);
                 }
                 return p;
             }catch(Exception e){return null;}
@@ -93,11 +110,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                 overview.setText("Не се прочита валидна SETEC шифра. Пробај повторно.");
                 return;
             }
-            Intent intent=new Intent(this,ModelScannerActivity.class);
-            intent.putExtra("compare_pick",true);
-            intent.putExtra("compare_slot",editingSlot+1);
-            intent.putExtra("compare_sku",code);
-            picker.launch(intent);
+            startSkuLookup(code);
         });
         picker=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
             if(result.getResultCode()!=RESULT_OK||result.getData()==null)return;
@@ -136,7 +149,8 @@ public final class CompareModelsActivity extends ComponentActivity {
         content.setPadding(dp(13),dp(16),dp(13),dp(32));
         scroll.addView(content);
 
-        overview=text("Скенирај две SETEC шифри. Апликацијата ги наоѓа моделите и ги споредува најважните спецификации само од Setec.mk.",13,false,0xFF626B78);
+        overview=text("Скенирај или рачно внеси две SETEC шифри. "+
+            "Моделите, цените и техничките описи се проверуваат на Setec.mk.",13,false,0xFF626B78);
         content.addView(overview);
 
         LinearLayout buttons=new LinearLayout(this);
@@ -152,6 +166,21 @@ public final class CompareModelsActivity extends ComponentActivity {
             if(i>0)bParams.leftMargin=dp(8);
             buttons.addView(b,bParams);
             b.setOnClickListener(v->openScanner(slot));
+        }
+
+        LinearLayout manualRow=new LinearLayout(this);
+        manualRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);
+        mp.topMargin=dp(7);
+        content.addView(manualRow,mp);
+        for(int i=0;i<2;i++){
+            final int slot=i;
+            Button b=button("⌨ Рачно внеси шифра "+(i+1),0xFF36475B);
+            manualButtons[i]=b;
+            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(52),1);
+            if(i>0)params.leftMargin=dp(8);
+            manualRow.addView(b,params);
+            b.setOnClickListener(v->enterSkuManually(slot));
         }
 
         TextView heading=text("СПОРЕДБА ЛЕВО / ДЕСНО",15,true,INK);
@@ -179,6 +208,46 @@ public final class CompareModelsActivity extends ComponentActivity {
         // Reuse the existing dedicated SETEC number scanner. It reads only
         // 4–8 digit retail codes, not the surrounding model text or prices.
         skuScanner.launch(new Intent(this,ScannerActivity.class));
+    }
+
+    private void startSkuLookup(String code){
+        if(code==null||!code.matches("[0-9]{4,8}")){
+            overview.setText("Внеси SETEC шифра од 4 до 8 цифри.");
+            return;
+        }
+        Intent intent=new Intent(this,ModelScannerActivity.class);
+        intent.putExtra("compare_pick",true);
+        intent.putExtra("compare_slot",editingSlot+1);
+        intent.putExtra("compare_sku",code);
+        picker.launch(intent);
+    }
+
+    private void enterSkuManually(int slot){
+        editingSlot=slot;
+        EditText input=new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setSingleLine(true);
+        input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(8)});
+        input.setHint("пр. 84554");
+        input.setPadding(dp(17),dp(12),dp(17),dp(12));
+        AlertDialog dialog=new AlertDialog.Builder(this)
+            .setTitle("SETEC шифра – модел "+(slot+1))
+            .setMessage("Внеси 4–8 цифри. Ќе го проверам производот, цената и описот на Setec.mk.")
+            .setView(input)
+            .setNegativeButton("Откажи",null)
+            .setPositiveButton("Побарај производ",null)
+            .create();
+        dialog.setOnShowListener(ignored->dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            .setOnClickListener(v->{
+                String sku=input.getText().toString().trim();
+                if(!sku.matches("[0-9]{4,8}")){
+                    input.setError("Внеси 4–8 цифри.");
+                    return;
+                }
+                dialog.dismiss();
+                startSkuLookup(sku);
+            }));
+        dialog.show();
     }
 
     private void render(){
