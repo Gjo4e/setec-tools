@@ -31,6 +31,7 @@ select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;m
     <div class="row wrap" style="margin-top:13px"><div class="total">Клуб: <strong id="clubTotal">0 ден.</strong></div><div class="total">Редовна: <strong id="regularTotal">0 ден.</strong></div></div>
     <p id="priceNote" class="small"></p>
     <div id="compatibility"></div>
+    <div id="smartIdeas" aria-live="polite"></div>
     <div id="sharedStore" class="small"></div>
   </div>
   <div class="foot">Се прикажуваат само производи со потврдена наведена локација во официјалното мени „Провери Достапност“. Ако Setec не дозволи проверка, производот останува скриен, без да се претпоставува дека го нема. Податоците може да се променат.</div>
@@ -239,6 +240,38 @@ function compatibility(next,p){
  if(draft.psu&&draft.gpu)notes.push('Провери ги препорачаните W и PCIe конектори за графичката.');
  if(draft.storage&&draft.board)notes.push('Провери M.2/SATA приклучоци на матичната плоча.');
  return {issues,notes:[...new Set(notes)]};
+}
+// Explain practical next steps using the same verified compatibility rules as the builder.
+function smartAdvice(){
+ const out=[],has=id=>!!chosen[id];
+ if(!slots.some(has))return ['Избери прва компонента за да добиеш автоматски предлози за следните делови.'];
+ if(has('cpu')&&!has('board'))out.push('Следно избери матична плоча со ист сокет како процесорот'+(getSocket(chosen.cpu,'cpu')?' ('+getSocket(chosen.cpu,'cpu')+')':' — сокетот засега не е потврден')+'.');
+ if(has('board')&&!has('cpu'))out.push('Избери процесор со сокет '+(getSocket(chosen.board,'board')||'кој е потврден во спецификацијата на матичната плоча')+'.');
+ if(has('board')&&!has('ram'))out.push('Избери desktop DIMM RAM од тип '+(getDdr(chosen.board,'board')||'DDR што го поддржува матичната плоча')+'.');
+ if(has('cpu')&&has('board')&&getSocket(chosen.cpu,'cpu')&&getSocket(chosen.board,'board')&&getSocket(chosen.cpu,'cpu')===getSocket(chosen.board,'board'))out.push('✓ CPU и матичната имаат ист препознаен сокет: '+getSocket(chosen.cpu,'cpu')+'. Провери и BIOS поддршка.');
+ if(has('ram')&&has('board')&&getDdr(chosen.ram,'ram')&&getDdr(chosen.board,'board')&&getDdr(chosen.ram,'ram')===getDdr(chosen.board,'board'))out.push('✓ RAM и матичната имаат ист препознаен DDR тип: '+getDdr(chosen.ram,'ram')+'. Провери брзина и капацитет.');
+ if(has('gpu')&&!has('psu'))out.push('За графичката избери напојување со доволно W и соодветни PCIe конектори според производителот.');
+ if(has('gpu')&&!has('case'))out.push('Избери куќиште со доволно простор за должината на графичката карта.');
+ if(has('cpu')&&!has('cooler'))out.push('Провери дали процесорот има вклучен ладилник; ако нема, избери кулер со соодветен монтажен комплет.');
+ if(!has('storage'))out.push('Разгледај SSD за системскиот диск; провери M.2 или SATA приклучок на матичната.');
+ if(out.length===0)out.push('Основните делови се избрани. Провери физички димензии, конектори, BIOS, потрошувачка и официјални спецификации пред купување.');
+ return out.slice(0,5);
+}
+function renderSmartAdvice(){
+ const area=$('smartIdeas');area.replaceChildren();
+ const card=el('div','summary');card.style.cssText='margin-top:14px;padding:13px;background:#fff7ed;border:1px solid #f5d7b5';
+ card.appendChild(el('div','title','💡 Автоматски идеи за подобра PC конфигурација'));
+ for(const tip of smartAdvice())card.appendChild(el('div','small','• '+tip));
+ card.appendChild(el('div','small','Предлозите се базираат на препознаени спецификации. Не се гаранција за целосна компатибилност.'));
+ area.appendChild(card);
+}
+function candidateReason(p,id,check){
+ if(check.issues.length)return '';
+ const notes=[];
+ if(id==='board'&&chosen.cpu){const a=getSocket(p,'board'),b=getSocket(chosen.cpu,'cpu');if(a&&b&&a===b)notes.push('ист сокет '+a+' со избраниот процесор');}
+ if(id==='cpu'&&chosen.board){const a=getSocket(p,'cpu'),b=getSocket(chosen.board,'board');if(a&&b&&a===b)notes.push('ист сокет '+a+' со матичната');}
+ if(id==='ram'&&chosen.board){const a=getDdr(p,'ram'),b=getDdr(chosen.board,'board');if(a&&b&&a===b&&ramFormFactor(p)!=='SO-DIMM')notes.push('соодветен '+a+' тип');}
+ return notes.length?'✓ Предлог според факти: '+notes.join(', ')+'.':'';
 }
 function rebuild(){
  const grid=$('categories');grid.replaceChildren();
