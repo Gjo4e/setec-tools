@@ -377,17 +377,13 @@ public final class MainActivity extends ComponentActivity {
             return;
         }
         js("window.showLoading('Пребарувам на Setec.mk...');");
-        // Use Setec's actual search results route first, independent of dynamic
-        // header search widgets that change between mobile layouts.
-        queuedQuery=null;
-        merchant.loadUrl("https://www.setec.mk/search-result?q="+Uri.encode(activeQuery));
-        scheduleResults(serial);
-        handler.postDelayed(()->{
-            if(serial==searchSerial&&productUrl==null&&!searchFound){
-                queuedQuery=activeQuery;
-                merchant.loadUrl(HOME);
-            }
-        },7000);
+        // Restore original working homepage search.
+        if (!merchantLoaded || !isHome(merchant.getUrl())) {
+            queuedQuery=activeQuery;
+            merchant.loadUrl(HOME);
+            return;
+        }
+        runSearch(activeQuery);
     }
     private void runSearch(String query) {
         if (merchant == null || productUrl != null) return;
@@ -425,7 +421,7 @@ public final class MainActivity extends ComponentActivity {
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
-            "if(/^\\d+$/.test(q)){if(sku!==q&&!txt.includes('Шифра: '+q)&&!txt.includes('Шифра '+q))continue;}"+
+            "if(/^\\d{4,8}$/.test(q)&&sku&&sku!==q)continue;"+
             "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
