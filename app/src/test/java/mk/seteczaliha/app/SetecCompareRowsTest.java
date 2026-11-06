@@ -85,4 +85,61 @@ public final class SetecCompareRowsTest {
         assertEquals(1,rows.size());
         assertEquals("Непотврдено",rows.get(0).right);
     }
+
+    @Test public void preservesFiveMostImportantNamedSpecsForOneSavedTelevision(){
+        Map<String,String> tv=new LinkedHashMap<>();
+        tv.put("Дијагонала","55\"");
+        tv.put("Резолуција","3840×2160");
+        tv.put("Освежување","144Hz");
+        tv.put("Технологија на екран","QLED");
+        tv.put("Smart TV","Да");
+        List<String> h=SetecCompareRows.highlights("TCL TV",tv,
+            Collections.emptyList(),"");
+        assertEquals(5,h.size());
+        assertEquals("Дијагонала: 55\"",h.get(0));
+        assertEquals("Освежување: 144Hz",h.get(2));
+    }
+
+    @Test public void fiveOriginalSetecBulletsRemainWhenNoNamedFactsRecognized(){
+        List<String> list=Arrays.asList("55\" QLED Google TV",
+            "Resolution 3840x2160","144Hz VRR","HDMI x3","HDR10+");
+        List<String> h=SetecCompareRows.highlights("TCL X",
+            Collections.emptyMap(),list,"");
+        assertEquals(5,h.size());
+        assertEquals("55\" QLED Google TV",h.get(0));
+        assertEquals("HDR10+",h.get(4));
+    }
+
+    @Test public void exactScannerVisibleTextIsStillSavedWithoutIntermediateFacts(){
+        String summary="НАЈВАЖНИ ТЕХНИЧКИ ПОДАТОЦИ ОД SETEC.MK\n"+
+            "• Моќност: 900W\n"+
+            "ОРИГИНАЛЕН ТЕХНИЧКИ ОПИС ОД SETEC.MK\n"+
+            "• 7 степени на печење\n• Одмрзнување";
+        List<String> h=SetecCompareRows.highlights("Tefal toaster",
+            Collections.emptyMap(),Collections.emptyList(),summary);
+        assertEquals(3,h.size());
+        assertEquals("Моќност: 900W",h.get(0));
+        assertEquals("Одмрзнување",h.get(2));
+    }
+
+    @Test public void prioritizeNamedFactsButFillRemainingFromTechnicalBullets(){
+        Map<String,String> facts=new LinkedHashMap<>();
+        facts.put("Моќност","1800W");
+        List<String> original=Arrays.asList("1800W","Нелепливи плочи",
+            "Термостат","Автоматско исклучување","Плочи што се вадат");
+        List<String> h=SetecCompareRows.highlights("ST GT1800SL",
+            facts,original,"");
+        assertEquals(5,h.size());
+        assertEquals("Моќност: 1800W",h.get(0));
+        assertTrue(h.contains("Нелепливи плочи"));
+        assertFalse(h.contains("1800W"));
+    }
+
+    @Test public void noPriceOrUnverifiedDescriptionsAreAddedAsSpecs(){
+        List<String> h=SetecCompareRows.highlights("TCL 55",
+            Collections.emptyMap(),Collections.emptyList(),
+            "Клуб цена: 19.999 ден.\n• 55\" LED TV\n"+
+            "Редовна цена: 29.999 ден.");
+        assertEquals(Collections.singletonList("55\" LED TV"),h);
+    }
 }
