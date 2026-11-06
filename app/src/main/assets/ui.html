@@ -465,17 +465,17 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 <p class="offerDisclaimer">Цените се според последните вчитани податоци и може да се променат. Пред финална продажба потврди ги цената и залихата во официјалниот систем.</p>
 </section>
 <section id="categoriesPanel" class="categoriesPanel hidden">
-<div class="categoriesHeader"><button class="categoriesBack" onclick="categoryBack()">‹ Назад</button><div><h2>Каталог · SETEC</h2><p>Директни SETEC категории · верзија 61</p></div></div>
+<div class="categoriesHeader"><button class="categoriesBack" onclick="categoryBack()">‹ Назад</button><div><h2>Каталог · SETEC</h2><p>Производи, слики и цени во апликацијата</p></div></div>
 <div id="categoryBreadcrumb" class="categoryBreadcrumb" aria-label="Патека низ категориите"></div>
 <div class="categorySearchRow"><input id="categoryFilter" class="categoryFilter" type="search" placeholder="⌕ Пребарај категорија или производ" oninput="renderCategories()" aria-label="Пребарај категории и производи"><button class="categoryHomeBtn" onclick="categoryHome()">⌂ Сите</button></div>
 <div class="categoryNotice" id="categoryNotice" role="status" aria-live="polite">Избери главна категорија за да започнеш.</div>
 <div id="categorySummary" class="categorySummary"></div>
 <div id="categoriesList" class="categoriesList"></div>
-<button id="categoryBrowseAll" class="categoryOfficialAll hidden" onclick="categoryBrowseSelected()">▤ Отвори ги сите производи на Setec.mk</button>
+<button id="categoryBrowseAll" class="categoryOfficialAll hidden" onclick="categoryBrowseSelected()">▤ Вчитај ги сите производи овде</button>
 <div id="categoryProducts" class="categoryProducts"></div>
 <div id="categoryPager" class="categoryPager hidden"><button id="categoryPrev" onclick="categoryPrevPage()">‹ Претходна</button><span id="categoryPageLabel">Страница 1</span><button id="categoryNext" onclick="categoryNextPage()">Следна ›</button></div>
 <button id="categoryRetry" class="categoryRetry hidden" onclick="categoryRetryLoad()">⟳ Обиди се повторно</button>
-<button id="categoryOfficial" class="categoryOfficialAll hidden" onclick="openSetecCategory(categoryCurrentUrl)">Отвори ја категоријата на Setec.mk ↗</button>
+<div id="categorySupport" class="categoryEmpty">Производите се читаат од SETEC и се прикажуваат тука. Нема пренасочување кон веб-сајтот.</div>
 </section>
 <section id="settingsPanel" class="settingsPanel hidden">
 <div class="settingsTop"><button onclick="closeSettings()" class="settingsBack">‹ Назад</button><strong>Поставки</strong></div>
@@ -667,12 +667,10 @@ function categoryEnterNode(node,root){
  categoryProductsCache.clear();$('categoryFilter').value='';
  $('categoryRetry').classList.add('hidden');
  if(node.children&&node.children.length){
-  categoryShowMessage('Избери подкатегорија или отвори ги сите производи. Најдени се официјалните линкови на Setec.mk.');
+  categoryShowMessage('Избери подкатегорија, или вчитај ги сите производи од оваа категорија.');
   renderCategories();
  }else{
-  categoryShowMessage('Отворам '+node.name+' на Setec.mk со вистински производи и страници…');
-  renderCategories();
-  openSetecCategory(node.url);
+  categoryLoad(node.url,false);
  }
  window.scrollTo(0,0);
 }
@@ -685,7 +683,7 @@ function categoryBack(){
  categoryCurrentUrl=node.url;categoryFirstUrl=node.url;categoryPageTitle=node.name;
  categoryNextUrl='';categoryPage=1;categoryTotal=0;categoryProductsCache.clear();
  $('categoryFilter').value='';$('categoryRetry').classList.add('hidden');
- categoryShowMessage('Избери подкатегорија или прикажи ги сите производи.');
+ categoryShowMessage('Избери подкатегорија или вчитај ги сите производи.');
  renderCategories();window.scrollTo(0,0);
 }
 function categoryGoToTrail(index){
@@ -696,12 +694,12 @@ function categoryGoToTrail(index){
  categoryCurrentUrl=node.url;categoryFirstUrl=node.url;categoryPageTitle=node.name;
  categoryNextUrl='';categoryPage=1;categoryTotal=0;categoryProductsCache.clear();
  $('categoryFilter').value='';$('categoryRetry').classList.add('hidden');
- categoryShowMessage('Избери подкатегорија или прикажи ги сите производи.');
+ categoryShowMessage('Избери подкатегорија или вчитај ги сите производи.');
  renderCategories();
 }
 function categoryBrowseSelected(){
  const node=categoryCurrentNode();if(!node)return;
- openSetecCategory(node.url);
+ categoryLoad(node.url,false);
 }
 function categoryLoad(url,append){
  if(!categorySafeUrl(url)){categoryShowMessage('Невалидна адреса на категоријата.');return}
@@ -720,7 +718,7 @@ function categoryLoad(url,append){
  setTimeout(()=>{
   if(request!==categoryRequestId||!categoriesOpen||categoryRootView||!categoryBusy)return;
   categoryBusy=false;categoryAppend=false;
-  categoryShowMessage('Setec.mk одговара бавно. Обиди се повторно или отвори ја категоријата во прелистувач.');
+  categoryShowMessage('SETEC не ги врати производите. Притисни „Обиди се повторно“. Нема потреба да ја напушташ апликацијата.');
   $('categoryRetry').classList.remove('hidden');renderCategories();
  },9000);
 }
@@ -776,7 +774,7 @@ function renderCategories(){
  host.replaceChildren();products.replaceChildren();summary.replaceChildren();crumb.replaceChildren();
  const q=categoryQuery();
  const node=categoryCurrentNode();
- $('categoryOfficial').classList.toggle('hidden',!node||!categorySafeUrl(node.url));
+ // Сите категории и производи остануваат во интерфејсот на апликацијата.
  if(!node){
   browse.classList.add('hidden');pager.classList.add('hidden');
   crumb.appendChild(elem('span','categoryCrumbCurrent','Сите категории'));
@@ -812,7 +810,7 @@ function renderCategories(){
   }
  }
  browse.classList.toggle('hidden',!kids.length);
- browse.textContent='▤ Отвори ги сите производи · '+node.name;
+ browse.textContent=categoryLoaded?'⟳ Освежи ги производите · '+node.name:'▤ Вчитај ги сите производи · '+node.name;
  const matches=[...categoryProductsCache.values()].filter(p=>!q||categoryNormal(p.name||'').includes(q)||String(p.sku||'').includes(q));
  if(matches.length){
   products.appendChild(elem('div','categorySectionTitle','ПРОИЗВОДИ · '+matches.length+' вчитани'));
@@ -829,7 +827,7 @@ function renderCategories(){
  }else if(!categoryBusy&&!kids.length&&categoryLoaded){
   products.appendChild(elem('div','categoryEmpty','Нема производи со избраниот филтер.'));
  }
- if(categoryBusy)products.appendChild(elem('div','categoryLoading','◌ Се вчитуваат производи од Setec.mk…'));
+ if(categoryBusy)products.appendChild(elem('div','categoryLoading','◌ SETEC производите се читаат во позадина…'));
  pager.classList.toggle('hidden',!matches.length||!!q);
  $('categoryPrev').disabled=categoryBusy||categoryPage<=1;
  $('categoryNext').disabled=categoryBusy||!categoryNextUrl;
@@ -845,9 +843,9 @@ function categoryPrevPage(){
  categoryLoad(url.href,false);
 }
 function openSetecCategory(url){
- if(!categorySafeUrl(url)){categoryShowMessage('Непотврдена категорија на Setec.mk.');return}
- try{SetecApp.openCategory(url)}
- catch(e){categoryShowMessage('Не можам да го отворам каталогот. Провери дали APK е правилно инсталирана.')}
+ // Backwards-compatible action: never navigate away from our app.
+ if(categorySafeUrl(url))categoryLoad(url,false);
+ else categoryShowMessage('Невалидна категорија.');
 }
 function showSettings(){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsTab').classList.add('active');$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
 function closeSettings(){$('settingsTab').classList.remove('active');settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
