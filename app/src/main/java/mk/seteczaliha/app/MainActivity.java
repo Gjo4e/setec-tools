@@ -354,6 +354,7 @@ public final class MainActivity extends ComponentActivity {
             "let next='';"+
             "for(let a of document.querySelectorAll('a[href]')){let txt=(a.innerText||a.getAttribute('aria-label')||'').trim();"+
             "if(a.rel==='next'||/^(следна|next|›|»|→)$/i.test(txt)){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&u.href!==location.href){next=u.href;break}}catch(e){}}}"+
+            "if(!next){let current=Number(new URL(location.href).searchParams.get('page')||1);for(let a of document.querySelectorAll('a[href]')){try{let u=new URL(a.href,location.href);if(u.hostname===location.hostname&&u.pathname===location.pathname&&Number(u.searchParams.get('page'))===current+1){next=u.href;break}}catch(e){}}}"+
             "return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,url:location.href,categories:[...categories.values()].slice(0,350),products:[...products.values()].slice(0,150),next:next});})()";
         categoryMerchant.evaluateJavascript(script,encoded->{
             if(serial!=categorySerial||!url.equals(categoryUrl))return;
