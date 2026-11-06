@@ -19,7 +19,12 @@ main{max-width:680px;margin:auto;padding:16px 14px 42px}.title{font-size:17px;fo
 .bar{height:4px;background:#edeef1;border-radius:6px;overflow:hidden;margin:8px 0}.fill{height:100%;background:var(--orange);width:0%;transition:width .2s}
 .slot{font-size:12px;padding:8px 0;border-bottom:1px solid #eff0f2;display:flex;gap:10px;align-items:center;justify-content:space-between}.slot .sname{flex:1;min-width:0;overflow-wrap:anywhere}.slot button{border:0;background:#f5f5f6;color:#a63c2c;border-radius:7px;padding:7px}
 select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;max-width:100%}
-</style></head><body>
+
+body.dark{--bg:#11141b;--ink:#edf0f5;--muted:#a4afbd;--line:#39404b;background:#11141b;color:#edf0f5}
+body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .ghost,body.dark .slot{background:#1d232d!important;color:#edf0f5!important;border-color:#3a4452!important}
+body.dark input,body.dark select{background:#131923!important;color:#edf0f5!important;border-color:#485465!important}
+body.dark .small{color:#a4afbd}
+</style></head><body><script>try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}</script>
 <header class="header"><div class="headrow"><button class="back" onclick="PcApp.close()">‹ Назад</button><div><div class="headname"><b>SETEC</b> · Состави PC</div><div class="sub">Конфигуратор на компоненти · каталог од Setec.mk</div></div></div></header>
 <main>
 <section id="home">
