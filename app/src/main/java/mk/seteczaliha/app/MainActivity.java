@@ -173,6 +173,9 @@ public final class MainActivity extends ComponentActivity {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
     private final class UiBridge {
+        @JavascriptInterface public void setTheme(String theme) {
+            getSharedPreferences("setec_preferences",MODE_PRIVATE).edit().putBoolean("dark_theme","dark".equals(theme)).apply();
+        }
         @JavascriptInterface public void openCompare() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, CompareModelsActivity.class)));
         }
