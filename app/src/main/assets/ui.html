@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Setec Шифри</title>
+<html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>SETEC TOOLS</title>
 <style>
 :root{--orange:#f5821e;--dark:#1c1c21;--text:#24242a;--muted:#777d88;--line:#e5e6eb;--bg:#f8f9fb;--green:#117a32}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Roboto,'Arial',sans-serif}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}.hidden{display:none!important}
@@ -321,9 +321,23 @@ body.dark #detail .stockLocations{background:#111e2c!important;border-color:#285
 body.dark .stockState.yes{background:#073c32!important;color:#4cf0bd!important}
 body.dark .stockState.no{background:#3d1b2a!important;color:#ff9cad!important}
 body.dark .offerCopy,body.dark .offerAddDetail,body.dark .categoryOfficialAll{background:linear-gradient(115deg,#1475dd,#28b0ff)!important;color:#fff!important}
+
+/* Bottom navigation: same tools, moved to a thumb-friendly dock */
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.head{padding-top:36px!important;padding-bottom:18px!important}
+.brand{justify-content:center;gap:9px!important}
+.brandText{white-space:nowrap;font-size:24px!important;letter-spacing:-.7px}
+.brandTools{font-weight:700;font-size:14px;letter-spacing:1.7px;color:#62baff;vertical-align:middle;margin-left:3px}
+.notOfficial{text-align:center}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;align-items:stretch;justify-content:space-around;padding:7px 5px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -7px 28px rgba(0,0,0,.30);border-top:1px solid #2b4560!important;border-bottom:0!important;overflow:visible!important}
+.tabs .tab{flex:1;min-width:0!important;max-width:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2!important;font-size:clamp(8px,2.15vw,11px)!important;font-weight:650;padding:7px 1px!important;border:0!important;border-radius:12px;white-space:nowrap;letter-spacing:-.15px}
+.tabs .tab span{font-size:21px!important;line-height:1.25;margin:0 0 2px!important}
+.tabs .tab.active{background:linear-gradient(145deg,#17324e,#112337)!important;color:#4cb5ff!important;border:0!important}
+.tabs .tab:focus-visible{outline:2px solid #51b9ff}
+@media(min-width:720px){.tabs{max-width:720px;margin:auto;border-left:1px solid #2b4560;border-right:1px solid #2b4560}}
 </style></head>
-<body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC</span><button class="headSettings" onclick="showSettings()" aria-label="Поставки">⚙</button></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
-<nav class="tabs" aria-label="Режим"><button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>▣</span>Скенирај</button><button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button><button class="tab" id="batchTab" onclick="switchTab('batch')"><span>▣</span>Листа</button><button class="tab" onclick="SetecApp.openCompare()"><span>⇄</span>СПОРЕДИ</button><button class="tab" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC</button></nav>
+<body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><span class="brandText">SETEC <span class="brandTools">TOOLS</span></span></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
+
 <main class="wrap">
 <section id="dashboard" class="dashboard">
 <div class="dashHero"><div class="dashEyebrow">ДОБРЕДОЈДЕ!</div><div class="dashTitle">Брзо пребарување и<br><span>корисни алатки.</span></div><p class="dashIntro">Провери производ, цена или залиха — сè на едно место.</p></div>
@@ -362,8 +376,8 @@ body.dark .offerCopy,body.dark .offerAddDetail,body.dark .categoryOfficialAll{ba
 <div class="settingsTop"><button onclick="closeSettings()" class="settingsBack">‹ Назад</button><strong>Поставки</strong></div>
 <div class="settingsGroup"><h3>◉ Изглед</h3><div class="settingsRow"><div><b>Тема</b><small>Изглед на целата апликација</small></div><select id="settingsTheme" onchange="setThemePreference(this.value)"><option value="system">Како телефонот</option><option value="dark">Темна</option><option value="light">Светла</option></select></div></div>
 <div class="settingsGroup"><h3>⌕ Пребарување</h3><label class="settingsRow"><div><b>Зачувај последни пребарувања</b><small>Историјата останува на овој телефон</small></div><input id="settingsHistory" type="checkbox" onchange="setHistoryEnabled(this.checked)"></label><div class="settingsRow"><div><b>Избриши историја</b><small>Ги отстранува зачуваните пребарувања</small></div><button onclick="clearRecent();showSettingsMessage('Историјата е избришана.')">Избриши</button></div></div>
-<div class="settingsGroup"><h3>⌾ Општо</h3><div class="settingsRow"><div><b>Стандардна локација</b><small>Филтрирај ги проверените локации во сите пребарувања</small></div><select id="settingsLocation" onchange="setStockLocation(this.value)"><option value="all">Сите</option><option value="godi">Годи</option><option value="warehouse">Главен Магацин</option></select></div><label class="settingsRow"><div><b>Информации за проверки</b><small>Прикажувај потсетување за непотврдена залиха</small></div><input id="settingsNotices" type="checkbox" onchange="saveSetting('notices',this.checked?'1':'0');applyNotices()"></label><div class="settingsRow"><div><b>Провери за нова верзија</b><small>Отвори GitHub со најновите компилации</small></div><button onclick="openReleasePage()">Отвори ↗</button></div></div>
-<div class="settingsGroup"><h3>ⓘ За апликацијата</h3><div class="settingsAbout"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><strong>SETEC</strong><span>Верзија 1.0</span><p>Брза, едноставна и практична алатка за пребарување и проверка на SETEC производи.</p><b>Изработено од gjo4e</b><small>Неофицијална апликација, независна од Setec.</small></div></div>
+<div class="settingsGroup"><h3>⌾ Општо</h3><div class="settingsRow"><div><b>Стандардна локација</b><small>Филтрирај ги проверените локации во сите пребарувања</small></div><select id="settingsLocation" onchange="setStockLocation(this.value)"><option value="all">Сите</option><option value="godi">Годи</option><option value="warehouse">Главен Магацин</option></select></div><label class="settingsRow"><div><b>Информации за проверки</b><small>Прикажувај потсетување за непотврдена залиха</small></div><input id="settingsNotices" type="checkbox" onchange="saveSetting('notices',this.checked?'1':'0');applyNotices()"></label></div>
+<div class="settingsGroup"><h3>ⓘ За апликацијата</h3><div class="settingsAbout"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="sGlow" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7bd6ff"/><stop offset=".52" stop-color="#258dff"/><stop offset="1" stop-color="#2551db"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="17" fill="#102744" stroke="#397dc7" stroke-width="1.5"/><path d="M46 18c-7-6-21-6-28 1-7 7-4 15 7 17l12 2c9 2 8 9 0 11-8 2-17 0-23-5" fill="none" stroke="url(#sGlow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#9ce8ff" stroke-width="2.5" stroke-linecap="round"/></svg><strong>SETEC TOOLS</strong><span>Верзија 1.0</span><p>Брза, едноставна и практична алатка за пребарување и проверка на SETEC производи.</p><b>Изработено од gjo4e</b><small>Неофицијална апликација, независна од Setec.</small></div></div>
 <p id="settingsMessage" class="small" aria-live="polite"></p>
 </section>
 
@@ -383,6 +397,14 @@ body.dark .offerCopy,body.dark .offerAddDetail,body.dark .categoryOfficialAll{ba
 <div id="manufacturerSpecs" class="detailTool"></div><button class="official" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button><button class="cta" onclick="SetecApp.scan()">▣ Скенирај повторно</button></section>
 <p class="mutedFoot">Неофицијална апликација. Податоците за производите се преземаат од Setec.mk. Автоматската достапност во Годи сè уште не е потврдена.</p>
 </main>
+<nav class="tabs" aria-label="Главна навигација">
+<button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>⌂</span>Почетна</button>
+<button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button>
+<button class="tab" id="batchTab" onclick="switchTab('batch')"><span>▤</span>Листа</button>
+<button class="tab" onclick="SetecApp.openCompare()"><span>⇄</span>Спореди</button>
+<button class="tab" onclick="SetecApp.openPcConfigurator()"><span>▣</span>Состави PC</button>
+<button class="tab" id="settingsTab" onclick="showSettings()"><span>⚙</span>Поставки</button>
+</nav>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);let moreCanLoad=true,moreBusy=false;let tab='scan',currentProduct={url:'',name:'',sku:'',img:''},lastList=[],lastQuery='',pendingSku='',lastScannedSku='';
@@ -526,8 +548,8 @@ function renderCategories(){
  if(!found)host.appendChild(elem('div','categoryEmpty','Нема категорија со тој назив.'));
 }
 
-function showSettings(){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
-function closeSettings(){settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
+function showSettings(){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsTab').classList.add('active');$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
+function closeSettings(){$('settingsTab').classList.remove('active');settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
 function showSettingsMessage(msg){$('settingsMessage').textContent=msg}
 function setHistoryEnabled(on){saveSetting('history',on?'1':'0');if(!on)clearRecent()}
 function applyNotices(){const e=document.querySelector('.mutedFoot');if(e)e.classList.toggle('hidden',setting('notices','1')==='0')}
@@ -552,7 +574,7 @@ function manufacturerLink(p){
  host.appendChild(elem('div','small','Се отвора директно официјалната страница на производителот, не Google. Вметни го копираниот модел во пребарувањето на производителот. Линк до точниот модел не е потврден.'));
 }
 
-function switchTab(next){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}tab=next;$("dashboard").classList.toggle("hidden",next!=="scan");$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
+function switchTab(next){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}$('settingsTab').classList.remove('active');tab=next;$("dashboard").classList.toggle("hidden",next!=="scan");$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
 function setStatus(s){$('status').textContent=s}window.showLoading=setStatus;
 
 function displayResults(){
