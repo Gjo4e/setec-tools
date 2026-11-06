@@ -10,6 +10,11 @@ import android.net.Uri;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextWatcher;
+import android.text.Editable;
+import android.view.inputmethod.EditorInfo;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -43,6 +48,9 @@ public final class CompareModelsActivity extends ComponentActivity {
     private final Product[] products=new Product[2];
     private final Button[] scanButtons=new Button[2];
     private final Button[] manualButtons=new Button[2];
+    private final EditText[] skuInputs=new EditText[2];
+    private final Handler inputHandler=new Handler(Looper.getMainLooper());
+    private final Runnable[] pendingLookup=new Runnable[2];
     private ActivityResultLauncher<Intent> picker, skuScanner;
     private LinearLayout content,table;
     private TextView overview;
@@ -121,8 +129,8 @@ public final class CompareModelsActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
-        darkMode=getSharedPreferences("setec_preferences",MODE_PRIVATE).getBoolean("dark_theme",false);
-        INK=theme(0xFF202531,0xFFF0F4FA);
+        darkMode=true;
+        INK=0xFFEAF5FF;
         getWindow().setStatusBarColor(0xFF0B1423);
         getWindow().setNavigationBarColor(Color.BLACK);
         skuScanner=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
@@ -147,82 +155,129 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         LinearLayout screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(theme(0xFFEEF3FA,0xFF080D14));
+        screen.setBackgroundColor(0xFF080D14);
         setContentView(screen);
 
         LinearLayout header=new LinearLayout(this);
-        header.setBackgroundColor(0xFF101E32);
-        header.setPadding(dp(9),dp(10),dp(9),dp(11));
+        header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        screen.addView(header);
-        Button back=button("‹ Назад",0xFF1D3E60);
-        header.addView(back,new LinearLayout.LayoutParams(dp(90),dp(45)));
+        header.setPadding(dp(14),dp(20),dp(14),dp(19));
+        header.setBackground(gradient(0xFF101F35,0xFF0A121F,0xFF2B5B86,18));
+        screen.addView(header,new LinearLayout.LayoutParams(-1,-2));
+        Button back=button("‹",0xFF1A3550);
+        back.setTextSize(25);
+        header.addView(back,new LinearLayout.LayoutParams(dp(52),dp(50)));
         back.setOnClickListener(v->finish());
-        TextView title=text("⚖ Спореди модели",20,true,Color.WHITE);
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
-        lp.leftMargin=dp(12);
-        header.addView(title,lp);
+        LinearLayout titles=new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams tl=new LinearLayout.LayoutParams(0,-2,1);
+        tl.leftMargin=dp(14);
+        header.addView(titles,tl);
+        titles.addView(text("SETEC TOOLS",11,true,0xFF55BFFF));
+        TextView title=text("Спореди модели",23,true,Color.WHITE);
+        titles.addView(title);
+        titles.addView(text("Два производи · една јасна споредба",12,false,0xFFAAC0D7));
 
         ScrollView scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         screen.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         content=new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(13),dp(16),dp(13),dp(32));
+        content.setPadding(dp(14),dp(18),dp(14),dp(45));
         scroll.addView(content);
 
-        overview=text("Скенирај или рачно внеси две SETEC шифри. "+
-            "Моделите, цените и техничките описи се проверуваат на Setec.mk.",13,false,theme(0xFF626B78,0xFFB6C3D3));
+        TextView intro=text("Скенирај или внеси SETEC шифра. Производот автоматски се проверува на Setec.mk и се додава во споредбата.",13,false,0xFFB6C8DC);
+        intro.setLineSpacing(dp(3),1f);
+        content.addView(intro);
+
+        for(int i=0;i<2;i++){
+            final int slot=i;
+            LinearLayout panel=new LinearLayout(this);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setPadding(dp(15),dp(16),dp(15),dp(16));
+            panel.setBackground(gradient(i==0?0xFF12374E:0xFF252443,0xFF111D2B,i==0?0xFF1D7298:0xFF514C88,16));
+            LinearLayout.LayoutParams panelParams=new LinearLayout.LayoutParams(-1,-2);
+            panelParams.topMargin=dp(i==0?16:12);
+            content.addView(panel,panelParams);
+            TextView slotTitle=text(i==0?"01  ПРВ ПРОИЗВОД":"02  ВТОР ПРОИЗВОД",12,true,i==0?0xFF36C5FF:0xFFAA9AFF);
+            panel.addView(slotTitle);
+            TextView sub=text("Скенирај или напиши шифра од 4–8 цифри",12,false,0xFFACBED2);
+            LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(7);
+            panel.addView(sub,sp);
+            LinearLayout entry=new LinearLayout(this);
+            entry.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-1,-2);ep.topMargin=dp(12);
+            panel.addView(entry,ep);
+            EditText input=new EditText(this);
+            skuInputs[i]=input;
+            input.setSingleLine(true);
+            input.setTextSize(16);
+            input.setTypeface(null,Typeface.BOLD);
+            input.setTextColor(Color.WHITE);
+            input.setHintTextColor(0xFF7792AA);
+            input.setHint("SETEC шифра");
+            input.setInputType(InputType.TYPE_CLASS_NUMBER);
+            input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(8)});
+            input.setPadding(dp(13),0,dp(8),0);
+            input.setBackground(gradient(0xFF0B1827,0xFF0B1827,0xFF365979,11));
+            entry.addView(input,new LinearLayout.LayoutParams(0,dp(52),1));
+            input.setOnEditorActionListener((v,action,event)->{
+                if(action==EditorInfo.IME_ACTION_DONE){lookupTypedSku(slot);return true;}return false;
+            });
+            input.addTextChangedListener(new TextWatcher(){
+                @Override public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+                @Override public void onTextChanged(CharSequence s,int start,int before,int count){
+                    if(pendingLookup[slot]!=null)inputHandler.removeCallbacks(pendingLookup[slot]);
+                    String code=s.toString().trim();
+                    if(!code.matches("[0-9]{4,8}"))return;
+                    pendingLookup[slot]=()->{if(code.equals(input.getText().toString().trim()))lookupTypedSku(slot);};
+                    inputHandler.postDelayed(pendingLookup[slot],1000);
+                }
+                @Override public void afterTextChanged(Editable e){}
+            });
+            Button scan=button("▣  Скенирај",i==0?0xFF167CB7:0xFF6153A9);
+            scanButtons[i]=scan;
+            LinearLayout.LayoutParams sb=new LinearLayout.LayoutParams(dp(125),dp(52));
+            sb.leftMargin=dp(8);entry.addView(scan,sb);
+            scan.setOnClickListener(v->openScanner(slot));
+            manualButtons[i]=scan;
+        }
+
+        overview=text("Внеси ја првата шифра за да започне проверката.",13,false,0xFFACBED2);
+        overview.setPadding(dp(2),dp(20),dp(2),dp(8));
         content.addView(overview);
 
-        LinearLayout buttons=new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-        bp.topMargin=dp(16);
-        content.addView(buttons,bp);
-        for(int i=0;i<2;i++){
-            final int slot=i;
-            Button b=button("▣ Скенирај шифра "+(i+1),ORANGE);
-            scanButtons[i]=b;
-            LinearLayout.LayoutParams bParams=new LinearLayout.LayoutParams(0,dp(58),1);
-            if(i>0)bParams.leftMargin=dp(8);
-            buttons.addView(b,bParams);
-            b.setOnClickListener(v->openScanner(slot));
-        }
-
-        LinearLayout manualRow=new LinearLayout(this);
-        manualRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);
-        mp.topMargin=dp(7);
-        content.addView(manualRow,mp);
-        for(int i=0;i<2;i++){
-            final int slot=i;
-            Button b=button("⌨ Рачно внеси шифра "+(i+1),0xFF36475B);
-            manualButtons[i]=b;
-            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(52),1);
-            if(i>0)params.leftMargin=dp(8);
-            manualRow.addView(b,params);
-            b.setOnClickListener(v->enterSkuManually(slot));
-        }
-
-        TextView heading=text("СПОРЕДБА ЛЕВО / ДЕСНО",15,true,INK);
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
-        hp.topMargin=dp(22);
-        content.addView(heading,hp);
+        LinearLayout compareHeader=new LinearLayout(this);
+        compareHeader.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams ch=new LinearLayout.LayoutParams(-1,-2);ch.topMargin=dp(12);
+        content.addView(compareHeader,ch);
+        compareHeader.addView(text("РЕЗУЛТАТИ ОД СПОРЕДБАТА",14,true,0xFF51B9FF));
+        compareHeader.addView(text("Клуб цена, редовна цена и потврдени спецификации",12,false,0xFF93A8BE));
 
         table=new LinearLayout(this);
         table.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);
-        tp.topMargin=dp(8);
+        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(14);
         content.addView(table,tp);
 
-        TextView note=text("Моделите, шифрите, цените и прикажаните спецификации се исклучиво од Setec.mk. "+
-            "Непотврдено значи дека не е најдена сигурна вредност, не дека производот ја нема функцијата.",
-            12,false,theme(0xFF687180,0xFFB6C3D3));
-        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);
-        np.topMargin=dp(16);
+        TextView note=text("Податоците се од Setec.mk. Ако некоја спецификација не е потврдена, нема да се измислува вредност.",12,false,0xFF91A8C0);
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.topMargin=dp(20);
         content.addView(note,np);
         render();
+    }
+
+    private GradientDrawable gradient(int top,int bottom,int stroke,int radius){
+        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
+        bg.setCornerRadius(dp(radius));bg.setStroke(dp(1),stroke);return bg;
+    }
+
+    private void lookupTypedSku(int slot){
+        String code=skuInputs[slot].getText().toString().trim();
+        if(!code.matches("[0-9]{4,8}")){skuInputs[slot].setError("Шифра од 4–8 цифри");return;}
+        if(pendingLookup[slot]!=null)inputHandler.removeCallbacks(pendingLookup[slot]);
+        editingSlot=slot;
+        overview.setText("🔎 Се проверува шифрата "+code+" на Setec.mk…");
+        startSkuLookup(code);
     }
 
     private void openScanner(int slot){
@@ -386,7 +441,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         TextView heading=text("АВТОМАТСКА АНАЛИЗА · СО ФАКТИ",15,true,INK);
         LinearLayout.LayoutParams h=new LinearLayout.LayoutParams(-1,-2);
         h.topMargin=dp(19);table.addView(heading,h);
-        TextView body=text(message,13,false,INK);
+        TextView body=text(message,13,false,0xFFEAF5FF);
         body.setPadding(dp(12),dp(12),dp(12),dp(12));
         GradientDrawable bg=new GradientDrawable();bg.setColor(theme(0xFFFFF4E8,0xFF2B2B30));
         bg.setCornerRadius(dp(12));body.setBackground(bg);
@@ -431,13 +486,13 @@ public final class CompareModelsActivity extends ComponentActivity {
             for(int i=0;i<product.highlights.size()&&i<5;i++)
                 t.append("\n• ").append(product.highlights.get(i));
         }
-        TextView v=text(t.toString(),13,false,INK);
+        TextView v=text(t.toString(),13,false,0xFFE9F4FF);
         v.setPadding(dp(10),dp(12),dp(10),dp(12));
         v.setMinHeight(dp(135));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(theme(Color.WHITE,0xFF1D2633));
+        bg.setColor(0xFF15283B);
         bg.setCornerRadius(dp(12));
-        bg.setStroke(dp(1),theme(0xFFE1E6EE,0xFF455263));
+        bg.setStroke(dp(1),0xFF2C5575);
         v.setBackground(bg);
         return v;
     }
@@ -470,27 +525,27 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
 
     private TextView valueBox(String value,boolean different){
-        TextView tv=text(value,14,true,INK);
+        TextView tv=text(value,14,true,0xFFEAF5FF);
         tv.setGravity(Gravity.CENTER);
         tv.setMinHeight(dp(57));
         tv.setPadding(dp(8),dp(10),dp(8),dp(10));
         GradientDrawable background=new GradientDrawable();
-        background.setColor(different?theme(0xFFFFF0DF,0xFF473527):theme(Color.WHITE,0xFF1D2633));
+        background.setColor(different?0xFF163B4B:0xFF142335);
         background.setCornerRadius(dp(10));
-        background.setStroke(dp(1),different?0xFFF9C78B:theme(0xFFE4E7ED,0xFF455263));
+        background.setStroke(dp(1),different?0xFF16B8B1:0xFF2C4A65);
         tv.setBackground(background);
         return tv;
     }
 
     private TextView columnCard(String name,String subtitle){
-        TextView v=text(name+"\n"+subtitle,13,true,INK);
+        TextView v=text(name+"\n"+subtitle,13,true,0xFFEAF5FF);
         v.setMinHeight(dp(102));
         v.setGravity(Gravity.CENTER);
         v.setPadding(dp(7),dp(12),dp(7),dp(12));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(theme(Color.WHITE,0xFF1D2633));
+        bg.setColor(0xFF15283B);
         bg.setCornerRadius(dp(11));
-        bg.setStroke(dp(1),theme(0xFFE2E6ED,0xFF455263));
+        bg.setStroke(dp(1),0xFF2C5575);
         v.setBackground(bg);
         return v;
     }
