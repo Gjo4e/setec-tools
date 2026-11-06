@@ -22,6 +22,9 @@ import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Locale;
@@ -52,7 +55,7 @@ public final class MainActivity extends ComponentActivity {
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(29,28,32));
+        getWindow().setStatusBarColor(Color.rgb(8,13,20));
         getWindow().setNavigationBarColor(Color.BLACK);
         scannerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -77,7 +80,13 @@ public final class MainActivity extends ComponentActivity {
             }
         });
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(247,248,250));
+        root.setBackgroundColor(Color.rgb(8,13,20));
+        // Android 15 edge-to-edge: keep the header below status icons and bottom dock above system navigation.
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(0, bars.top, 0, bars.bottom);
+            return insets;
+        });
         setContentView(root);
 
         // Give the hidden website a real viewport; 1dp widths break responsive dropdowns.
