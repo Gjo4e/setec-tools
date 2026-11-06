@@ -590,6 +590,7 @@ function categoryLoad(url,remember=true){if(!/^https:\/\/(?:www\.)?setec\.mk\/ca
  $('categoryBreadcrumb').textContent=categoryHistory.length?'‹ Назад кон претходната категорија':'Каталог на Setec.mk';
  categoryBusy=true;renderCategories();SetecApp.loadCategory(url);
 }
+window.onCategorySearchFallback=function(url,name){categoryCurrentUrl=url;categoryLiveSubs=[];categoryEntries=[];categoryProductsCache.clear();categoryBusy=true;$('categoryNotice').textContent='Пребарувам производи за „'+name+'“ на Setec.mk…';renderCategories()};
 window.onCategoryLoading=function(){categoryBusy=true;$('categoryNotice').textContent='Вчитувам од Setec.mk…'};
 window.onCategoryError=function(message){categoryBusy=false;$('categoryNotice').textContent=message};
 window.onCategoryData=function(raw){if(!categoriesOpen)return;try{
@@ -598,7 +599,7 @@ window.onCategoryData=function(raw){if(!categoriesOpen)return;try{
  if(Array.isArray(data.subcategories))categoryLiveSubs=data.subcategories.filter(x=>typeof x==='string'&&x.length>1).slice(0,120);
  if(Array.isArray(data.categories))categoryEntries=data.categories.filter(x=>x&&/^https:\/\/(?:www\.)?setec\.mk\/category\//i.test(x.url)&&x.name).slice(0,350);
  if(Array.isArray(data.products))for(const p of data.products){if(p&&validUrl(p.url))categoryProductsCache.set(p.url,p)}
- categoryNextUrl=typeof data.next==='string'&&/^https:\/\/(?:www\.)?setec\.mk\/category/i.test(data.next)?data.next:'';
+ categoryNextUrl=typeof data.next==='string'&&/^https:\/\/(?:www\.)?setec\.mk\/(?:category|search-result)/i.test(data.next)?data.next:'';
  $('categoryNotice').textContent='Директно од Setec.mk · '+categoryPageTitle+' · '+categoryProductsCache.size+' производи';
  renderCategories();
  }catch(e){window.onCategoryError('Не можам да ги прочитам категориите. Пробај повторно.')}}
