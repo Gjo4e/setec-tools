@@ -88,7 +88,7 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
         top.setPadding(dp(20),dp(20),dp(20),dp(18));
-        top.setBackgroundColor(0xDD10243D);
+        top.setBackgroundColor(0xDD0B1C2E);
         FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1,-2, Gravity.TOP);
         root.addView(top, tp);
         TextView title = new TextView(this);
@@ -103,7 +103,7 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setPadding(dp(20),dp(17),dp(20),dp(20));
-        bottom.setBackgroundColor(0xF010243D);
+        bottom.setBackgroundColor(0xF00B1C2E);
         root.addView(bottom, new FrameLayout.LayoutParams(-1,-2, Gravity.BOTTOM));
         detected = new TextView(this);
         detected.setText("Барам шифра…");detected.setTextColor(Color.WHITE);
@@ -112,7 +112,7 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.CENTER);actions.setPadding(0,dp(16),0,0);
         bottom.addView(actions);
-        Button cancel = makeButton("Назад", 0xFF1E3D61);
+        Button cancel = makeButton("Назад", 0xFF173B60);
         Button manual = makeButton("Внеси рачно", ORANGE);
         actions.addView(cancel, new LinearLayout.LayoutParams(0,dp(52),1));
         actions.addView(manual, new LinearLayout.LayoutParams(0,dp(52),1));
