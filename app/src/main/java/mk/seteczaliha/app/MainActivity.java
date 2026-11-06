@@ -48,6 +48,7 @@ public final class MainActivity extends ComponentActivity {
     private String productUrl = null;
     private boolean merchantLoaded = false;
     private int searchSerial = 0;
+    private boolean searchFound=false;
     private boolean moreSearchPending = false;
     private int morePageIndex = 1;
     private final java.util.HashSet<String> moreSeenUrls = new java.util.HashSet<>();
@@ -370,17 +371,23 @@ public final class MainActivity extends ComponentActivity {
         moreSearchPending = false;
         morePageIndex = 1;
         int serial = ++searchSerial;
+        searchFound=false;
         if (activeQuery.isEmpty()) {
             js("window.showResults('[]',true);");
             return;
         }
         js("window.showLoading('Пребарувам на Setec.mk...');");
-        if (!merchantLoaded || !isHome(merchant.getUrl())) {
-            queuedQuery = activeQuery;
-            merchant.loadUrl(HOME);
-            return;
-        }
-        runSearch(activeQuery);
+        // Use Setec's actual search results route first, independent of dynamic
+        // header search widgets that change between mobile layouts.
+        queuedQuery=null;
+        merchant.loadUrl("https://www.setec.mk/search-result?q="+Uri.encode(activeQuery));
+        scheduleResults(serial);
+        handler.postDelayed(()->{
+            if(serial==searchSerial&&productUrl==null&&!searchFound){
+                queuedQuery=activeQuery;
+                merchant.loadUrl(HOME);
+            }
+        },7000);
     }
     private void runSearch(String query) {
         if (merchant == null || productUrl != null) return;
@@ -418,7 +425,8 @@ public final class MainActivity extends ComponentActivity {
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
-            "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
+            "if(/^\\d+$/.test(q)){if(sku!==q&&!txt.includes('Шифра: '+q)&&!txt.includes('Шифра '+q))continue;}"+
+            "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
             "return JSON.stringify([...found.values()]);})()";
@@ -426,6 +434,7 @@ public final class MainActivity extends ComponentActivity {
             if (serial != searchSerial || productUrl != null) return;
             String json = decodeJsString(encoded);
             if (json == null) json = "[]";
+            try{if(new JSONArray(json).length()>0)searchFound=true;}catch(Exception ignored){}
             js("window.showResults(" + JSONObject.quote(json) + ",false);");
         });
     }
