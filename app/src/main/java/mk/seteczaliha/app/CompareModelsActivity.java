@@ -395,7 +395,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
     private static double unitNumber(String raw){
         if(raw==null)return Double.NaN;
-        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)([0-9]+(?:[.,][0-9]+)?)\\\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\\\b").matcher(raw);
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)([0-9]+(?:[.,][0-9]+)?)\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\b").matcher(raw);
         if(!m.find())return Double.NaN;
         try{
             double v=Double.parseDouble(m.group(1).replace(',','.'));
@@ -408,7 +408,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
     private static String unitOf(String raw){
         if(raw==null)return "";
-        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)[0-9]+(?:[.,][0-9]+)?\\\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\\\b").matcher(raw);
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)[0-9]+(?:[.,][0-9]+)?\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\b").matcher(raw);
         if(!m.find())return "";
         String u=m.group(1).toUpperCase(java.util.Locale.ROOT);
         if(u.equals("TB")||u.equals("GB")||u.equals("MB"))return "STORAGE";
