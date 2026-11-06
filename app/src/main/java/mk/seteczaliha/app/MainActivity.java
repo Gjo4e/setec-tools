@@ -340,7 +340,7 @@ public final class MainActivity extends ComponentActivity {
         if(categoryMerchant==null||name==null||name.trim().isEmpty()||categoryUrl.isEmpty())return;
         final int serial=categorySerial;
         String script="(function(){let target="+JSONObject.quote(name)+";"+
-            "let norm=s=>String(s||'').replace(/\\\\s*\\\\(\\\\d+\\\\)\\\\s*$/,'').replace(/\\\\s+/g,' ').trim().toLocaleLowerCase();"+
+            "let norm=s=>String(s||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase();"+
             "let labels=[...document.querySelectorAll('label')];"+
             "let label=labels.find(x=>norm(x.innerText||x.textContent)===norm(target));"+
             "if(!label)return 'missing';"+
@@ -365,7 +365,7 @@ public final class MainActivity extends ComponentActivity {
         String script="(function(){"+labelledPricesJs()+
             "let categories=new Map(),products=new Map(),subcategories=[];"+
             "let heads=[...document.querySelectorAll('h2,h3,h4,button,div,span')].filter(x=>x.children.length<4&&/^(Подкатегории|Subcategories)$/i.test((x.innerText||'').trim()));"+
-            "for(let head of heads){let panel=head.parentElement;for(let d=0;d<4&&panel;d++,panel=panel.parentElement){let labels=[...panel.querySelectorAll('label')].filter(x=>x.querySelector('input[type=checkbox]')||(x.htmlFor&&document.getElementById(x.htmlFor)));if(labels.length>1){for(let l of labels){let n=(l.innerText||l.textContent||'').replace(/\\\\s*\\\\(\\\\d+\\\\)\\\\s*$/,'').trim();if(n.length>1&&n.length<100&&!subcategories.includes(n))subcategories.push(n)}break}}if(subcategories.length)break}"+
+            "for(let head of heads){let panel=head.parentElement;for(let d=0;d<4&&panel;d++,panel=panel.parentElement){let labels=[...panel.querySelectorAll('label')].filter(x=>x.querySelector('input[type=checkbox]')||(x.htmlFor&&document.getElementById(x.htmlFor)));if(labels.length>1){for(let l of labels){let n=(l.innerText||l.textContent||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').trim();if(n.length>1&&n.length<100&&!subcategories.includes(n))subcategories.push(n)}break}}if(subcategories.length)break}"+
 
             "for(let a of document.querySelectorAll('a[href]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
