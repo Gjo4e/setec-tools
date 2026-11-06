@@ -36,7 +36,10 @@ import java.util.Map;
  * Only up to five key specs appear side by side, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
-    private static final int INK=0xFF202531, ORANGE=0xFFF58220;
+    private static final int ORANGE=0xFFF58220;
+    private int INK=0xFF202531;
+    private boolean darkMode=false;
+    private int theme(int light,int dark){return darkMode?dark:light;}
     private final Product[] products=new Product[2];
     private final Button[] scanButtons=new Button[2];
     private final Button[] manualButtons=new Button[2];
@@ -118,6 +121,8 @@ public final class CompareModelsActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
+        darkMode=getSharedPreferences("setec_preferences",MODE_PRIVATE).getBoolean("dark_theme",false);
+        INK=theme(0xFF202531,0xFFF0F4FA);
         getWindow().setStatusBarColor(0xFF1B1C21);
         getWindow().setNavigationBarColor(Color.BLACK);
         skuScanner=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
@@ -142,7 +147,7 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         LinearLayout screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(0xFFF6F7FA);
+        screen.setBackgroundColor(theme(0xFFF6F7FA,0xFF11141B));
         setContentView(screen);
 
         LinearLayout header=new LinearLayout(this);
@@ -167,7 +172,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         scroll.addView(content);
 
         overview=text("Скенирај или рачно внеси две SETEC шифри. "+
-            "Моделите, цените и техничките описи се проверуваат на Setec.mk.",13,false,0xFF626B78);
+            "Моделите, цените и техничките описи се проверуваат на Setec.mk.",13,false,theme(0xFF626B78,0xFFB6C3D3));
         content.addView(overview);
 
         LinearLayout buttons=new LinearLayout(this);
@@ -213,7 +218,7 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         TextView note=text("Моделите, шифрите, цените и прикажаните спецификации се исклучиво од Setec.mk. "+
             "Непотврдено значи дека не е најдена сигурна вредност, не дека производот ја нема функцијата.",
-            12,false,0xFF687180);
+            12,false,theme(0xFF687180,0xFFB6C3D3));
         LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);
         np.topMargin=dp(16);
         content.addView(note,np);
@@ -276,7 +281,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         }
         Product left=products[0],right=products[1];
         if(left==null&&right==null){
-            table.addView(text("Прво скенирај ја SETEC шифрата за левиот производ, па за десниот.",13,false,0xFF657081));
+            table.addView(text("Прво скенирај ја SETEC шифрата за левиот производ, па за десниот.",13,false,theme(0xFF657081,0xFFB6C3D3)));
             return;
         }
         overview.setText(left!=null&&right!=null
@@ -315,7 +320,7 @@ public final class CompareModelsActivity extends ComponentActivity {
             left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
             TextView empty=text("Setec.mk не достави технички опис за овие два производи. "+
-                "Отвори ги и зачувај ги повторно за проверка.",13,false,0xFF835A2D);
+                "Отвори ги и зачувај ги повторно за проверка.",13,false,theme(0xFF835A2D,0xFFFFC28A));
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
             p.topMargin=dp(13);
             table.addView(empty,p);
@@ -333,7 +338,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                  "карактеристика кај двата модела. "
                 :"Се означуваат разлики само за иста техничка карактеристика. ")+
             "Податоците се само од потврдените Setec производи.",
-            12,false,0xFF707887);
+            12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
         table.addView(count,cp);
@@ -383,7 +388,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         h.topMargin=dp(19);table.addView(heading,h);
         TextView body=text(message,13,false,INK);
         body.setPadding(dp(12),dp(12),dp(12),dp(12));
-        GradientDrawable bg=new GradientDrawable();bg.setColor(0xFFFFF4E8);
+        GradientDrawable bg=new GradientDrawable();bg.setColor(theme(0xFFFFF4E8,0xFF2B2B30));
         bg.setCornerRadius(dp(12));body.setBackground(bg);
         table.addView(body);
     }
@@ -430,9 +435,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         v.setPadding(dp(10),dp(12),dp(10),dp(12));
         v.setMinHeight(dp(135));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        bg.setColor(theme(Color.WHITE,0xFF1D2633));
         bg.setCornerRadius(dp(12));
-        bg.setStroke(dp(1),0xFFE1E6EE);
+        bg.setStroke(dp(1),theme(0xFFE1E6EE,0xFF455263));
         v.setBackground(bg);
         return v;
     }
@@ -450,7 +455,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
 
     private void row(String label,String a,String b,boolean spec){
-        TextView heading=text((spec?"• ":"")+label,12,true,0xFF4E5764);
+        TextView heading=text((spec?"• ":"")+label,12,true,theme(0xFF4E5764,0xFFB6C3D3));
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
         hp.topMargin=dp(13);
         table.addView(heading,hp);
@@ -470,9 +475,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         tv.setMinHeight(dp(57));
         tv.setPadding(dp(8),dp(10),dp(8),dp(10));
         GradientDrawable background=new GradientDrawable();
-        background.setColor(different?0xFFFFF0DF:Color.WHITE);
+        background.setColor(different?theme(0xFFFFF0DF,0xFF473527):theme(Color.WHITE,0xFF1D2633));
         background.setCornerRadius(dp(10));
-        background.setStroke(dp(1),different?0xFFF9C78B:0xFFE4E7ED);
+        background.setStroke(dp(1),different?0xFFF9C78B:theme(0xFFE4E7ED,0xFF455263));
         tv.setBackground(background);
         return tv;
     }
@@ -483,9 +488,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         v.setGravity(Gravity.CENTER);
         v.setPadding(dp(7),dp(12),dp(7),dp(12));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        bg.setColor(theme(Color.WHITE,0xFF1D2633));
         bg.setCornerRadius(dp(11));
-        bg.setStroke(dp(1),0xFFE2E6ED);
+        bg.setStroke(dp(1),theme(0xFFE2E6ED,0xFF455263));
         v.setBackground(bg);
         return v;
     }
@@ -502,7 +507,7 @@ public final class CompareModelsActivity extends ComponentActivity {
             if(safeSource(url)){source=url;break;}
         }
         TextView link=text(source==null?"Извор: непотврден":"Извор ↗",12,true,
-            source==null?0xFF7B8493:0xFFE17319);
+            source==null?theme(0xFF7B8493,0xFFB6C3D3):0xFFE17319);
         link.setGravity(Gravity.CENTER);
         link.setPadding(dp(6),dp(10),dp(6),dp(10));
         host.addView(link,columnParams(second));
