@@ -64,6 +64,7 @@ const CATS=[
 const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
 let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
 if(!chosen||typeof chosen!=='object')chosen={};
+let ramQuantity=1;try{ramQuantity=Math.max(1,Math.min(8,Math.trunc(Number(localStorage.getItem('setec_pc_ram_quantity')||1))||1))}catch(e){}
 let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=false,noMorePages=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
 // Catalog pages are fetched one after another without user interaction.
 // All stock verifications run independently in Java as the list grows.
@@ -108,7 +109,8 @@ function productThumb(p,compact=false){
  }
  return box;
 }
-function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
+function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen));localStorage.setItem('setec_pc_ram_quantity',String(ramQuantity))}
+function setRamQuantity(value){ramQuantity=Math.max(1,Math.min(8,Math.trunc(Number(value))||1));persist();rebuild()}
 function labelFor(id){return CATS.find(x=>x.id===id)?.label||id}
 function cash(s){const x=String(s||'').replace(/\s/g,'');if(!/^\d[\d.,]*$/.test(x))return null;const n=Number(x.replace(/[.,]/g,''));return Number.isFinite(n)?n:null}
 function money(n){return n.toLocaleString('de-DE')+' ден.'}
@@ -277,9 +279,9 @@ function rebuild(){
  const grid=$('categories');grid.replaceChildren();
  for(const c of CATS){const p=chosen[c.id];const b=el('button','cat'+(p?' selected':''));b.appendChild(el('div','sym',c.icon));b.appendChild(el('div','name',c.label));b.appendChild(el('div','picked',p?p.name:'+ Избери компонента'));b.onclick=()=>openCategory(c.id);grid.appendChild(b)}
  const n=slots.filter(x=>!!chosen[x]).length;$('progress').textContent=n+' / '+slots.length;
- const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];persist();rebuild()};row.append(productThumb(p,true),l,x);host.appendChild(row)}
+ const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];if(id==='ram')ramQuantity=1;persist();rebuild()};row.append(productThumb(p,true),l);if(id==='ram'){const quantity=el('select','');quantity.setAttribute('aria-label','Количина RAM модули');for(let k=1;k<=8;k++){const option=document.createElement('option');option.value=String(k);option.textContent=k+'×';quantity.appendChild(option)}quantity.value=String(ramQuantity);quantity.onchange=()=>setRamQuantity(quantity.value);row.appendChild(quantity)}row.appendChild(x);host.appendChild(row)}
  let c=0,r=0,haveClub=0,haveRegular=0;
- for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice);if(v!==null){c+=v;haveClub++}if(w!==null){r+=w;haveRegular++}}
+ for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice),qty=id==='ram'?ramQuantity:1;if(v!==null){c+=v*qty;haveClub++}if(w!==null){r+=w*qty;haveRegular++}}
  $('clubTotal').textContent=money(c);$('regularTotal').textContent=money(r);
  $('priceNote').textContent=(n&& (haveClub<n||haveRegular<n))?'Внимание: ова е нецелосен збир. Недостасуваат проверени цени за некои избрани делови.':(!n?'Избери компоненти за да ја видиш вкупната цена.':'Збир на '+n+' избрани производи; цените може да се променат.');
  const check=compatibility('',null),area=$('compatibility');area.replaceChildren();
@@ -451,6 +453,6 @@ window.pcVerificationDone=()=>{
   $('stockStatus').textContent='Залихата не може да се потврди автоматски. Користи „Провери на Setec.mk“.';
  }
 };
-function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
+function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+(id==='ram'?' ('+ramQuantity+'×)':'')+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
 rebuild();
 </script></body></html>
