@@ -28,20 +28,54 @@ body.dark .small,body.dark .itemSku,body.dark .notOfficial{color:#a4afbd}
 .dashSearch{display:flex;gap:7px;margin-top:12px}.dashSearch input{flex:1;min-width:0;border:1px solid #d9dde5;border-radius:10px;padding:12px}.dashSearch button{border:0;border-radius:10px;background:var(--orange);color:#fff;font-weight:800;padding:0 13px}
 .dashRecent{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.dashRecent button{border:1px solid var(--line);border-radius:9px;background:#f8f9fb;padding:8px 10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .detailTool{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:#fff}
+
+/* Unified surface tokens — all home cards and nested controls share the theme. */
+body{--surface:#fff;--surface-alt:#f3f5f8;--field:#fff;--bodycopy:#24242a;--subcopy:#667080;--border:#e2e6ec}
+body.dark{--surface:#1c2430;--surface-alt:#273241;--field:#111925;--bodycopy:#edf2f9;--subcopy:#b6c3d3;--border:#3d4a5a;color-scheme:dark}
+body.dark .head{background:#0c121b}
+body.dark .tabs,body.dark .tab,body.dark .dashboard,body.dark .frame,body.dark .batchTop,body.dark .batchRow,body.dark .batchConfirm,body.dark .batchConfirm button,body.dark .productCard,body.dark .stock,body.dark .item,body.dark .empty,body.dark .detailTool,body.dark .official,body.dark .secondary,body.dark .dashTile,body.dark .dashRecent button,body.dark .note,body.dark .chip,body.dark .capture,body.dark .thumb,body.dark .productImg,body.dark .batchDelete,body.dark .stockState,body.dark .recognition{background:var(--surface)!important;color:var(--bodycopy)!important;border-color:var(--border)!important}
+body.dark .capture,body.dark .thumb,body.dark .productImg,body.dark .chip,body.dark .batchDelete,body.dark .stockState,body.dark .note{background:var(--surface-alt)!important}
+body.dark .small,body.dark .state,body.dark .itemSku,body.dark .productSku,body.dark .capture p,body.dark .batchHint,body.dark .batchRowState,body.dark .mutedFoot,body.dark .batchConfirm p{color:var(--subcopy)!important}
+body.dark .note b,body.dark .chip,body.dark .batchRowTitle,body.dark .itemTitle,body.dark .productName,body.dark .stockLabel,body.dark .title,body.dark .dashTitle{color:var(--bodycopy)!important}
+body.dark .tab:not(.active){color:var(--subcopy)!important}
+body.dark .recognition strong{color:#83e4a2!important}
+body.dark input,body.dark textarea,body.dark select{background:var(--field)!important;color:var(--bodycopy)!important;border-color:var(--border)!important}
+body.dark .stockState.yes{background:#183b2a!important;color:#92f3b2!important}
+body.dark .stockState.no{background:#452527!important;color:#ffb3b3!important}
+body.dark .priceMini .regularPrice{color:#b6c3d3!important}
+body.dark .priceMini .clubPrice{color:#ffac68!important}
+body.dark .dashTile:active,body.dark .dashRecent button:active{background:#33445a!important}
+.dashboard{padding:18px;border-radius:20px;box-shadow:0 4px 20px rgba(15,25,45,.04)}
+.dashHeader{align-items:flex-start}
+.dashTitle{font-size:22px;letter-spacing:-.5px}
+.dashSearch{margin-top:18px}
+.dashSearch input{min-height:49px;font-size:14px}
+.dashSearch button{min-width:74px}
+.dashQuick{gap:10px;margin:17px 0}
+.dashTile{min-height:94px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;border-radius:14px;padding:14px;background:var(--surface-alt);color:var(--bodycopy)}
+.dashTile span{font-size:26px;margin:0}
+.dashTile small{display:block;font-size:11px;font-weight:500;color:var(--subcopy)}
+.dashSectionTitle{font-size:12px;font-weight:800;letter-spacing:.3px;margin:15px 0 7px}
+.dashHint{font-size:12px;color:var(--subcopy);line-height:1.5;margin-top:8px}
+.dashRecent button{color:var(--bodycopy);background:var(--surface-alt)}
+.detailTool{margin-top:20px;margin-bottom:12px;clear:both;display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
+.detailTool .official{display:block;margin:0;text-align:center;text-decoration:none}
+.detailTool .small{line-height:1.6}
 </style></head>
 <body><header class="head"><div class="brand"><div class="brandLogo" aria-label="Setec Шифри"><span class="markName">Setec</span><span class="markSub">Шифри</span></div><span class="sep"></span><span>Setec Шифри</span></div><p class="notOfficial">Неофицијална апликација · пребарување по шифра</p></header>
 <nav class="tabs" aria-label="Режим"><button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>▣</span>Скенирај</button><button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button><button class="tab" id="batchTab" onclick="switchTab('batch')"><span>▣</span>Листа</button><button class="tab" onclick="SetecApp.openCompare()"><span>⇄</span>СПОРЕДИ</button><button class="tab" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC</button></nav>
 <main class="wrap">
 <section id="dashboard" class="dashboard">
-<div class="dashHeader"><div><div class="dashTitle">⚡ Брз пристап</div><div class="small">Најважните функции на едно место</div></div><button id="themeToggle" class="secondary" style="padding:9px" onclick="toggleTheme()">🌙 Тема</button></div>
-<form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" placeholder="Пр. Samsung TV 55 инчи до 30000 ден." aria-label="Брзо пребарување"><button type="submit">Барај</button></form>
+<div class="dashHeader"><div><div class="dashTitle">SETEC · Контролен центар</div><div class="small">Пребарај, скенирај и спореди побрзо</div></div><button id="themeToggle" class="secondary" style="padding:10px" onclick="toggleTheme()">🌙 Темна</button></div>
+<form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" autocomplete="off" placeholder="Што бараш? Пр. Lenovo 16GB до 40000" aria-label="Паметно пребарување"><button type="submit">Барај</button></form>
+<div class="dashHint">Разбира: „Samsung 55 инчи до 30000“, „Lenovo 16GB RAM“, „RTX 4060“.</div>
 <div class="dashQuick">
-<button class="dashTile" onclick="SetecApp.openModelScanner()"><span>▣</span>Data Matrix скенер</button>
-<button class="dashTile" onclick="SetecApp.scan()"><span>⌗</span>Скенирај шифра</button>
-<button class="dashTile" onclick="SetecApp.openCompare()"><span>⇄</span>Спореди</button>
-<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC</button>
+<button class="dashTile" onclick="SetecApp.openModelScanner()"><span>▣</span>Data Matrix<small>Етикета со код</small></button>
+<button class="dashTile" onclick="SetecApp.scan()"><span>⌗</span>Скенирај шифра<small>Брза проверка</small></button>
+<button class="dashTile" onclick="SetecApp.openCompare()"><span>⇄</span>Спореди<small>Два производи</small></button>
+<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC<small>Компатибилност и FPS</small></button>
 </div>
-<div class="small">Последни пребарувања</div><div id="dashRecent" class="dashRecent"></div>
+<div class="dashSectionTitle">ПОСЛЕДНИ ПРЕБАРУВАЊА</div><div id="dashRecent" class="dashRecent"></div>
 </section>
 
 <section id="scanPanel"><div class="frame"><div class="capture"><div class="corners"></div><div><div class="glyph">▣</div><strong>Читање на шифра од етикета</strong><p>Насочи ја камерата кон „Шифра:“ или „шифра/код:“ на ценовникот.</p></div></div></div><div class="scanBtns"><button class="cta" onclick="SetecApp.scan()">▣ Скенирај со камера</button><button class="secondary" onclick="refresh()" aria-label="Освежи">⟳</button></div>
@@ -55,9 +89,8 @@ body.dark .small,body.dark .itemSku,body.dark .notOfficial{color:#a4afbd}
 <section id="resultsPanel"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div><div id="pprices"></div></div></div>
 <div class="stock"><div class="stockLabel"><span class="stockIcon">⬡</span>Достапност во Годи</div><div id="godiStatus" class="stockState">Непотврдено</div></div>
-<div id="manufacturerSpecs" class="detailTool"></div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">„Годи“ на официјалната листа значи дека има залиха. Оваа апликација не прикажува непроверено „ИМА“ или „НЕМА“.</p>
-<button class="official" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button><button class="cta" onclick="SetecApp.scan()">▣ Скенирај повторно</button></section>
+<div id="manufacturerSpecs" class="detailTool"></div><button class="official" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button><button class="cta" onclick="SetecApp.scan()">▣ Скенирај повторно</button></section>
 <p class="mutedFoot">Неофицијална апликација. Податоците за производите се преземаат од Setec.mk. Автоматската достапност во Годи сè уште не е потврдена.</p>
 </main>
 <script>
@@ -70,59 +103,103 @@ function miniPrices(p){const box=elem('div','priceMini');for(const [key,label,cl
 function renderProductPrices(p){const host=$('pprices');host.replaceChildren();const prices=miniPrices(p);if(prices.childElementCount)host.appendChild(prices)}
 
 
-let queryFilters=null;
+
+let queryFilters=null,unfilteredResults=[];
 function getRecent(){try{const x=JSON.parse(localStorage.getItem('setec_recent_searches')||'[]');return Array.isArray(x)?x.slice(0,6):[]}catch(e){return []}}
 function rememberSearch(q){if(!q)return;const v=[q,...getRecent().filter(x=>x!==q)].slice(0,6);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
-function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Сè уште нема пребарувања.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>smartSearch(q);host.appendChild(b)}}
-function toggleTheme(){document.body.classList.toggle('dark');try{localStorage.setItem('setec_theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}$('themeToggle').textContent=document.body.classList.contains('dark')?'☀ Светла':'🌙 Темна'}
+function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Нема пребарувања — започни со полето погоре.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>smartSearch(q);host.appendChild(b)}}
+function toggleTheme(){document.body.classList.toggle('dark');try{localStorage.setItem('setec_theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}updateThemeButton()}
+function updateThemeButton(){$('themeToggle').textContent=document.body.classList.contains('dark')?'☀ Светла':'🌙 Темна'}
 try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}
-function priceNumber(value){const t=String(value||'').replace(/[^0-9.,]/g,'').replace(/[.,](?=\d{3}(?:\D|$))/g,'').replace(',','.');const n=Number(t);return Number.isFinite(n)?n:null}
+updateThemeButton();
+function priceNumber(value){
+ let t=String(value||'').replace(/[^0-9.,]/g,'');
+ if(!t)return null;
+ if(/^\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?$/.test(t))t=t.replace(/[.,](?=\d{3}(?:[.,]|$))/g,'').replace(',','.');
+ else t=t.replace(',','.');
+ const n=Number(t);return Number.isFinite(n)?n:null;
+}
 function parseSmart(q){
- const lower=q.toLowerCase();let max=null,ram=null,inch=null;
- const money=lower.match(/(?:до|под|макс(?:имум)?|under)\s*(\d[\d.,]*)\s*(?:ден|мкд|mkd)?/i);
- if(money)max=priceNumber(money[1]);
- const mem=lower.match(/\b(\d{1,3})\s*gb\s*ram\b|\bram\s*(\d{1,3})\s*gb\b/i);
- if(mem)ram=Number(mem[1]||mem[2]);
- const screen=lower.match(/\b(\d{2,3})\s*(?:инчи|inch|инчи|")/i);
- if(screen)inch=Number(screen[1]);
- let clean=lower.replace(/(?:до|под|макс(?:имум)?|under)\s*\d[\d.,]*\s*(?:денари|ден|мкд|mkd)?/gi,' ')
- .replace(/\b\d{1,3}\s*gb\s*ram\b|\bram\s*\d{1,3}\s*gb\b/gi,' ')
- .replace(/\b\d{2,3}\s*(?:инчи|inch|инчи|")/gi,' ')
- .replace(/\b(?:сакам|барам|покажи|ми|најди|производи|со|од|за|те молам)\b/gi,' ')
- .replace(/\s+/g,' ').trim();
- return {term:clean||q.trim(),max,ram,inch};
+ let text=String(q||'').trim(),max=null,ram=null,inch=null;
+ const money=text.match(/(?:до|под|макс(?:имум)?|under|below|<)\s*(\d[\d., ]*)\s*(?:денари|ден|мкд|mkd)?/i);
+ if(money){max=priceNumber(money[1]);text=text.replace(money[0],' ')}
+ const mem=text.match(/(?:^|[\s,])(\d{1,3})\s*(?:GB|ГБ)\s*(?:RAM|РАМ)?\b|(?:RAM|РАМ)\s*(\d{1,3})\s*(?:GB|ГБ)?/i);
+ if(mem){ram=Number(mem[1]||mem[2]);text=text.replace(mem[0],' ')}
+ const screen=text.match(/(\d{2,3})\s*(?:инчи|инч|inch|["”])/i);
+ if(screen){inch=Number(screen[1]);text=text.replace(screen[0],' ')}
+ text=text.replace(/\b(?:сакам|барам|покажи|најди|производи|модели|те молам|ми|со|од|за)\b/gi,' ').replace(/\s+/g,' ').trim();
+ const term=text||String(q||'').trim();
+ return {term,max,ram,inch,raw:q};
+}
+function matchesSmart(p,f){
+ const name=String(p.name||'').toLowerCase();
+ if(f.max!==null){const price=priceNumber(p.clubPrice)||priceNumber(p.regularPrice);if(price!==null&&price>f.max)return false}
+ if(f.ram!==null&&!new RegExp('(?:^|[^\\d])'+f.ram+'\\s*(?:gb|гб)','i').test(name))return false;
+ if(f.inch!==null&&!new RegExp('(?:^|[^\\d])'+f.inch+'\\s*(?:["”]|inch|инчи|инч|\\b)','i').test(name))return false;
+ return true;
 }
 function smartSearch(q){
  q=String(q||'').trim();if(!q)return;
- const p=parseSmart(q);queryFilters=p;rememberSearch(q);
- $('dashQuery').value=q;switchTab('search');search(p.term);queryFilters=p;window.scrollTo(0,0);
+ const p=parseSmart(q);rememberSearch(q);
+ $('dashQuery').value=q;switchTab('search');
+ search(p.term,false,p);
+ window.scrollTo(0,0);
 }
 $('dashForm').addEventListener('submit',e=>{e.preventDefault();smartSearch($('dashQuery').value)});
 renderRecent();
 function manufacturerLink(p){
  const host=$('manufacturerSpecs');host.replaceChildren();
  const name=String(p.name||'').trim();if(!name)return;
- const brands=[['ASUS','asus.com'],['LENOVO','lenovo.com'],['SAMSUNG','samsung.com'],['HP','hp.com'],['DELL','dell.com'],['ACER','acer.com'],['MSI','msi.com'],['GIGABYTE','gigabyte.com'],['KINGSTON','kingston.com'],['LOGITECH','logitech.com'],['LG','lg.com'],['INTEL','intel.com'],['AMD','amd.com'],['CANON','canon-europe.com'],['EPSON','epson.eu'],['PHILIPS','philips.com']];
+ const brands=[['LENOVO','https://psref.lenovo.com/'],['ASUS','https://www.asus.com/support/'],['SAMSUNG','https://www.samsung.com/support/'],['HP','https://support.hp.com/'],['DELL','https://www.dell.com/support/home/'],['ACER','https://www.acer.com/support/'],['MSI','https://www.msi.com/support'],['GIGABYTE','https://www.gigabyte.com/Support'],['KINGSTON','https://www.kingston.com/'],['LOGITECH','https://support.logi.com/'],['LG','https://www.lg.com/support'],['INTEL','https://www.intel.com/content/www/us/en/support.html'],['AMD','https://www.amd.com/en/support'],['CANON','https://www.canon-europe.com/support/'],['EPSON','https://www.epson.eu/support'],['PHILIPS','https://www.philips.com/support']];
  const match=brands.find(x=>new RegExp('(?:^|[^A-Z])'+x[0]+'(?:[^A-Z]|$)','i').test(name));
- host.appendChild(elem('div','small','Официјални спецификации и упатства'));
- if(!match){host.appendChild(elem('div','small','Не е препознаен производителот за автоматско пребарување.'));return}
- const link=elem('a','official','⌕ Пребарај кај '+match[0]+' ↗');
- link.href='https://www.google.com/search?q='+encodeURIComponent('site:'+match[1]+' '+name+' specifications manual');
- link.target='_blank';link.rel='noopener noreferrer';host.appendChild(link);
- host.appendChild(elem('div','small','Се отвора пребарување ограничено на официјалниот домен; провери дали резултатот е за точниот модел.'));
+ host.appendChild(elem('strong','','Официјални спецификации'));
+ if(!match){host.appendChild(elem('div','small','Не можам да го препознаам производителот од називот.'));return}
+ const link=elem('a','official','Отвори '+match[0]+' — официјална поддршка ↗');
+ link.href=match[1];link.target='_blank';link.rel='noopener noreferrer';host.appendChild(link);
+ const copy=elem('button','secondary','Копирај назив на модел');
+ copy.onclick=()=>{const ta=document.createElement('textarea');ta.value=name;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');copy.textContent='✓ Називот е копиран'}catch(e){copy.textContent='Копирањето не успеа'}ta.remove()};
+ host.appendChild(copy);
+ host.appendChild(elem('div','small','Се отвора директно официјалната страница на производителот, не Google. Вметни го копираниот модел во пребарувањето на производителот. Линк до точниот модел не е потврден.'));
 }
 
 function switchTab(next){tab=next;$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
 function setStatus(s){$('status').textContent=s}window.showLoading=setStatus;
-window.showResults=function(json,reset){try{let a=JSON.parse(json);if(!Array.isArray(a))a=[];a=a.filter(p=>p&&validUrl(p.url)).slice(0,500);if(reset){lastList=[];a=[]}if(a.length)lastList=a;
-const wrap=$('list');wrap.replaceChildren();if(queryFilters&&lastList.length){const f=queryFilters;lastList=lastList.filter(p=>{const name=String(p.name||'').toLowerCase();if(f.ram&&!new RegExp('(?:^|[^0-9])'+f.ram+'\\s*gb','i').test(name))return false;if(f.inch&&!new RegExp('(?:^|[^0-9])'+f.inch+'\\s*(?:[\"”]|inch|инч)','i').test(name))return false;if(f.max!==null){const price=priceNumber(p.clubPrice||p.regularPrice);if(price===null||price>f.max)return false}return true})}if(!lastList.length){wrap.appendChild(elem('div','empty',lastQuery?'Нема резултати за ова пребарување. Провери ја шифрата.':'Нема резултати.'));return}
-for(const p of lastList){const b=elem('button','item');const pic=elem('span','thumb');const src=safeImage(p.img);if(src){let i=elem('img');i.src=src;i.alt='';pic.appendChild(i)}else pic.textContent='SETEC';const details=elem('span','itemMain');details.appendChild(elem('div','itemTitle',p.name||'Производ'));details.appendChild(elem('div','itemSku',p.sku?'Шифра: '+p.sku:'Допрете за деталите'));details.appendChild(miniPrices(p));b.append(pic,details,elem('span','arrow','›'));b.onclick=()=>openProduct(p);wrap.appendChild(b)}
-const allowMore=moreCanLoad&&lastQuery&&!/^[0-9]+$/.test(lastQuery)&&lastList.length>=20;$('moreResultsBtn').classList.toggle('hidden',!allowMore);if(!moreBusy)$('moreResultsBtn').textContent='Прикажи повеќе производи ↓';setStatus('Резултати: '+lastList.length+'.');if(pendingSku){const exact=lastList.filter(p=>p.sku===pendingSku);if(exact.length===1){pendingSku='';openProduct(exact[0])}}
-}catch(e){setStatus('Проблем со пребарувањето.')}};
+
+function displayResults(){
+ const wrap=$('list');wrap.replaceChildren();
+ let visible=unfilteredResults;
+ if(queryFilters){
+  const filtered=unfilteredResults.filter(p=>matchesSmart(p,queryFilters));
+  visible=filtered.length?filtered:unfilteredResults;
+  $('moreResultsInfo').textContent=filtered.length?'Применети филтри: '+[queryFilters.ram?queryFilters.ram+' GB RAM':'',queryFilters.inch?queryFilters.inch+' инчи':'',queryFilters.max!==null?'до '+queryFilters.max+' ден.':''].filter(Boolean).join(' · '):'Нема точни совпаѓања со филтрите — прикажани се најблиските резултати од Setec.';
+ }
+ lastList=visible;
+ if(!visible.length){wrap.appendChild(elem('div','empty',lastQuery?'Нема резултати. Пробај со пократок назив или модел.':'Нема резултати.'))}
+ for(const p of visible){
+  const b=elem('button','item'),pic=elem('span','thumb'),src=safeImage(p.img);
+  if(src){const i=elem('img');i.src=src;i.alt='';pic.appendChild(i)}else pic.textContent='SETEC';
+  const details=elem('span','itemMain');details.appendChild(elem('div','itemTitle',p.name||'Производ'));details.appendChild(elem('div','itemSku',p.sku?'Шифра: '+p.sku:'Допрете за деталите'));details.appendChild(miniPrices(p));
+  b.append(pic,details,elem('span','arrow','›'));b.onclick=()=>openProduct(p);wrap.appendChild(b);
+ }
+ const allowMore=moreCanLoad&&lastQuery&&!/^[0-9]+$/.test(lastQuery)&&unfilteredResults.length>=20;
+ $('moreResultsBtn').classList.toggle('hidden',!allowMore);
+ if(!moreBusy)$('moreResultsBtn').textContent='Прикажи повеќе производи ↓';
+ setStatus('Резултати: '+visible.length+'.');
+ if(pendingSku){const exact=visible.filter(p=>p.sku===pendingSku);if(exact.length===1){pendingSku='';openProduct(exact[0])}}
+}
+window.showResults=function(json,reset){
+ try{
+  let a=JSON.parse(json);if(!Array.isArray(a))a=[];
+  a=a.filter(p=>p&&validUrl(p.url)).slice(0,500);
+  if(reset){unfilteredResults=[];lastList=[]}
+  else if(a.length)unfilteredResults=a;
+  displayResults();
+ }catch(e){setStatus('Проблем со прикажувањето на резултатите.')}
+};
 
 function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreBusy=true;$('moreResultsBtn').textContent='Вчитувам…';$('moreResultsInfo').textContent='Проверувам дали Setec има следни резултати…';SetecApp.moreResults();}
-window.showMoreResults=function(json){if(!moreBusy)return;let oldCount=lastList.length;let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}const seen=new Set(lastList.map(x=>x.url));let fresh=arr.filter(x=>x&&validUrl(x.url)&&!seen.has(x.url));moreBusy=false;if(fresh.length){window.showResults(JSON.stringify(lastList.concat(fresh)),false);$('moreResultsInfo').textContent='Додадени '+fresh.length+' производи.';}else{moreCanLoad=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='Setec не врати дополнителни производи за ова пребарување.';}};
-function search(q,fromScan=false){q=(q||'').trim();if(!fromScan){queryFilters=null;rememberSearch(q);$('dashQuery').value=q;}lastQuery=q;lastList=[];moreCanLoad=true;moreBusy=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='';if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
+window.showMoreResults=function(json){if(!moreBusy)return;let oldCount=lastList.length;let arr=[];try{arr=JSON.parse(json);if(!Array.isArray(arr))arr=[]}catch(e){}const seen=new Set(unfilteredResults.map(x=>x.url));let fresh=arr.filter(x=>x&&validUrl(x.url)&&!seen.has(x.url));moreBusy=false;if(fresh.length){window.showResults(JSON.stringify(unfilteredResults.concat(fresh)),false);$('moreResultsInfo').textContent='Додадени '+fresh.length+' производи.';}else{moreCanLoad=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='Setec не врати дополнителни производи за ова пребарување.';}};
+function search(q,fromScan=false,filters=null){q=(q||'').trim();queryFilters=filters;if(!fromScan){rememberSearch(filters?filters.raw:q);$('dashQuery').value=filters?filters.raw:q;}lastQuery=q;lastList=[];unfilteredResults=[];moreCanLoad=true;moreBusy=false;$('moreResultsBtn').classList.add('hidden');$('moreResultsInfo').textContent='';if(!fromScan)pendingSku='';$('query').value=q;$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');setStatus('Пребарувам на Setec.mk...');SetecApp.search(q)}
 $('form').addEventListener('submit',ev=>{ev.preventDefault();search($('query').value)});
 function openProduct(p){manufacturerLink(p);currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 function setHero(src){const h=$('hero');h.replaceChildren();const u=safeImage(src);if(u){const i=elem('img');i.src=u;i.alt='';h.appendChild(i)}else h.textContent='SETEC'}
