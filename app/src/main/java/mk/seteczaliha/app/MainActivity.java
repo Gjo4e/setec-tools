@@ -339,22 +339,25 @@ public final class MainActivity extends ComponentActivity {
     private void selectCategoryFilter(String name){
         if(categoryMerchant==null||name==null||name.trim().isEmpty()||categoryUrl.isEmpty())return;
         final int serial=categorySerial;
+        // Setec uses custom React checkbox rows, frequently without HTML <label>.
         String script="(function(){let target="+JSONObject.quote(name)+";"+
             "let norm=s=>String(s||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase();"+
-            "let labels=[...document.querySelectorAll('label')];"+
-            "let label=labels.find(x=>norm(x.innerText||x.textContent)===norm(target));"+
-            "if(!label)return 'missing';"+
-            "let input=label.querySelector('input[type=checkbox]')||"+
-            "(label.htmlFor?document.getElementById(label.htmlFor):null);"+
-            "if(input&&input.type==='checkbox'){if(!input.checked)input.click();return 'selected'}"+
-            "label.click();return 'selected';})()";
+            "let all=[...document.querySelectorAll('label,button,span,div,p')];"+
+            "let matches=all.filter(x=>x.children.length<4&&norm(x.innerText||x.textContent)===norm(target));"+
+            "let el=matches.sort((a,b)=>a.querySelectorAll('*').length-b.querySelectorAll('*').length)[0];"+
+            "if(!el)return 'missing';"+
+            "let row=el.closest('label,[role=checkbox]')||el.parentElement||el;"+
+            "let box=row.querySelector('input[type=checkbox],[role=checkbox]')||"+
+            "(row.parentElement&&row.parentElement.querySelector('input[type=checkbox],[role=checkbox]'));"+
+            "if(box){if(box.type==='checkbox'&&box.checked)return 'selected';box.click()}"+
+            "else row.click();return 'selected';})()";
         categoryMerchant.evaluateJavascript(script,result->{
             if(serial!=categorySerial)return;
             if("missing".equals(decodeJsString(result))){
-                js("window.onCategoryError('Подкатегоријата не е достапна во филтрите на Setec.mk.');");
+                js("window.onCategoryError('Не е пронајден филтерот. Освежи ја категоријата.');");
             }else{
                 js("window.onCategoryLoading();");
-                for(long delay:new long[]{800,1900,3400,5500})
+                for(long delay:new long[]{900,2000,3800,6000})
                     handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
             }
         });
@@ -364,9 +367,13 @@ public final class MainActivity extends ComponentActivity {
         if(serial!=categorySerial||categoryMerchant==null||!url.equals(categoryMerchant.getUrl()))return;
         String script="(function(){"+labelledPricesJs()+
             "let categories=new Map(),products=new Map(),subcategories=[];"+
-            "let heads=[...document.querySelectorAll('h2,h3,h4,button,div,span')].filter(x=>x.children.length<4&&/^(Подкатегории|Subcategories)$/i.test((x.innerText||'').trim()));"+
-            "for(let head of heads){let panel=head.parentElement;for(let d=0;d<4&&panel;d++,panel=panel.parentElement){let labels=[...panel.querySelectorAll('label')].filter(x=>x.querySelector('input[type=checkbox]')||(x.htmlFor&&document.getElementById(x.htmlFor)));if(labels.length>1){for(let l of labels){let n=(l.innerText||l.textContent||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').trim();if(n.length>1&&n.length<100&&!subcategories.includes(n))subcategories.push(n)}break}}if(subcategories.length)break}"+
-
+            "let headings=[...document.querySelectorAll('*')].filter(x=>x.children.length<3&&/^(Подкатегории|Subcategories)$/i.test((x.innerText||'').trim()));"+
+            "for(let head of headings){let panel=head.parentElement;for(let d=0;d<5&&panel;d++,panel=panel.parentElement){"+
+            "let checks=[...panel.querySelectorAll('input[type=checkbox],[role=checkbox]')];"+
+            "if(checks.length>1){for(let check of checks){let row=check.closest('label')||check.parentElement?.parentElement||check.parentElement;"+
+            "let n=(row?.innerText||row?.textContent||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').trim();"+
+            "if(n.length>1&&n.length<100&&!subcategories.includes(n))subcategories.push(n)}break}}"+
+            "if(subcategories.length)break}"+
             "for(let a of document.querySelectorAll('a[href]')){"+
             "let u;try{u=new URL(a.getAttribute('href'),location.href)}catch(e){continue}"+
             "if(!['setec.mk','www.setec.mk'].includes(u.hostname))continue;"+
