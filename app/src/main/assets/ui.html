@@ -101,29 +101,104 @@ body.dark .dashTileIcon{background:rgba(245,130,30,.15)!important;color:#ffae69!
 body.dark .dashTheme{background:rgba(255,255,255,.1)!important;color:#fff!important;border-color:rgba(255,255,255,.2)!important}
 body.dark .dashIntro{color:#c9d4e0!important}
 @media(max-width:340px){.dashWorkspace{padding:13px}.dashTile{padding:10px}.dashSearch button{min-width:62px;padding:0 8px}.dashSearch button span{display:none}}
+
+/* Dark premium UI inspired by the approved concept. */
+:root{--orange:#278cff}
+.head{background:#080e18!important;padding:17px 20px 13px}
+.brand{display:flex;align-items:center;gap:9px}
+.setecS{width:37px;height:37px;flex-shrink:0}
+.brandText{font-size:26px;font-weight:950;font-style:italic;letter-spacing:-1.3px;color:#fff}
+.headSettings{margin-left:auto;background:transparent;color:#7bbcff;border:0;font-size:25px;padding:7px}
+.notOfficial{margin-top:1px;color:#aab7c8;font-size:10px}
+body{--surface:#fff;--surface-alt:#f3f6fa;--field:#fff;--bodycopy:#172133;--subcopy:#69778b;--border:#e1e7ef}
+body.dark{--surface:#151d27;--surface-alt:#1d2936;--field:#121b27;--bodycopy:#f0f5fc;--subcopy:#a9b8cc;--border:#2e3b4d}
+.dashboard{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
+.dashHero{background:linear-gradient(140deg,#0b1321,#101f34);border-radius:18px;padding:24px 20px;color:white;min-height:152px;position:relative;overflow:hidden}
+.dashHero:after{content:"";position:absolute;width:170px;height:170px;border-radius:50%;border:25px solid rgba(37,139,255,.11);right:-92px;top:-48px;transform:rotate(28deg)}
+.dashEyebrow{font-size:12px;font-weight:900;letter-spacing:.9px;color:#d6e5f9}
+.dashTitle{font-size:24px;line-height:1.2;margin-top:13px;font-weight:900;letter-spacing:-.6px;color:#fff!important}
+.dashTitle span{color:#6ab6ff}
+.dashIntro{font-size:11.5px;line-height:1.6;color:#bdcde1;margin:10px 0 0}
+.dashWorkspace{padding:0;background:transparent!important;border:0!important}
+.dashSearch{display:flex;gap:7px;margin:15px 0 18px}
+.dashSearch input{min-width:0;flex:1;border:1px solid #4a81c4!important;background:var(--field);color:var(--bodycopy);border-radius:13px;padding:13px;font-size:12px;min-height:51px}
+.dashSearch button{min-width:51px;background:#2388ed;color:white;border:0;border-radius:12px;font-size:23px}
+.dashQuick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:0 0 23px}
+.dashTile{min-width:0;min-height:147px;border:1px solid var(--border);border-radius:16px;padding:15px;background:var(--surface);color:var(--bodycopy);display:flex;flex-direction:column;align-items:flex-start;gap:13px;position:relative;text-align:left}
+.dashTilePrimary{background:var(--surface)!important}
+.dashTileIcon{display:flex!important;align-items:center;justify-content:center;background:rgba(37,139,255,.12)!important;color:#2388ed!important;border-radius:10px;width:42px;height:42px;font-size:25px!important;margin:0!important}
+.dashTileText{display:flex;flex-direction:column;gap:6px}
+.dashTileText b{font-size:13px;font-weight:850;line-height:1.25}
+.dashTileText small{font-size:11px;color:var(--subcopy);line-height:1.4}
+.dashChevron{position:absolute;right:14px;top:15px;color:var(--subcopy)}
+.dashSectionHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:13px 0 12px;color:var(--bodycopy)}
+.dashSectionHead strong{font-size:15px;font-weight:850}
+.dashSectionHead>span{font-size:10px;color:#278cff}
+.dashCategories{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:23px}
+.dashCategories button{min-width:0;border:1px solid var(--border);background:var(--surface);color:var(--bodycopy);border-radius:12px;padding:11px 2px;font-size:9px;font-weight:750;overflow-wrap:anywhere}
+.dashCategories span{display:block;color:#318dff;font-size:22px;margin-bottom:8px}
+.dashRecentWrap{margin-top:10px;border:0;padding:0}
+.dashRecent{display:flex;flex-direction:column;gap:7px}
+.dashRecent button{text-align:left;padding:12px 13px;border:1px solid var(--border);background:var(--surface);color:var(--bodycopy);border-radius:10px;font-size:12px}
+.dashClear{background:transparent;color:#318dff;border:0;font-size:11px;font-weight:750}
+.dashSettingsShortcut{margin-top:16px;width:100%;background:var(--surface);color:var(--bodycopy);border:1px solid var(--border);padding:14px;border-radius:12px;text-align:left;font-weight:800}
+.dashSettingsShortcut span{float:right;color:#318dff}
+.settingsPanel{padding:0 0 18px;color:var(--bodycopy)}
+.settingsTop{display:flex;align-items:center;gap:18px;font-size:20px;margin:0 0 20px}
+.settingsBack{border:0;background:transparent;color:#318dff;padding:8px 0;font-size:15px}
+.settingsGroup{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.settingsGroup h3{margin:0;padding:15px;border-bottom:1px solid var(--border);font-size:16px}
+.settingsRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 15px;border-bottom:1px solid var(--border)}
+.settingsRow:last-child{border-bottom:0}
+.settingsRow>div{min-width:0;flex:1}
+.settingsRow b{display:block;font-size:12px}
+.settingsRow small{display:block;font-size:10px;line-height:1.5;color:var(--subcopy);margin-top:5px}
+.settingsRow select{max-width:45%;min-width:0;font-size:11px;border:1px solid var(--border);background:var(--field);color:var(--bodycopy);padding:8px;border-radius:9px}
+.settingsRow button{border:1px solid var(--border);background:var(--surface-alt);color:var(--bodycopy);border-radius:9px;padding:9px;font-size:11px}
+.settingsRow input[type=checkbox]{width:19px;height:19px;accent-color:#2388ed}
+.settingsAbout{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:22px}
+.settingsAbout .setecS{width:52px;height:52px}
+.settingsAbout strong{font-size:24px;font-weight:950;font-style:italic}
+.settingsAbout span{font-size:12px;color:var(--subcopy)}
+.settingsAbout p{font-size:12px;line-height:1.6;color:var(--subcopy)}
+.settingsAbout b{font-size:13px}
+.settingsAbout small{font-size:10px;color:var(--subcopy)}
+body.dark .dashHero{background:linear-gradient(140deg,#080e18,#14233a)!important}
+body.dark .dashTile,body.dark .dashTilePrimary,body.dark .dashCategories button,body.dark .dashRecent button,body.dark .dashSettingsShortcut,body.dark .settingsGroup{background:var(--surface)!important;color:var(--bodycopy)!important;border-color:var(--border)!important}
+body.dark .dashTileIcon{background:rgba(37,139,255,.12)!important;color:#5faaff!important}
+body.dark .dashIntro{color:#bdcde1!important}
+body.dark .settingsRow button{background:var(--surface-alt)!important;color:var(--bodycopy)!important}
 </style></head>
-<body><header class="head"><div class="brand"><div class="brandLogo" aria-label="Setec Шифри"><span class="markName">Setec</span><span class="markSub">Шифри</span></div><span class="sep"></span><span>Setec Шифри</span></div><p class="notOfficial">Неофицијална апликација · пребарување по шифра</p></header>
+<body><header class="head"><div class="brand"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><path d="M53 9C36 3 15 11 10 25c-4 12 7 18 22 19 11 1 13 5 6 10-7 5-19 4-29-1 11 11 30 13 43 2 12-10 7-23-11-26-14-2-20-5-13-11 5-5 15-8 25-9Z" fill="#258bff"/><path d="M12 37c10-10 23-13 39-11" fill="none" stroke="#75c9ff" stroke-width="5" stroke-linecap="round"/></svg><span class="brandText">SETEC</span><button class="headSettings" onclick="showSettings()" aria-label="Поставки">⚙</button></div><p class="notOfficial">Неофицијална алатка за SETEC производи</p></header>
 <nav class="tabs" aria-label="Режим"><button class="tab active" id="scanTab" onclick="switchTab('scan')"><span>▣</span>Скенирај</button><button class="tab" id="searchTab" onclick="switchTab('search')"><span>⌕</span>Барај</button><button class="tab" id="batchTab" onclick="switchTab('batch')"><span>▣</span>Листа</button><button class="tab" onclick="SetecApp.openCompare()"><span>⇄</span>СПОРЕДИ</button><button class="tab" onclick="SetecApp.openPcConfigurator()"><span>▤</span>Состави PC</button></nav>
 <main class="wrap">
 <section id="dashboard" class="dashboard">
-<div class="dashHero">
-<div class="dashHeroTop"><span class="dashEyebrow"><span class="dashDot"></span> SETEC АЛАТКИ</span><button id="themeToggle" class="dashTheme" onclick="toggleTheme()" aria-label="Промени тема">🌙 Темна</button></div>
-<div class="dashTitle">Сè за производите.<br><span>На едно место.</span></div>
-<p class="dashIntro">Провери цена, најди производ, скенирај етикета или спореди модели — без непотребни чекори.</p>
-</div>
-<div class="dashWorkspace">
-<div class="dashSectionHead"><strong>Брзо пребарување</strong><span>SETEC каталог</span></div>
-<form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" autocomplete="off" placeholder="Име, модел или шифра на производ" aria-label="Пребарување производ"><button type="submit" aria-label="Пребарај">⌕ <span>Барај</span></button></form>
-<p class="dashHelper">Пример: Lenovo IdeaPad, RTX 4060 или 84558. Пребарувањето е според вистинскиот каталог.</p>
-<div class="dashSectionHead dashToolsHeading"><strong>Твои алатки</strong><span>Брз пристап</span></div>
+<div class="dashHero"><div class="dashEyebrow">ДОБРЕДОЈДЕ!</div><div class="dashTitle">Брзо пребарување и<br><span>корисни алатки.</span></div><p class="dashIntro">Провери производ, цена или залиха — сè на едно место.</p></div>
+<div class="dashWorkspace"><form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" placeholder="Пребарај производ, модел или SETEC шифра" aria-label="Пребарување"><button type="submit">⌕</button></form>
 <div class="dashQuick">
-<button class="dashTile dashTilePrimary" onclick="SetecApp.scan()"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Скенирај шифра</b><small>Камера · ценовник</small></span><span class="dashChevron">›</span></button>
-<button class="dashTile" onclick="SetecApp.openModelScanner()"><span class="dashTileIcon">▦</span><span class="dashTileText"><b>Data Matrix</b><small>Код од етикета</small></span><span class="dashChevron">›</span></button>
-<button class="dashTile" onclick="SetecApp.openCompare()"><span class="dashTileIcon">⇄</span><span class="dashTileText"><b>Спореди</b><small>Два модели</small></span><span class="dashChevron">›</span></button>
-<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span class="dashTileIcon">▤</span><span class="dashTileText"><b>Состави PC</b><small>Делови и FPS</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile dashTilePrimary" onclick="switchTab('scan')"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Провери достапност</b><small>Скенирај ценовник</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openCompare()"><span class="dashTileIcon">⚖</span><span class="dashTileText"><b>Спореди производи</b><small>Детална споредба</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openPcConfigurator()"><span class="dashTileIcon">▤</span><span class="dashTileText"><b>Состави PC</b><small>Конфигурација и FPS</small></span><span class="dashChevron">›</span></button>
+<button class="dashTile" onclick="SetecApp.openModelScanner()"><span class="dashTileIcon">▥</span><span class="dashTileText"><b>Data Matrix</b><small>Брза проверка</small></span><span class="dashChevron">›</span></button>
 </div>
-<div class="dashRecentWrap"><div class="dashSectionHead"><strong>Последни пребарувања</strong><button type="button" class="dashClear" onclick="clearRecent()">Исчисти</button></div><div id="dashRecent" class="dashRecent"></div></div>
+<div class="dashSectionHead"><strong>Брзи категории</strong><span>Пребарај во каталогот</span></div>
+<div class="dashCategories">
+<button onclick="simpleSearch('лаптоп')"><span>▱</span>Лаптопи</button>
+<button onclick="simpleSearch('монитор')"><span>▣</span>Монитори</button>
+<button onclick="simpleSearch('графичка')"><span>▥</span>Графички</button>
+<button onclick="simpleSearch('процесор')"><span>▦</span>Процесори</button>
+<button onclick="simpleSearch('слушалки')"><span>♫</span>Периферија</button>
 </div>
+<div class="dashRecentWrap"><div class="dashSectionHead"><strong>Последни пребарувања</strong><button class="dashClear" onclick="clearRecent()">Исчисти</button></div><div id="dashRecent" class="dashRecent"></div></div>
+<button class="dashSettingsShortcut" onclick="showSettings()">⚙ Поставки <span>›</span></button>
+</div></section>
+<section id="settingsPanel" class="settingsPanel hidden">
+<div class="settingsTop"><button onclick="closeSettings()" class="settingsBack">‹ Назад</button><strong>Поставки</strong></div>
+<div class="settingsGroup"><h3>◉ Изглед</h3><div class="settingsRow"><div><b>Тема</b><small>Изглед на целата апликација</small></div><select id="settingsTheme" onchange="setThemePreference(this.value)"><option value="system">Како телефонот</option><option value="dark">Темна</option><option value="light">Светла</option></select></div></div>
+<div class="settingsGroup"><h3>⌕ Пребарување</h3><label class="settingsRow"><div><b>Зачувај последни пребарувања</b><small>Историјата останува на овој телефон</small></div><input id="settingsHistory" type="checkbox" onchange="setHistoryEnabled(this.checked)"></label><div class="settingsRow"><div><b>Избриши историја</b><small>Ги отстранува зачуваните пребарувања</small></div><button onclick="clearRecent();showSettingsMessage('Историјата е избришана.')">Избриши</button></div></div>
+<div class="settingsGroup"><h3>⌾ Општо</h3><div class="settingsRow"><div><b>Стандардна локација</b><small>Преференца за идни проверки; не ја менува залихата на Setec</small></div><select id="settingsLocation" onchange="saveSetting('location',this.value)"><option value="all">Сите локации</option><option value="godi">Годи</option></select></div><label class="settingsRow"><div><b>Информации за проверки</b><small>Прикажувај потсетување за непотврдена залиха</small></div><input id="settingsNotices" type="checkbox" onchange="saveSetting('notices',this.checked?'1':'0');applyNotices()"></label><div class="settingsRow"><div><b>Провери за нова верзија</b><small>Отвори GitHub со најновите компилации</small></div><button onclick="openReleasePage()">Отвори ↗</button></div></div>
+<div class="settingsGroup"><h3>ⓘ За апликацијата</h3><div class="settingsAbout"><svg class="setecS" viewBox="0 0 64 64" aria-hidden="true"><path d="M53 9C36 3 15 11 10 25c-4 12 7 18 22 19 11 1 13 5 6 10-7 5-19 4-29-1 11 11 30 13 43 2 12-10 7-23-11-26-14-2-20-5-13-11 5-5 15-8 25-9Z" fill="#258bff"/><path d="M12 37c10-10 23-13 39-11" fill="none" stroke="#75c9ff" stroke-width="5" stroke-linecap="round"/></svg><strong>SETEC</strong><span>Верзија 1.0</span><p>Брза, едноставна и практична алатка за пребарување и проверка на SETEC производи.</p><b>Изработено од gjo4e</b><small>Неофицијална апликација, независна од Setec.</small></div></div>
+<p id="settingsMessage" class="small" aria-live="polite"></p>
 </section>
 
 <section id="scanPanel"><div class="frame"><div class="capture"><div class="corners"></div><div><div class="glyph">▣</div><strong>Читање на шифра од етикета</strong><p>Насочи ја камерата кон „Шифра:“ или „шифра/код:“ на ценовникот.</p></div></div></div><div class="scanBtns"><button class="cta" onclick="SetecApp.scan()">▣ Скенирај со камера</button><button class="secondary" onclick="refresh()" aria-label="Освежи">⟳</button></div>
@@ -154,16 +229,26 @@ function renderProductPrices(p){const host=$('pprices');host.replaceChildren();c
 
 let unfilteredResults=[];
 function getRecent(){try{const x=JSON.parse(localStorage.getItem('setec_recent_searches')||'[]');return Array.isArray(x)?x.slice(0,6):[]}catch(e){return []}}
-function rememberSearch(q){if(!q)return;const v=[q,...getRecent().filter(x=>x!==q)].slice(0,6);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
+function rememberSearch(q){if(!q||setting('history','1')==='0')return;const v=[q,...getRecent().filter(x=>x!==q)].slice(0,6);try{localStorage.setItem('setec_recent_searches',JSON.stringify(v))}catch(e){}renderRecent()}
 function renderRecent(){const host=$('dashRecent');host.replaceChildren();const items=getRecent();if(!items.length){host.appendChild(elem('span','small','Нема претходни пребарувања.'));return}for(const q of items){const b=elem('button','',q);b.onclick=()=>simpleSearch(q);host.appendChild(b)}}
 function clearRecent(){try{localStorage.removeItem('setec_recent_searches')}catch(e){}renderRecent()}
-function toggleTheme(){document.body.classList.toggle('dark');const mode=document.body.classList.contains('dark')?'dark':'light';try{localStorage.setItem('setec_theme',mode)}catch(e){}try{SetecApp.setTheme(mode)}catch(e){}updateThemeButton()}
+function toggleTheme(){setThemePreference(document.body.classList.contains('dark')?'light':'dark')}
 function updateThemeButton(){$('themeToggle').textContent=document.body.classList.contains('dark')?'☀ Светла':'🌙 Темна'}
 try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}
 updateThemeButton();try{SetecApp.setTheme(document.body.classList.contains('dark')?'dark':'light')}catch(e){}
+let settingsOpen=false,previousTab='scan';
+function setting(key,fallback){try{const x=localStorage.getItem('setec_setting_'+key);return x===null?fallback:x}catch(e){return fallback}}
+function saveSetting(key,value){try{localStorage.setItem('setec_setting_'+key,value)}catch(e){}}
+function showSettings(){settingsOpen=true;previousTab=tab;$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
+function closeSettings(){settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
+function showSettingsMessage(msg){$('settingsMessage').textContent=msg}
+function setHistoryEnabled(on){saveSetting('history',on?'1':'0');if(!on)clearRecent()}
+function applyNotices(){const e=document.querySelector('.mutedFoot');if(e)e.classList.toggle('hidden',setting('notices','1')==='0')}
+function setThemePreference(value){saveSetting('theme',value);const dark=value==='dark'||(value==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.body.classList.toggle('dark',dark);try{localStorage.setItem('setec_theme',dark?'dark':'light');SetecApp.setTheme(dark?'dark':'light')}catch(e){}updateThemeButton()}
+function openReleasePage(){window.location.href='https://github.com/Gjo4e/setec-zaliha/actions'}
 function simpleSearch(q){q=String(q||'').trim();if(!q)return;$('dashQuery').value=q;switchTab('search');search(q);window.scrollTo(0,0)}
 $('dashForm').addEventListener('submit',e=>{e.preventDefault();simpleSearch($('dashQuery').value)});
-renderRecent();
+renderRecent();applyNotices();
 function manufacturerLink(p){
  const host=$('manufacturerSpecs');host.replaceChildren();
  const name=String(p.name||'').trim();if(!name)return;
@@ -179,7 +264,7 @@ function manufacturerLink(p){
  host.appendChild(elem('div','small','Се отвора директно официјалната страница на производителот, не Google. Вметни го копираниот модел во пребарувањето на производителот. Линк до точниот модел не е потврден.'));
 }
 
-function switchTab(next){tab=next;$("dashboard").classList.toggle("hidden",next!=="scan");$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
+function switchTab(next){if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}tab=next;$("dashboard").classList.toggle("hidden",next!=="scan");$('scanPanel').classList.toggle('hidden',next!=='scan');$('searchPanel').classList.toggle('hidden',next!=='search');$('batchPanel').classList.toggle('hidden',next!=='batch');$('resultsPanel').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('status').classList.toggle('hidden',next==='batch'||!$('detail').classList.contains('hidden'));$('detail').classList.toggle('hidden',next==='batch'||$('detail').classList.contains('hidden'));$('scanTab').classList.toggle('active',next==='scan');$('searchTab').classList.toggle('active',next==='search');$('batchTab').classList.toggle('active',next==='batch');if(next==='search')$('query').focus();if(next==='batch')refreshSavedPrices()}
 function setStatus(s){$('status').textContent=s}window.showLoading=setStatus;
 
 function displayResults(){
