@@ -483,17 +483,39 @@ public final class MainActivity extends ComponentActivity {
     }
 
     /** Check only store labels newly exposed by the availability dropdown. */
+    /** Collect only store names revealed after the official availability button was opened.
+     * Missing or incomplete data must remain unconfirmed rather than falsely claiming no stock. */
     private void readGodi(int serial, String url, boolean finalAttempt) {
         if (merchant == null || serial != availabilitySerial || !url.equals(productUrl)) return;
-        String script = "(function(){\n try{\n const visible=e=>{let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';};\n const baseline=window.__setecStockBaseline;\n if(!baseline)return 'unknown';\n let all=[...document.querySelectorAll('body *')], fresh=[];\n for(const e of all){\n   if(baseline.has(e)||!visible(e))continue;\n   let text=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();\n   if(text.length<2||text.length>90)continue;\n   let leaves=[...e.children].filter(visible);\n   if(leaves.some(c=>((c.innerText||c.textContent||'').replace(/\\s+/g,' ').trim())===text))continue;\n   fresh.push(text);\n }\n fresh=[...new Set(fresh)];\n if(fresh.some(t=>/^(?:(?:сетек|setec)\\s*)?годи$/i.test(t)||/^(?:сетек\\s*)?годи\\s*[-–]/i.test(t)))return 'yes';\n const stores=fresh.filter(t=>/^(?:сетек\\s*)?(?:чаир|гостивар|охрид|тетово|битола|велес|гтц|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица|кисела вода)$/i.test(t));\n if(stores.length>=2)return 'no';\n return 'unknown';\n }catch(e){return 'unknown'}\n})()";
+        String script = "(function(){"+
+            "try{const visible=e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'};"+
+            "const baseline=window.__setecStockBaseline;if(!baseline)return JSON.stringify({stores:[],complete:false});"+
+            "const all=[...document.querySelectorAll('body *')],fresh=[];"+
+            "for(const e of all){if(baseline.has(e)||!visible(e))continue;"+
+            "let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();if(t.length<2||t.length>90)continue;"+
+            "if([...e.children].filter(visible).some(x=>(x.innerText||x.textContent||'').replace(/\\s+/g,' ').trim()===t))continue;fresh.push(t)}"+
+            "const known=/^(?:(?:сетек|setec)\\s*)?(?:годи|главен\\s*магацин|магацин|чаир|гостивар|охрид|тетово|битола|велес|гтц|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица|кисела\\s*вода)(?:\\s*[-–:]\\s*.+)?$/i;"+
+            "const stores=[...new Set(fresh.filter(t=>known.test(t)))];"+
+            "return JSON.stringify({stores:stores,complete:stores.length>0})"+
+            "}catch(e){return JSON.stringify({stores:[],complete:false})}})()";
         merchant.evaluateJavascript(script, encoded -> {
             if (serial != availabilitySerial || !url.equals(productUrl)) return;
-            String state = decodeJsString(encoded);
-            if ("yes".equals(state) || "no".equals(state)) {
-                availabilitySerial++;
-                js("window.showGodiStatus(" + JSONObject.quote(state) + ");");
-            } else if (finalAttempt) {
-                js("window.showGodiStatus('unknown');");
+            String payload = decodeJsString(encoded);
+            if (payload == null) {
+                if (finalAttempt) js("window.showGodiStatus('unknown');");
+                return;
+            }
+            try {
+                JSONObject parsed = new JSONObject(payload);
+                JSONArray stores = parsed.optJSONArray("stores");
+                if (stores != null && stores.length() > 0) {
+                    availabilitySerial++;
+                    js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
+                } else if (finalAttempt) {
+                    js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
+                }
+            } catch (Exception ignored) {
+                if (finalAttempt) js("window.showGodiStatus('unknown');");
             }
         });
     }
