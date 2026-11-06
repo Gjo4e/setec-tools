@@ -245,10 +245,10 @@ function showSettingsMessage(msg){$('settingsMessage').textContent=msg}
 function setHistoryEnabled(on){saveSetting('history',on?'1':'0');if(!on)clearRecent()}
 function applyNotices(){const e=document.querySelector('.mutedFoot');if(e)e.classList.toggle('hidden',setting('notices','1')==='0')}
 function setThemePreference(value){saveSetting('theme',value);const dark=value==='dark'||(value==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.body.classList.toggle('dark',dark);try{localStorage.setItem('setec_theme',dark?'dark':'light');SetecApp.setTheme(dark?'dark':'light')}catch(e){}updateThemeButton()}
-function openReleasePage(){window.location.href='https://github.com/Gjo4e/setec-zaliha/actions'}
+function openReleasePage(){try{SetecApp.openReleasePage()}catch(e){showSettingsMessage('Отвори github.com/Gjo4e/setec-zaliha/actions во прелистувач.')}}
 function simpleSearch(q){q=String(q||'').trim();if(!q)return;$('dashQuery').value=q;switchTab('search');search(q);window.scrollTo(0,0)}
 $('dashForm').addEventListener('submit',e=>{e.preventDefault();simpleSearch($('dashQuery').value)});
-renderRecent();applyNotices();
+renderRecent();applyNotices();if(setting('theme','system')==='system'&&window.matchMedia){setThemePreference('system')}
 function manufacturerLink(p){
  const host=$('manufacturerSpecs');host.replaceChildren();
  const name=String(p.name||'').trim();if(!name)return;
