@@ -323,7 +323,7 @@ public final class MainActivity extends ComponentActivity {
             Uri u=Uri.parse(url);
             return "https".equalsIgnoreCase(u.getScheme())
                 && ("setec.mk".equalsIgnoreCase(u.getHost())||"www.setec.mk".equalsIgnoreCase(u.getHost()))
-                && u.getPath()!=null&&(u.getPath().equals("/category")||u.getPath().startsWith("/category/"));
+                && u.getPath()!=null&&(u.getPath().equals("/category")||u.getPath().startsWith("/category/")||u.getPath().equals("/search-result"));
         }catch(Exception ignored){return false;}
     }
     private void startCategoryPage(String url){
@@ -339,13 +339,15 @@ public final class MainActivity extends ComponentActivity {
     private void selectCategoryFilter(String name){
         if(categoryMerchant==null||name==null||name.trim().isEmpty()||categoryUrl.isEmpty())return;
         final int serial=categorySerial;
-        // Setec uses custom React checkbox rows, frequently without HTML <label>.
+        // Search actual rendered text and clickable ancestors, not only <label>.
         String script="(function(){let target="+JSONObject.quote(name)+";"+
             "let norm=s=>String(s||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase();"+
-            "let all=[...document.querySelectorAll('label,button,span,div,p')];"+
-            "let matches=all.filter(x=>x.children.length<4&&norm(x.innerText||x.textContent)===norm(target));"+
+            "let all=[...document.querySelectorAll('label,button,span,div,p,a,[role=checkbox],input[type=checkbox]')];"+
+            "let matches=all.filter(x=>norm(x.innerText||x.textContent||x.getAttribute('aria-label'))===norm(target));"+
             "let el=matches.sort((a,b)=>a.querySelectorAll('*').length-b.querySelectorAll('*').length)[0];"+
             "if(!el)return 'missing';"+
+            "let link=el.closest('a[href]')||el.querySelector('a[href]');"+
+            "if(link&&link.href&&link.href.startsWith('https://www.setec.mk/category/'))return 'link:'+link.href;"+
             "let row=el.closest('label,[role=checkbox]')||el.parentElement||el;"+
             "let box=row.querySelector('input[type=checkbox],[role=checkbox]')||"+
             "(row.parentElement&&row.parentElement.querySelector('input[type=checkbox],[role=checkbox]'));"+
@@ -353,13 +355,23 @@ public final class MainActivity extends ComponentActivity {
             "else row.click();return 'selected';})()";
         categoryMerchant.evaluateJavascript(script,result->{
             if(serial!=categorySerial)return;
-            if("missing".equals(decodeJsString(result))){
-                js("window.onCategoryError('Не е пронајден филтерот. Освежи ја категоријата.');");
-            }else{
-                js("window.onCategoryLoading();");
-                for(long delay:new long[]{900,2000,3800,6000})
-                    handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
+            String outcome=decodeJsString(result);
+            if(outcome!=null&&outcome.startsWith("link:")&&safeCategoryUrl(outcome.substring(5))){
+                startCategoryPage(outcome.substring(5));return;
             }
+            if("missing".equals(outcome)){
+                // Do not strand the user with a missing-filter error. Search Setec's
+                // actual catalog for the selected subcategory label instead.
+                String url="https://www.setec.mk/search-result?q="+Uri.encode(name.trim());
+                categoryUrl=url;
+                categorySerial++;
+                js("window.onCategorySearchFallback("+JSONObject.quote(url)+","+JSONObject.quote(name)+");");
+                categoryMerchant.loadUrl(url);
+                return;
+            }
+            js("window.onCategoryLoading();");
+            for(long delay:new long[]{900,2000,3800,6000})
+                handler.postDelayed(()->readCategoryPage(serial,categoryUrl),delay);
         });
     }
 
