@@ -28,6 +28,9 @@ import androidx.core.graphics.Insets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Locale;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.io.OutputStream;
 
 /** Independent app UI; merchant website is read only in a separate background WebView. */
 public final class MainActivity extends ComponentActivity {
@@ -56,6 +59,9 @@ public final class MainActivity extends ComponentActivity {
     private int availabilitySerial = 0;
     private ActivityResultLauncher<Intent> scannerLauncher;
     private ActivityResultLauncher<Intent> dataMatrixLauncher;
+    private ActivityResultLauncher<String> saveOfferPdfLauncher;
+    private ActivityResultLauncher<String> saveOfferExcelLauncher;
+    private OfferExporter.Quote pendingOffer;
 
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
@@ -84,6 +90,14 @@ public final class MainActivity extends ComponentActivity {
                 }
             }
         });
+        // Android Storage Access Framework: user chooses where to save a PDF/XLSX.
+        // No storage permission or external export application is required.
+        saveOfferPdfLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/pdf"),
+                uri -> saveOfferFile(uri, true));
+        saveOfferExcelLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                uri -> saveOfferFile(uri, false));
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(8,13,20));
         // Android 15 edge-to-edge: keep the header below status icons and bottom dock above system navigation.
@@ -298,6 +312,9 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
         }
+        @JavascriptInterface public void exportOffer(String type, String json) {
+            runOnUiThread(() -> exportCustomerOffer(type, json));
+        }
         @JavascriptInterface public void copyText(String text) {
             if (text == null || text.length() > 180000) return;
             runOnUiThread(() -> {
@@ -496,6 +513,49 @@ public final class MainActivity extends ComponentActivity {
             String result=decodeJsString(encoded);
             if(result!=null)js("window.onCategoryData("+JSONObject.quote(result)+");");
         });
+    }
+
+    /** Export the actual buyer's list without leaving the app or changing stored items. */
+    private void exportCustomerOffer(String format, String json) {
+        if(!"pdf".equals(format)&&!"xlsx".equals(format)){
+            js("window.onOfferExportFinished('Неподдржан формат за извоз.');");
+            return;
+        }
+        try {
+            OfferExporter.Quote quote=OfferExporter.parse(json);
+            pendingOffer=quote;
+            String timestamp=new SimpleDateFormat("yyyyMMdd-HHmm", Locale.ROOT).format(new Date());
+            String filename="Setec-Tools-Ponuda-"+timestamp+("pdf".equals(format)?".pdf":".xlsx");
+            if("pdf".equals(format))saveOfferPdfLauncher.launch(filename);
+            else saveOfferExcelLauncher.launch(filename);
+        } catch(Exception ex) {
+            String message="Не може да се подготви понудата: "+String.valueOf(ex.getMessage());
+            js("window.onOfferExportFinished("+JSONObject.quote(message)+");");
+        }
+    }
+    private void saveOfferFile(Uri uri, boolean pdf) {
+        OfferExporter.Quote quote=pendingOffer;
+        pendingOffer=null;
+        if(uri==null) {
+            js("window.onOfferExportFinished('Зачувувањето е откажано.');");
+            return;
+        }
+        if(quote==null){
+            js("window.onOfferExportFinished('Нема подготвена понуда.');");
+            return;
+        }
+        try(OutputStream stream=getContentResolver().openOutputStream(uri, "w")){
+            if(stream==null)throw new java.io.IOException("Не може да се отвори избраната датотека.");
+            if(pdf)OfferExporter.pdf(stream,quote);
+            else OfferExporter.excel(stream,quote);
+            String name=pdf?"PDF":"Excel";
+            Toast.makeText(this,"Понудата е зачувана како "+name+".",Toast.LENGTH_LONG).show();
+            js("window.onOfferExportFinished("+JSONObject.quote("✓ Понудата е зачувана како "+name+".")+");");
+        }catch(Exception ex){
+            String message="Извозот не успеа: "+String.valueOf(ex.getMessage());
+            Toast.makeText(this,message,Toast.LENGTH_LONG).show();
+            js("window.onOfferExportFinished("+JSONObject.quote(message)+");");
+        }
     }
 
     private void startSearch(String query) {
