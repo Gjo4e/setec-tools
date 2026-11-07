@@ -1,0 +1,35 @@
+name: Verify P-N product lookup
+on:
+  push:
+    branches: ['feature/datamatrix-setec-scan-2026-11-06']
+    paths: ['.github/workflows/pn-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Install browser
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 -m playwright install chromium
+      - name: Test Part Number queries
+        run: |
+          python3 - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from urllib.parse import quote
+          queries=['82XM019MRM','MB-MC64SA/EU','MB-MC64SA','59764','82XM','63131']
+          with sync_playwright() as p:
+            b=p.chromium.launch(headless=True,args=['--no-sandbox'])
+            page=b.new_page(viewport={'width':430,'height':940},locale='mk-MK',is_mobile=True,has_touch=True)
+            for q in queries:
+              try:
+                page.goto('https://www.setec.mk/search-result?q='+quote(q),wait_until='domcontentloaded',timeout=20000)
+                page.wait_for_timeout(2600)
+                x=page.evaluate('''() => ({url:location.href,txt:(document.body?.innerText||'').slice(0,550),cards:[...new Map([...document.querySelectorAll('a[href*="/products/"]')].map(a=>[a.href,{url:a.href,title:(a.innerText||a.getAttribute('title')||a.closest('[data-component]')?.innerText||'').replace(/\\s+/g,' ').slice(0,180)}])).values()].slice(0,5),cardCount:document.querySelectorAll('[data-component="ProductCard"]').length})''')
+                print('LOOKUP',repr(q),'RESULT',x,flush=True)
+              except Exception as e: print('LOOKUP',repr(q),'ERROR',str(e)[:180],flush=True)
+            b.close()
+          PY
