@@ -16,6 +16,8 @@ final class CompareCategoryProfiles {
         switch(kind){
             case WASHER: return Arrays.asList("Капацитет на перење","Центрифуга",
                 "Енергетска класа","Програми","Димензии");
+            case WASHER_DRYER: return Arrays.asList("Капацитет на перење","Капацитет на сушење",
+                "Центрифуга","Енергетска класа","Програми");
             case DRYER: return Arrays.asList("Капацитет на сушење","Енергетска класа",
                 "Програми","Бучава","Димензии");
             case DISHWASHER: return Arrays.asList("Капацитет","Програми",
