@@ -40,23 +40,47 @@ final class SetecCompareRows {
                            List<String> leftDetails,String rightName,
                            Map<String,String> rightFacts,List<String> rightDetails){
         List<Row> rows=new ArrayList<>();
-        if(!CompareCategoryGuard.canCompare(leftName,rightName))return rows;
+        if(!CompareCategoryGuard.canCompare(leftName,leftFacts,rightName,rightFacts))
+            return rows;
         if(leftFacts==null||rightFacts==null)return rows;
+
+        CompareCategoryGuard.Kind leftKind=CompareCategoryGuard.guess(leftName,leftFacts);
+        CompareCategoryGuard.Kind rightKind=CompareCategoryGuard.guess(rightName,rightFacts);
+        if(leftKind!=CompareCategoryGuard.Kind.UNKNOWN&&leftKind==rightKind){
+            // A category template controls both the order and which fields can
+            // appear. A one-sided fact stays visible but is NEVER a comparison.
+            for(String label:CompareCategoryProfiles.criteria(leftKind)){
+                String l=leftFacts.get(label),r=rightFacts.get(label);
+                boolean hasLeft=l!=null&&!l.trim().isEmpty();
+                boolean hasRight=r!=null&&!r.trim().isEmpty();
+                if(!hasLeft&&!hasRight)continue;
+                if(hasLeft&&hasRight&&!compatibleUnits(label,l,r))continue;
+                rows.add(new Row(label,
+                    hasLeft?l.trim():"Непотврдено",
+                    hasRight?r.trim():"Непотврдено",
+                    hasLeft&&hasRight));
+                if(rows.size()>=MAX_ROWS)break;
+            }
+            return rows;
+        }
+        // Only when BOTH product categories are unknown, allow identical
+        // explicitly named source facts. Raw description bullet positions
+        // are never paired, even if both products contain five bullets.
         Map<String,String> sharedLeft=new java.util.LinkedHashMap<>();
         Map<String,String> sharedRight=new java.util.LinkedHashMap<>();
-        for(Map.Entry<String,String> spec:leftFacts.entrySet()){
-            String label=spec.getKey(),left=spec.getValue(),right=rightFacts.get(label);
+        for(Map.Entry<String,String> fact:leftFacts.entrySet()){
+            String label=fact.getKey(),left=fact.getValue(),right=rightFacts.get(label);
             if(label==null||left==null||right==null)continue;
             if(left.trim().isEmpty()||right.trim().isEmpty())continue;
             if(!compatibleUnits(label,left,right))continue;
             sharedLeft.put(label,left);
             sharedRight.put(label,right);
         }
-        List<String> keys=ComparisonSummary.topSpecs(
-            leftName,sharedLeft,rightName,sharedRight);
-        for(String key:keys){
+        for(String label:ComparisonSummary.topSpecs(
+                leftName,sharedLeft,rightName,sharedRight)){
             if(rows.size()>=MAX_ROWS)break;
-            rows.add(new Row(key,known(sharedLeft,key),known(sharedRight,key),true));
+            rows.add(new Row(label,known(sharedLeft,label),
+                known(sharedRight,label),true));
         }
         return rows;
     }
