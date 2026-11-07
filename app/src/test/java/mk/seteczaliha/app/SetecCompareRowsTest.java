@@ -30,8 +30,8 @@ public final class SetecCompareRowsTest {
         right.put("Моќност","1200W");
         List<String> l=Arrays.asList("900W","7 степени на печење","Одмрзнување");
         List<String> r=Arrays.asList("1200W","6 степени на печење","Тацна за трошки");
-        List<SetecCompareRows.Row> rows=SetecCompareRows.build("Tefal TT",
-            left,l,"Bosch TT",right,r);
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build("Тостер Tefal TT",
+            left,l,"Тостер Bosch TT",right,r);
         assertEquals(1,rows.size());
         assertEquals("Моќност",rows.get(0).label);
         assertEquals("900W",rows.get(0).left);
@@ -257,6 +257,14 @@ public final class SetecCompareRowsTest {
             if(kind==CompareCategoryGuard.Kind.UNKNOWN)continue;
             assertEquals(kind.label,5,CompareCategoryProfiles.criteria(kind).size());
         }
+    }
+
+    @Test public void twoUnknownProductsAreNotAssumedSameType(){
+        Map<String,String> a=Collections.singletonMap("Моќност","1200W");
+        Map<String,String> b=Collections.singletonMap("Моќност","800W");
+        assertTrue(SetecCompareRows.build("A123",a,Collections.emptyList(),
+            "B456",b,Collections.emptyList()).isEmpty());
+        assertFalse(CompareCategoryGuard.incompatibility("A123",a,"B456",b).isEmpty());
     }
 
 }
