@@ -31,25 +31,59 @@ final class SetecCompareRows {
         }
     }
 
+    /**
+     * Only align the SAME verified, named feature on both products. Original
+     * product bullets are shown separately in the two per-model highlight
+     * cards; matching bullet index never means matching property.
+     */
     static List<Row> build(String leftName,Map<String,String> leftFacts,
                            List<String> leftDetails,String rightName,
                            Map<String,String> rightFacts,List<String> rightDetails){
         List<Row> rows=new ArrayList<>();
+        if(!CompareCategoryGuard.canCompare(leftName,rightName))return rows;
+        if(leftFacts==null||rightFacts==null)return rows;
+        Map<String,String> sharedLeft=new java.util.LinkedHashMap<>();
+        Map<String,String> sharedRight=new java.util.LinkedHashMap<>();
+        for(Map.Entry<String,String> spec:leftFacts.entrySet()){
+            String label=spec.getKey(),left=spec.getValue(),right=rightFacts.get(label);
+            if(label==null||left==null||right==null)continue;
+            if(left.trim().isEmpty()||right.trim().isEmpty())continue;
+            if(!compatibleUnits(label,left,right))continue;
+            sharedLeft.put(label,left);
+            sharedRight.put(label,right);
+        }
         List<String> keys=ComparisonSummary.topSpecs(
-            leftName,leftFacts,rightName,rightFacts);
+            leftName,sharedLeft,rightName,sharedRight);
         for(String key:keys){
             if(rows.size()>=MAX_ROWS)break;
-            rows.add(new Row(key,known(leftFacts,key),known(rightFacts,key),true));
-        }
-        List<String> l=remaining(leftDetails,leftFacts);
-        List<String> r=remaining(rightDetails,rightFacts);
-        int max=Math.max(l.size(),r.size());
-        for(int i=0;i<max&&rows.size()<MAX_ROWS;i++){
-            rows.add(new Row("Опис од Setec · "+(i+1),
-                i<l.size()?l.get(i):"Не е наведено",
-                i<r.size()?r.get(i):"Не е наведено",false));
+            rows.add(new Row(key,known(sharedLeft,key),known(sharedRight,key),true));
         }
         return rows;
+    }
+
+    /** Disallow matching "8 kg" to "8 L", "1200 rpm" or "512 GB". */
+    static boolean compatibleUnits(String label,String left,String right){
+        String u=unitFamily(left),v=unitFamily(right);
+        if(!u.equals(v))return false;
+        if(label!=null&&label.trim().equalsIgnoreCase("Капацитет"))
+            return !u.isEmpty(); // Plain "капацитет" without units is ambiguous.
+        return true;
+    }
+
+    private static String unitFamily(String source){
+        String s=String.valueOf(source).toLowerCase(Locale.ROOT);
+        if(s.matches(".*\\b(?:кг|kg|килограми?)\\b.*"))return "WEIGHT";
+        if(s.matches(".*\\b(?:литри?|liters?|litres?|l)\\b.*"))return "VOLUME";
+        if(s.matches(".*\\b(?:tb|gb|mb|тб|гб)\\b.*"))return "STORAGE";
+        if(s.matches(".*\\b(?:rpm|вртежи)\\b.*"))return "RPM";
+        if(s.matches(".*\\b(?:ghz|mhz)\\b.*"))return "FREQUENCY";
+        if(s.matches(".*\\b(?:hz)\\b.*"))return "HZ";
+        if(s.matches(".*\\b(?:btu)\\b.*"))return "BTU";
+        if(s.matches(".*\\b(?:db|дб)\\b.*"))return "DECIBEL";
+        if(s.matches(".*\\b(?:w|kw|ват(?:и)?)\\b.*"))return "WATTS";
+        if(s.matches(".*\\b(?:mah|wh)\\b.*"))return "BATTERY";
+        if(s.matches(".*\\b(?:mm|cm|мм|см)\\b.*"))return "LENGTH";
+        return "";
     }
 
     /**
