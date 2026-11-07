@@ -101,8 +101,7 @@ final class CompareCategoryGuard {
     static boolean canCompare(String left,Map<String,String> lf,
                               String right,Map<String,String> rf){
         Kind a=guess(left,lf),b=guess(right,rf);
-        return a!=Kind.UNKNOWN&&b!=Kind.UNKNOWN&&a==b
-            || a==Kind.UNKNOWN&&b==Kind.UNKNOWN;
+        return a!=Kind.UNKNOWN&&b!=Kind.UNKNOWN&&a==b;
     }
 
     static String incompatibility(String left,String right){
@@ -114,9 +113,9 @@ final class CompareCategoryGuard {
         if(a!=Kind.UNKNOWN&&b!=Kind.UNKNOWN&&a!=b)
             return "Различни категории: "+a.label+" и "+b.label+
                 ". Техничка споредба не е дозволена за различни типови производи.";
-        if(a==Kind.UNKNOWN ^ b==Kind.UNKNOWN)
-            return "Категоријата на еден производ не е потврдена. "+
-                "Нема сигурна основа за споредба на техничките спецификации.";
+        if(a==Kind.UNKNOWN||b==Kind.UNKNOWN)
+            return "Категоријата не е сигурно потврдена за двата производи. "+
+                "Споредбата на технички спецификации е исклучена за да не се мешаат различни уреди.";
         return "";
     }
 }
