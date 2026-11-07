@@ -642,6 +642,7 @@ public final class MainActivity extends ComponentActivity {
             "let sku=m?m[1]:'';"+
             "if(/^\\d{4,8}$/.test(q)){if(sku&&sku!==q)continue;}"+
             "else if(/^\\d{13}$/.test(q)){/* Keep website EAN search results: their cards show SKU, not EAN. */}"+
+            "else if(/[a-z]/i.test(q)&&/\\d/.test(q)&&/^[a-z0-9._\\/-]{5,}$/i.test(q)){/* P/N can be indexed on SETEC even when absent from product card text. */}"+
             "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
@@ -730,7 +731,7 @@ public final class MainActivity extends ComponentActivity {
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
-            "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
+            "if(!/^\\d+$/.test(q)&&!(/[a-z]/i.test(q)&&/\\d/.test(q)&&/^[a-z0-9._\\/-]{5,}$/i.test(q))&&q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
             "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=150)break}"+
             "return JSON.stringify([...found.values()]);})()";
