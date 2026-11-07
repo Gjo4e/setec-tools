@@ -41,7 +41,7 @@ jobs:
         run: |
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-Update-v64.apk | grep "package: name='mk.setecsifri.compare60'"
-          "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-v64-Separate.apk | grep "package: name='mk.setecsifri.compare60.catalog63'"
+          "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-v64-Separate.apk | grep "package: name='mk.setecsifri.compare60.catalog64'"
           "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-v64-Separate.apk | grep "application-label:'Setec Tools'"
       - uses: actions/upload-artifact@v4
         with:
