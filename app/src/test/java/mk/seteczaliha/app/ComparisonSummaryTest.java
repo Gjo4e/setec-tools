@@ -43,7 +43,7 @@ public final class ComparisonSummaryTest {
         left.put("Резолуција","1920x1080");
         left.put("RAM","16 GB");
         left.put("Бучава","40 dB");
-        assertEquals(Arrays.asList("RAM","Капацитет","Резолуција","Бучава"),
+        assertEquals(Arrays.asList("RAM"),
             ComparisonSummary.topSpecs("ASUS Vivobook",left,"Lenovo Laptop",left));
     }
     @Test public void washerStillPrioritizesWashLoadWhenPowerIsAlsoListed(){
@@ -57,6 +57,39 @@ public final class ComparisonSummaryTest {
             "Машина за перење Bosch",a,"Машина за перење Gorenje",b);
         assertEquals("Капацитет на перење",fields.get(0));
         assertEquals("Центрифуга",fields.get(1));
+    }
+
+    @Test public void dishwasherUsesOnlyDishwasherCriteria(){
+        Map<String,String> facts=new LinkedHashMap<>();
+        facts.put("Бучава","45 dB");
+        facts.put("Програми","7");
+        facts.put("RAM","16 GB");
+        facts.put("Енергетска класа","B");
+        assertEquals(Arrays.asList("Програми","Енергетска класа","Бучава"),
+            ComparisonSummary.topSpecs("Машина за садови Bosch",facts,
+                "Машина за садови Beko",facts));
+    }
+
+    @Test public void tvNeverRanksWashingCapacity(){
+        Map<String,String> facts=new LinkedHashMap<>();
+        facts.put("Капацитет на перење","8 kg");
+        facts.put("Освежување","144 Hz");
+        facts.put("Резолуција","3840x2160");
+        facts.put("Дијагонала","55 in");
+        assertEquals(Arrays.asList("Дијагонала","Резолуција","Освежување"),
+            ComparisonSummary.topSpecs("Телевизор TCL",facts,
+                "Телевизор Samsung",facts));
+    }
+
+    @Test public void washerDryerComboHasBothLoads(){
+        Map<String,String> facts=new LinkedHashMap<>();
+        facts.put("Капацитет на сушење","6 kg");
+        facts.put("Капацитет на перење","10 kg");
+        facts.put("Центрифуга","1400 rpm");
+        assertEquals(Arrays.asList("Капацитет на перење",
+            "Капацитет на сушење","Центрифуга"),
+            ComparisonSummary.topSpecs("WASHER DRYER LG",facts,
+                "WASHER DRYER GORENJE",facts));
     }
 
 }
