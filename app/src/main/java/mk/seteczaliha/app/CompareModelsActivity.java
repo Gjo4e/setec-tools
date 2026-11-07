@@ -465,7 +465,8 @@ public final class CompareModelsActivity extends ComponentActivity {
         keyColumns.addView(highlightCard(right,2),model2);
 
         if(left==null||right==null)return;
-        String categoryWarning=CompareCategoryGuard.incompatibility(left.name,right.name);
+        String categoryWarning=CompareCategoryGuard.incompatibility(
+            left.name,left.facts,right.name,right.facts);
         if(!categoryWarning.isEmpty()){
             TextView notice=text(categoryWarning+"\nМожеш да ги видиш поединечните описи и цените, но нема да прикажам лажна техничка споредба.",13,false,0xFFFFC99F);
             notice.setPadding(dp(13),dp(15),dp(13),dp(15));
@@ -479,15 +480,41 @@ public final class CompareModelsActivity extends ComponentActivity {
             table.addView(notice,w);
             return;
         }
-        TextView compareHeading=text("СПОРЕДБА ПО ЗАЕДНИЧКИ КАРАКТЕРИСТИКИ",14,true,INK);
+        CompareCategoryGuard.Kind detectedKind=CompareCategoryGuard.guess(left.name,left.facts);
+        List<String> criteria=CompareCategoryProfiles.criteria(detectedKind);
+        if(!criteria.isEmpty()){
+            TextView categoryHeading=text("КАТЕГОРИЈА · "+detectedKind.label.toUpperCase(java.util.Locale.ROOT),
+                14,true,0xFF69C2FF);
+            LinearLayout.LayoutParams categoryParams=new LinearLayout.LayoutParams(-1,-2);
+            categoryParams.topMargin=dp(20);
+            table.addView(categoryHeading,categoryParams);
+            TextView criterionInfo=text("Клучни критериуми: "+
+                android.text.TextUtils.join(" · ",criteria)+
+                ". Се прикажуваат само податоци прочитани од точните Setec производи.",
+                12,false,0xFFB1C6DA);
+            criterionInfo.setLineSpacing(dp(3),1f);
+            LinearLayout.LayoutParams cParams=new LinearLayout.LayoutParams(-1,-2);
+            cParams.topMargin=dp(7);
+            table.addView(criterionInfo,cParams);
+        }else{
+            TextView unknown=text("Категоријата не е потврдена. "+
+                "Се споредуваат само исти, именувани технички полиња.",
+                12,false,0xFFFFD2A3);
+            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+            params.topMargin=dp(16);
+            table.addView(unknown,params);
+        }
+
+        TextView compareHeading=text("СПОРЕДБА ПО КАТЕГОРИЈА",14,true,INK);
         LinearLayout.LayoutParams chp=new LinearLayout.LayoutParams(-1,-2);
         chp.topMargin=dp(23);
         table.addView(compareHeading,chp);
         List<SetecCompareRows.Row> rows=SetecCompareRows.build(
             left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
-            TextView empty=text("Не се потврдени исти технички полиња за двата производи. "+
-                "Оригиналните описи се прикажани погоре одделно, без мешање на различни карактеристики.",13,false,theme(0xFF835A2D,0xFFFFC28A));
+            TextView empty=text("Нема доволно потврдени спецификации за критериумите на оваа категорија. "+
+                "Оригиналните описи остануваат прикажани одделно, без измислени споредби.",
+                13,false,theme(0xFF835A2D,0xFFFFC28A));
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
             p.topMargin=dp(13);
             table.addView(empty,p);
@@ -499,8 +526,9 @@ public final class CompareModelsActivity extends ComponentActivity {
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" заеднички потврдени спецификации (најмногу 5). "+
-            "Описите погоре се одвоени за секој модел; овде се порамнуваат само исти полиња со соодветни мерни единици.",
+        TextView count=text("Прикажани "+rows.size()+" категоријални критериуми (најмногу 5). "+
+            "„Непотврдено“ значи дека вредноста недостига. Разлика се означува само кога "+
+            "и двата модела имаат потврдена вредност со соодветна мерна единица.",
             12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
@@ -530,7 +558,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         for(SetecCompareRows.Row r:rows){
             if(!r.comparable||r.left==null||r.right==null)continue;
             String label=r.label.toLowerCase(java.util.Locale.ROOT);
-            boolean largerBetter=label.matches(".*(ram|мемори|капацитет|батери|ssd|складира|refresh|освежува|hz|резолуц).*");
+            // Do not pronounce a universal winner for washer capacity,
+            // energy use, battery size or other preference-dependent metrics.
+            boolean largerBetter=label.matches(".*(ram|ssd|диск|складира|освежува|refresh).*");
             if(!largerBetter)continue;
             double a=unitNumber(r.left),b=unitNumber(r.right);
             if(Double.isNaN(a)||Double.isNaN(b)||a==b)continue;
