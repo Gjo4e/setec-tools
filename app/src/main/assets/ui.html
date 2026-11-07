@@ -223,7 +223,12 @@ body.dark .categoryNotice{background:var(--surface-alt)!important;color:var(--su
 .offerInstallmentTop{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:850}
 .offerLocked{font-size:11px;color:var(--subcopy)}
 .offerInstallment button{width:100%;border:1px solid var(--border);background:var(--surface-alt);color:var(--subcopy);padding:13px;border-radius:10px;opacity:.65}
-.offerCopy{margin-top:15px}
+.offerCopy{margin-top:11px}
+.offerExportActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:17px}
+.offerExportButton{border:1px solid #3480b7;border-radius:11px;padding:14px 8px;color:#eff8ff;font-size:12px;font-weight:850;background:linear-gradient(125deg,#124676,#196fa6)}
+.offerExportButton.offerExcel{background:linear-gradient(125deg,#12635c,#16856d);border-color:#268c7b}
+.offerExportButton:active{transform:scale(.99)}
+@media(max-width:330px){.offerExportButton{font-size:11px;padding:13px 5px}}
 .offerClear{display:block;width:100%;border:1px solid var(--border);background:var(--surface);color:#c35e5e;border-radius:10px;padding:12px;margin-top:9px;font-size:12px;font-weight:750}
 .offerFeedback{font-size:11px;color:#258bfa;margin:8px 0}
 .offerEmpty{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:25px 12px;text-align:center;color:var(--subcopy);font-size:12px}
@@ -430,7 +435,7 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 <main class="wrap">
 <section id="dashboard" class="dashboard">
 <div class="dashHero"><div class="dashEyebrow">ДОБРЕДОЈДЕ!</div><div class="dashTitle">Брзо пребарување и<br><span>корисни алатки.</span></div><p class="dashIntro">Провери производ, цена или залиха — сè на едно место.</p></div>
-<div class="dashWorkspace"><form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" placeholder="Пребарај производ, модел или SETEC шифра" aria-label="Пребарување"><button type="submit">⌕</button></form>
+<div class="dashWorkspace"><form id="dashForm" class="dashSearch"><input id="dashQuery" type="search" enterkeyhint="search" placeholder="Производ, модел, P/N или SETEC шифра" aria-label="Пребарување"><button type="submit">⌕</button></form>
 <div class="dashQuick">
 <button class="dashTile dashTilePrimary" onclick="startAvailabilityScan()"><span class="dashTileIcon">▣</span><span class="dashTileText"><b>Провери достапност</b><small>Скенирај · провери залиха и цена</small></span><span class="dashChevron">›</span></button>
 <button class="dashTile" onclick="SetecApp.openCompare()"><span class="dashTileIcon">⚖</span><span class="dashTileText"><b>Спореди производи</b><small>Детална споредба</small></span><span class="dashChevron">›</span></button>
@@ -460,6 +465,10 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 </select>
 <div class="installmentResult" id="offerInstallmentResult" aria-live="polite"></div>
 <p class="installmentNote">Информативна пресметка врз клуб цената. Кај „48 рати без камата“ се додава само еднократен административен трошок од 3%, без камата. За другите опции важат наведените стапки. Потврди ги вистинските услови и подобноста кај продавачот.</p>
+</div>
+<div class="offerExportActions" role="group" aria-label="Извоз на понуда">
+<button class="offerExportButton offerPdf" onclick="exportCustomerOffer('pdf')">▤ Извези PDF</button>
+<button class="offerExportButton offerExcel" onclick="exportCustomerOffer('xlsx')">▦ Извези Excel</button>
 </div>
 <button class="offerCopy" onclick="copyOffer()">▤ Копирај понуда</button>
 <button class="offerClear" onclick="clearOffer()">Избриши ја листата</button>
@@ -493,7 +502,7 @@ body.availabilityOnly #detail #pprices .priceUnavailable{color:#adbed1;font-size
 <div id="recognized" class="recognition hidden"><span class="symbol">✓</span><div>Препознаена шифра: <strong id="scanCode"></strong></div></div>
 <button id="retrySkuBtn" class="cta hidden" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button>
 <div class="note">За постарите етикети можеш да користиш OCR:<div class="chips"><span class="chip">Шифра: 12959</span><span class="chip">шифра/код: 84558</span></div></div></section>
-<section id="searchPanel" class="hidden"><div class="small" style="margin-bottom:9px">Пребарај по име, модел или SETEC шифра.</div><form id="form" class="form"><input id="query" placeholder="Пребарај име или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
+<section id="searchPanel" class="hidden"><div class="small" style="margin-bottom:9px">Пребарај по име, модел, P/N (Part Number) или SETEC шифра.</div><form id="form" class="form"><input id="query" placeholder="Име, P/N, модел или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
 <section id="batchPanel" class="hidden"><div class="batchTop"><strong>Скенирај повеќе шифри</strong><p class="small">Секоја нова шифра се додава во истата листа. Можеш да ги копираш сите одеднаш.</p><textarea id="batchCodes" class="batchCodes" readonly aria-label="Зачувани шифри разделени со запирка" placeholder="84558,63131,92534"></textarea><div class="batchHint" id="batchCount">0 шифри</div><div class="batchActions"><button class="cta" onclick="SetecApp.scanBatch()">▣ Скенирај</button><button class="secondary" onclick="copyBatch()">⧉ Копирај</button></div><div class="batchActions"><button class="secondary" onclick="toggleBatchManual()">+ Рачно</button><button class="secondary batchDanger" onclick="clearBatch()">Избриши сè</button></div><div class="batchManual hidden" id="batchManualBox"><input type="text" inputmode="numeric" id="batchManualInput" placeholder="Шифра или шифри со запирка" aria-label="Рачно внеси шифра"><button onclick="submitBatchManual()">Додај</button></div><div class="batchConfirm hidden" id="batchConfirmBox"><p>Сигурно сакаш да ги избришеш сите зачувани шифри?</p><div class="batchActions"><button onclick="cancelBatchClear()">Откажи</button><button class="confirmDelete" onclick="confirmBatchClear()">Избриши сè</button></div></div><div class="small" id="batchMessage" aria-live="polite">Шифрите остануваат зачувани и по затворање на апликацијата.</div></div><div class="title">Скенирани производи</div><div id="batchRows" class="batchRows"><div class="empty">Скенирај го првиот ценовник за да започнеш листа.</div></div></section>
 <div id="status" class="state">Скенирај шифра или пребарај производ.</div>
 <section id="resultsPanel"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
@@ -611,6 +620,24 @@ function addCurrentToOffer(){
  else{$('offerAddFeedback').textContent='Максимум 100 различни производи.';return}
  offerSave();$('offerAddFeedback').textContent='✓ Додадено во листата. Отвори „Листа на купувач“ од почетниот екран.';
 }
+function exportCustomerOffer(format){
+ if(!offerItems.length){$('offerFeedback').textContent='Прво додај производи во листата.';return}
+ if(format!=='pdf'&&format!=='xlsx')return;
+ const data={
+  installment:$('offerInstallmentMonths').value,
+  items:offerItems.map(p=>({name:p.name,sku:p.sku,qty:p.qty,club:p.club,regular:p.regular}))
+ };
+ try{
+  SetecApp.exportOffer(format,JSON.stringify(data));
+  $('offerFeedback').textContent='Избери папка и име за да ја зачуваш понудата.';
+ }catch(e){
+  $('offerFeedback').textContent='Извозот е достапен во Android верзијата.';
+ }
+}
+window.onOfferExportFinished=function(message){
+ const target=$('offerFeedback');
+ if(target)target.textContent=String(message||'');
+};
 function copyOffer(){
  if(!offerItems.length){$('offerFeedback').textContent='Прво додај производи во листата.';return}
  const t=offerTotals(),lines=['SETEC | ПОНУДА ЗА КУПУВАЧ','────────────────────────',''];
