@@ -182,7 +182,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         LinearLayout.LayoutParams tl=new LinearLayout.LayoutParams(0,-2,1);
         tl.leftMargin=dp(14);
         header.addView(titles,tl);
-        titles.addView(text("SETEC TOOLS",11,true,0xFF55BFFF));
+        titles.addView(text("Setec Tools",11,true,0xFF55BFFF));
         TextView title=text("Спореди производи",23,true,Color.WHITE);
         titles.addView(title);
         titles.addView(text("Два производи · една јасна споредба",12,false,0xFFAAC0D7));
@@ -314,6 +314,18 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(json==null||json.isEmpty())return;
                 Product p=Product.parse(json);
                 if(p==null||!sku.equals(p.sku))return;
+                // Convert exact SETEC product text into NAMED technical facts.
+                // Raw bullets still appear in each product's separate description.
+                if(safeSource(p.source)){
+                    List<GoogleModelResearch.Fact> extracted=SetecKeySpecs.extract(
+                        p.name,p.source,p.description,p.description,p.name);
+                    for(GoogleModelResearch.Fact fact:extracted){
+                        p.facts.putIfAbsent(fact.label,fact.value);
+                        p.sourceByLabel.putIfAbsent(fact.label,p.source);
+                    }
+                    p.highlights=SetecCompareRows.highlights(
+                        p.name,p.facts,p.details,p.description);
+                }
                 products[slot]=p;
                 lookupSerial[slot]++;
                 overview.setText("✓ Пронајден "+p.name+". "+(products[1-slot]==null?"Внеси го и другиот производ.":"Споредбата е подготвена."));
@@ -442,14 +454,31 @@ public final class CompareModelsActivity extends ComponentActivity {
         kh.topMargin=dp(20);
         table.addView(keyTitle,kh);
         LinearLayout keyColumns=new LinearLayout(this);
-        keyColumns.setOrientation(LinearLayout.HORIZONTAL);
+        keyColumns.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams kp=new LinearLayout.LayoutParams(-1,-2);
         kp.topMargin=dp(9);
         table.addView(keyColumns,kp);
-        keyColumns.addView(highlightCard(left,1),columnParams(false));
-        keyColumns.addView(highlightCard(right,2),columnParams(true));
+        LinearLayout.LayoutParams model1=new LinearLayout.LayoutParams(-1,-2);
+        keyColumns.addView(highlightCard(left,1),model1);
+        LinearLayout.LayoutParams model2=new LinearLayout.LayoutParams(-1,-2);
+        model2.topMargin=dp(10);
+        keyColumns.addView(highlightCard(right,2),model2);
 
         if(left==null||right==null)return;
+        String categoryWarning=CompareCategoryGuard.incompatibility(left.name,right.name);
+        if(!categoryWarning.isEmpty()){
+            TextView notice=text(categoryWarning+"\nМожеш да ги видиш поединечните описи и цените, но нема да прикажам лажна техничка споредба.",13,false,0xFFFFC99F);
+            notice.setPadding(dp(13),dp(15),dp(13),dp(15));
+            LinearLayout.LayoutParams w=new LinearLayout.LayoutParams(-1,-2);
+            w.topMargin=dp(15);
+            GradientDrawable background=new GradientDrawable();
+            background.setColor(0xFF352B29);
+            background.setCornerRadius(dp(13));
+            background.setStroke(dp(1),0xFF9B5B34);
+            notice.setBackground(background);
+            table.addView(notice,w);
+            return;
+        }
         TextView compareHeading=text("СПОРЕДБА ПО ЗАЕДНИЧКИ КАРАКТЕРИСТИКИ",14,true,INK);
         LinearLayout.LayoutParams chp=new LinearLayout.LayoutParams(-1,-2);
         chp.topMargin=dp(23);
@@ -457,8 +486,8 @@ public final class CompareModelsActivity extends ComponentActivity {
         List<SetecCompareRows.Row> rows=SetecCompareRows.build(
             left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
-            TextView empty=text("Setec.mk не достави технички опис за овие два производи. "+
-                "Отвори ги и зачувај ги повторно за проверка.",13,false,theme(0xFF835A2D,0xFFFFC28A));
+            TextView empty=text("Не се потврдени исти технички полиња за двата производи. "+
+                "Оригиналните описи се прикажани погоре одделно, без мешање на различни карактеристики.",13,false,theme(0xFF835A2D,0xFFFFC28A));
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
             p.topMargin=dp(13);
             table.addView(empty,p);
@@ -470,12 +499,8 @@ public final class CompareModelsActivity extends ComponentActivity {
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" технички редови (најмногу 5). "+
-            (hasOriginal
-                ?"„Опис од Setec“ е оригинална ставка: бројот не означува иста "+
-                 "карактеристика кај двата модела. "
-                :"Се означуваат разлики само за иста техничка карактеристика. ")+
-            "Податоците се само од потврдените Setec производи.",
+        TextView count=text("Прикажани "+rows.size()+" заеднички потврдени спецификации (најмногу 5). "+
+            "Описите погоре се одвоени за секој модел; овде се порамнуваат само исти полиња со соодветни мерни единици.",
             12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
