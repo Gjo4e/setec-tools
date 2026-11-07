@@ -77,7 +77,11 @@ public final class SetecCompareRowsTest {
         List<SetecCompareRows.Row> rows=SetecCompareRows.build("Laptop A",
             left,Collections.emptyList(),"Laptop B",
             Collections.emptyMap(),Collections.emptyList());
-        assertTrue("A field present on only one side cannot be a shared comparison",rows.isEmpty());
+        assertEquals(1,rows.size());
+        assertEquals("RAM",rows.get(0).label);
+        assertEquals("16 GB",rows.get(0).left);
+        assertEquals("Непотврдено",rows.get(0).right);
+        assertFalse("Missing values must never be compared",rows.get(0).comparable);
     }
 
     @Test public void preservesFiveMostImportantNamedSpecsForOneSavedTelevision(){
@@ -183,6 +187,76 @@ public final class SetecCompareRowsTest {
             "МОНИТОР Samsung 27"));
         assertTrue(CompareCategoryGuard.canCompare("Машина за перење Bosch",
             "Машина за перење Gorenje"));
+    }
+
+    @Test public void washerCategoryShowsOnlyAppropriateCriteriaInOrder(){
+        Map<String,String> left=new LinkedHashMap<>();
+        left.put("Моќност","1800W");
+        left.put("Програми","16");
+        left.put("Капацитет на перење","9 kg");
+        left.put("Центрифуга","1400 rpm");
+        Map<String,String> right=new LinkedHashMap<>();
+        right.put("Моќност","2200W");
+        right.put("Капацитет на перење","7 kg");
+        right.put("Центрифуга","1200 rpm");
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build(
+            "Машина за перење LG",left,Collections.emptyList(),
+            "Машина за перење Bosch",right,Collections.emptyList());
+        assertEquals(3,rows.size());
+        assertEquals("Капацитет на перење",rows.get(0).label);
+        assertEquals("Центрифуга",rows.get(1).label);
+        assertEquals("Програми",rows.get(2).label);
+        assertEquals("Непотврдено",rows.get(2).right);
+        assertFalse(rows.get(2).comparable);
+        assertTrue(rows.get(0).comparable);
+        assertFalse(rows.stream().anyMatch(x->x.label.equals("Моќност")));
+    }
+
+    @Test public void tvComparisonIgnoresWashingFacts(){
+        Map<String,String> a=new LinkedHashMap<>();
+        a.put("Дијагонала","55 in");
+        a.put("Освежување","120 Hz");
+        a.put("Капацитет на перење","9 kg");
+        Map<String,String> b=new LinkedHashMap<>();
+        b.put("Дијагонала","65 in");
+        b.put("Освежување","60 Hz");
+        b.put("Капацитет на перење","8 kg");
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build(
+            "Телевизор TCL",a,Collections.emptyList(),
+            "Телевизор Samsung",b,Collections.emptyList());
+        assertEquals(2,rows.size());
+        assertEquals("Дијагонала",rows.get(0).label);
+        assertEquals("Освежување",rows.get(1).label);
+    }
+
+    @Test public void unknownAndWasherCategoryCannotBeAssumedCompatible(){
+        Map<String,String> known=Collections.singletonMap("Капацитет на перење","8 kg");
+        Map<String,String> unknown=Collections.singletonMap("Моќност","800W");
+        assertTrue(SetecCompareRows.build("Машина за перење Gorenje",known,
+            Collections.emptyList(),"Unclassified X",unknown,
+            Collections.emptyList()).isEmpty());
+        assertFalse(CompareCategoryGuard.incompatibility("Машина за перење Gorenje",
+            known,"Unclassified X",unknown).isEmpty());
+    }
+
+    @Test public void titleWithoutCategoryMayUseDistinctiveVerifiedSpecs(){
+        Map<String,String> a=new LinkedHashMap<>();
+        a.put("Капацитет на перење","8 kg");
+        a.put("Центрифуга","1200 rpm");
+        Map<String,String> b=new LinkedHashMap<>();
+        b.put("Капацитет на перење","9 kg");
+        b.put("Центрифуга","1400 rpm");
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build("MODEL ABC123",a,
+            Collections.emptyList(),"MODEL XYZ789",b,Collections.emptyList());
+        assertEquals(2,rows.size());
+        assertEquals("Капацитет на перење",rows.get(0).label);
+    }
+
+    @Test public void everySupportedFamilyHasFiveNamedCriteria(){
+        for(CompareCategoryGuard.Kind kind:CompareCategoryGuard.Kind.values()){
+            if(kind==CompareCategoryGuard.Kind.UNKNOWN)continue;
+            assertEquals(kind.label,5,CompareCategoryProfiles.criteria(kind).size());
+        }
     }
 
 }
