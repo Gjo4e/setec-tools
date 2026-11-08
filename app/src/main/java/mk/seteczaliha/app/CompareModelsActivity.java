@@ -326,7 +326,7 @@ public final class CompareModelsActivity extends ComponentActivity {
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" технички редови (најмногу 5). "+
+        TextView count=text("Прикажани "+rows.size()+" технички редови (најмногу 20). "+
             (hasOriginal
                 ?"„Опис од Setec“ е оригинална ставка: бројот не означува иста "+
                  "карактеристика кај двата модела. "
