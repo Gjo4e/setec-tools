@@ -2,6 +2,8 @@ name: Build Setec Zaliha APK
 on:
   push:
     branches: [main, improve-comparison-client-docs]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
