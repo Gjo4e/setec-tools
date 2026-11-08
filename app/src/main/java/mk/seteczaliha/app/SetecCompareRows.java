@@ -58,6 +58,23 @@ final class SetecCompareRows {
             if(rows.size()>=MAX_ROWS)break;
             rows.add(new Row(key,known(sharedLeft,key),known(sharedRight,key),true));
         }
+        // Compare identical verified description bullets when the catalog does not
+        // expose structured fields. Never infer a difference from bullet position.
+        if(rows.isEmpty()&&leftDetails!=null&&rightDetails!=null){
+            java.util.Map<String,String> rightBullets=new java.util.LinkedHashMap<>();
+            for(String bullet:rightDetails){
+                String clean=normalize(bullet);
+                if(clean.length()>=4&&!isUiOrSalesText(clean))rightBullets.put(clean.toLowerCase(Locale.ROOT),clean);
+            }
+            for(String bullet:leftDetails){
+                String clean=normalize(bullet);
+                if(clean.length()<4||isUiOrSalesText(clean))continue;
+                String other=rightBullets.get(clean.toLowerCase(Locale.ROOT));
+                if(other==null)continue;
+                rows.add(new Row("Заедничка карактеристика "+(rows.size()+1),clean,other,true));
+                if(rows.size()>=MAX_ROWS)break;
+            }
+        }
         return rows;
     }
 
