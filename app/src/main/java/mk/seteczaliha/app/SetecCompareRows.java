@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * and therefore must not be marked as factual differences.
  */
 final class SetecCompareRows {
-    static final int MAX_ROWS=5;
+    static final int MAX_ROWS=12;
     private SetecCompareRows(){}
 
     static final class Row {
@@ -43,8 +43,8 @@ final class SetecCompareRows {
         if(!CompareCategoryGuard.canCompare(leftName,rightName))return rows;
         Map<String,String> combinedLeft=new java.util.LinkedHashMap<>();
         Map<String,String> combinedRight=new java.util.LinkedHashMap<>();
-        if(leftFacts!=null)combinedLeft.putAll(leftFacts);
-        if(rightFacts!=null)combinedRight.putAll(rightFacts);
+        if(leftFacts!=null)for(Map.Entry<String,String> entry:leftFacts.entrySet()){String key=canonicalLabel(entry.getKey());if(!key.isEmpty())combinedLeft.put(key,entry.getValue());}
+        if(rightFacts!=null)for(Map.Entry<String,String> entry:rightFacts.entrySet()){String key=canonicalLabel(entry.getKey());if(!key.isEmpty())combinedRight.put(key,entry.getValue());}
         addDescriptionFacts(combinedLeft,leftDetails);
         addDescriptionFacts(combinedRight,rightDetails);
         Map<String,String> sharedLeft=new java.util.LinkedHashMap<>();
@@ -83,25 +83,39 @@ final class SetecCompareRows {
         return rows;
     }
 
-    /** Extract only explicitly labelled specifications from the Setec description. */
+    /** Normalize comparable labels across Macedonian and English descriptions. */
+    private static String canonicalLabel(String raw){
+        String key=normalize(raw).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N} ]","").trim();
+        if(key.matches("processor|cpu|процесор|тип на процесор"))return "Процесор";
+        if(key.matches("ram|меморија|работна меморија|ram memory"))return "RAM";
+        if(key.matches("ssd|storage|диск|хард диск|простор за складирање|капацитет на диск"))return "Диск";
+        if(key.matches("gpu|graphics|графичка|графичка картичка|video card"))return "Графичка";
+        if(key.matches("display|екран|дисплеј|големина на екран"))return "Екран";
+        if(key.matches("battery|батерија|траење на батерија"))return "Батерија";
+        if(key.matches("bluetooth|блутут"))return "Bluetooth";
+        if(key.matches("ports|порти|приклучоци"))return "Порти";
+        if(key.matches("resolution|резолуција"))return "Резолуција";
+        if(key.matches("refresh rate|освежување|фреквенција на освежување"))return "Освежување";
+        if(key.matches("capacity|капацитет"))return "Капацитет";
+        if(key.matches("energy class|енергетска класа"))return "Енергетска класа";
+        if(key.matches("power|моќност|снага"))return "Моќност";
+        if(key.matches("dimensions|димензии"))return "Димензии";
+        if(key.matches("weight|тежина"))return "Тежина";
+        if(key.matches("noise|бучава"))return "Бучава";
+        if(key.matches("warranty|гаранција"))return "";
+        return key.length()>=3&&key.length()<=45?normalize(raw):"";
+    }
+
+    /** Read generic named specifications, not just laptop-specific fields. */
     private static void addDescriptionFacts(Map<String,String> facts,List<String> details){
         if(details==null)return;
         for(String raw:details){
             String line=normalize(raw).replaceFirst("^[•\\-]+\\s*","");
-            java.util.regex.Matcher m=Pattern.compile("(?iu)^(процесор|processor|cpu|ram|меморија|диск|ssd|storage|графичка|graphics|gpu|екран|display|батерија|battery|bluetooth|ports|порти)\\s*[:\\-]\\s*(.{2,180})$").matcher(line);
+            java.util.regex.Matcher m=Pattern.compile("^([^:：]{3,48})\\s*[:：]\\s*(.{2,180})$").matcher(line);
             if(!m.matches())continue;
-            String label=m.group(1).toLowerCase(Locale.ROOT),value=m.group(2).trim();
-            if(label.equals("processor")||label.equals("cpu"))label="Процесор";
-            else if(label.equals("меморија"))label="RAM";
-            else if(label.equals("ssd")||label.equals("storage"))label="Диск";
-            else if(label.equals("graphics")||label.equals("gpu"))label="Графичка";
-            else if(label.equals("display"))label="Екран";
-            else if(label.equals("battery"))label="Батерија";
-            else if(label.equals("порти"))label="Ports";
-            else if(label.equals("ram"))label="RAM";
-            else if(label.equals("bluetooth"))label="Bluetooth";
-            else if(label.equals("ports"))label="Ports";
-            if(!facts.containsKey(label))facts.put(label,value);
+            String label=canonicalLabel(m.group(1)),value=m.group(2).trim();
+            if(label.isEmpty()||isUiOrSalesText(label)||value.length()>180)continue;
+            facts.putIfAbsent(label,value);
         }
     }
 
