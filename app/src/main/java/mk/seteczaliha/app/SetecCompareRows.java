@@ -41,11 +41,16 @@ final class SetecCompareRows {
                            Map<String,String> rightFacts,List<String> rightDetails){
         List<Row> rows=new ArrayList<>();
         if(!CompareCategoryGuard.canCompare(leftName,rightName))return rows;
-        if(leftFacts==null||rightFacts==null)return rows;
+        Map<String,String> combinedLeft=new java.util.LinkedHashMap<>();
+        Map<String,String> combinedRight=new java.util.LinkedHashMap<>();
+        if(leftFacts!=null)combinedLeft.putAll(leftFacts);
+        if(rightFacts!=null)combinedRight.putAll(rightFacts);
+        addDescriptionFacts(combinedLeft,leftDetails);
+        addDescriptionFacts(combinedRight,rightDetails);
         Map<String,String> sharedLeft=new java.util.LinkedHashMap<>();
         Map<String,String> sharedRight=new java.util.LinkedHashMap<>();
-        for(Map.Entry<String,String> spec:leftFacts.entrySet()){
-            String label=spec.getKey(),left=spec.getValue(),right=rightFacts.get(label);
+        for(Map.Entry<String,String> spec:combinedLeft.entrySet()){
+            String label=spec.getKey(),left=spec.getValue(),right=combinedRight.get(label);
             if(label==null||left==null||right==null)continue;
             if(left.trim().isEmpty()||right.trim().isEmpty())continue;
             if(!compatibleUnits(label,left,right))continue;
@@ -76,6 +81,28 @@ final class SetecCompareRows {
             }
         }
         return rows;
+    }
+
+    /** Extract only explicitly labelled specifications from the Setec description. */
+    private static void addDescriptionFacts(Map<String,String> facts,List<String> details){
+        if(details==null)return;
+        for(String raw:details){
+            String line=normalize(raw).replaceFirst("^[•\\\\-]+\\\\s*","");
+            java.util.regex.Matcher m=Pattern.compile("(?iu)^(процесор|processor|cpu|ram|меморија|диск|ssd|storage|графичка|graphics|gpu|екран|display|батерија|battery|bluetooth|ports|порти)\\\\s*[:\\\\-]\\\\s*(.{2,180})$").matcher(line);
+            if(!m.matches())continue;
+            String label=m.group(1).toLowerCase(Locale.ROOT),value=m.group(2).trim();
+            if(label.equals("processor")||label.equals("cpu"))label="Процесор";
+            else if(label.equals("меморија"))label="RAM";
+            else if(label.equals("ssd")||label.equals("storage"))label="Диск";
+            else if(label.equals("graphics")||label.equals("gpu"))label="Графичка";
+            else if(label.equals("display"))label="Екран";
+            else if(label.equals("battery"))label="Батерија";
+            else if(label.equals("порти"))label="Ports";
+            else if(label.equals("ram"))label="RAM";
+            else if(label.equals("bluetooth"))label="Bluetooth";
+            else if(label.equals("ports"))label="Ports";
+            if(!facts.containsKey(label))facts.put(label,value);
+        }
     }
 
     /** Disallow matching "8 kg" to "8 L", "1200 rpm" or "512 GB". */
