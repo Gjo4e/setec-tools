@@ -112,7 +112,11 @@ final class SetecCompareRows {
         for(String raw:details){
             String line=normalize(raw).replaceFirst("^[•\\-]+\\s*","");
             java.util.regex.Matcher m=Pattern.compile("^([^:：]{3,48})\\s*[:：]\\s*(.{2,180})$").matcher(line);
-            if(!m.matches())continue;
+            if(!m.matches()){
+                // Setec also writes "- Процесор AMD Ryzen ..." without a colon.
+                m=Pattern.compile("(?iu)^(Процесор|Processor|CPU|RAM|Меморија|Диск|SSD|Storage|Графичка|Graphics|GPU|Екран|Display|Батерија|Battery|Bluetooth|Ports|Порти|Резолуција|Resolution|Капацитет|Capacity)\\s+(.{2,180})$").matcher(line);
+                if(!m.matches())continue;
+            }
             String label=canonicalLabel(m.group(1)),value=m.group(2).trim();
             if(label.isEmpty()||isUiOrSalesText(label)||value.length()>180)continue;
             facts.putIfAbsent(label,value);
