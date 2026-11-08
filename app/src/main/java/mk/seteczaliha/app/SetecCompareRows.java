@@ -87,8 +87,8 @@ final class SetecCompareRows {
     private static void addDescriptionFacts(Map<String,String> facts,List<String> details){
         if(details==null)return;
         for(String raw:details){
-            String line=normalize(raw).replaceFirst("^[•\\\\-]+\\\\s*","");
-            java.util.regex.Matcher m=Pattern.compile("(?iu)^(процесор|processor|cpu|ram|меморија|диск|ssd|storage|графичка|graphics|gpu|екран|display|батерија|battery|bluetooth|ports|порти)\\\\s*[:\\\\-]\\\\s*(.{2,180})$").matcher(line);
+            String line=normalize(raw).replaceFirst("^[•\\-]+\\s*","");
+            java.util.regex.Matcher m=Pattern.compile("(?iu)^(процесор|processor|cpu|ram|меморија|диск|ssd|storage|графичка|graphics|gpu|екран|display|батерија|battery|bluetooth|ports|порти)\\s*[:\\-]\\s*(.{2,180})$").matcher(line);
             if(!m.matches())continue;
             String label=m.group(1).toLowerCase(Locale.ROOT),value=m.group(2).trim();
             if(label.equals("processor")||label.equals("cpu"))label="Процесор";
