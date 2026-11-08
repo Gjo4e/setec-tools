@@ -87,7 +87,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                         p.description=p.description.substring(0,800);
                     JSONArray detailArray=obj.optJSONArray("details");
                     if(detailArray!=null)
-                        for(int i=0;i<detailArray.length()&&p.details.size()<5;i++){
+                        for(int i=0;i<detailArray.length()&&p.details.size()<50;i++){
                             String line=detailArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -307,7 +307,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                 "let club=body.match(/Клуб\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
                 "let regular=body.match(/Редовна\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
                 "let specs=[...document.querySelectorAll('table tr,dl div,li')].map(x=>x.innerText?.replace(/\\s+/g,' ').trim()).filter(x=>x&&x.length>8&&x.length<200).slice(0,70);"+
-                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:specs.slice(0,5),description:specs.slice(0,12).join('\\n')});})()";
+                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:specs.slice(0,50),description:specs.slice(0,30).join('\\n')});})()";
             lookupBrowsers[slot].evaluateJavascript(script,result->{
                 if(serial!=lookupSerial[slot])return;
                 String json=decodeWebString(result);
