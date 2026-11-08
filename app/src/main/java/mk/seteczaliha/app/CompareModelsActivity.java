@@ -499,8 +499,8 @@ public final class CompareModelsActivity extends ComponentActivity {
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" заеднички потврдени спецификации (најмногу 5). "+
-            "Описите погоре се одвоени за секој модел; овде се порамнуваат само исти полиња со соодветни мерни единици.",
+        TextView count=text("Прикажани "+rows.size()+" заеднички карактеристики (најмногу 5). "+
+            "Описите погоре се одвоени за секој модел; овде се порамнуваат исти технички полиња или дословно исти карактеристики од описите.",
             12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
