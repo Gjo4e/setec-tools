@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Produces up to five meaningful side-by-side rows.
+ * Produces up to twenty meaningful side-by-side rows; highlights remain five.
  *
  * Named specifications are aligned by label. When a Setec product only has
  * original technical bullets, its original bullet text is still shown in
@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  */
 final class SetecCompareRows {
     static final int MAX_ROWS=5;
+    static final int MAX_COMPARE_ROWS=20;
     private SetecCompareRows(){}
 
     static final class Row {
@@ -38,16 +39,35 @@ final class SetecCompareRows {
         List<String> keys=ComparisonSummary.topSpecs(
             leftName,leftFacts,rightName,rightFacts);
         for(String key:keys){
-            if(rows.size()>=MAX_ROWS)break;
+            if(rows.size()>=MAX_COMPARE_ROWS)break;
             rows.add(new Row(key,known(leftFacts,key),known(rightFacts,key),true));
         }
         List<String> l=remaining(leftDetails,leftFacts);
         List<String> r=remaining(rightDetails,rightFacts);
-        int max=Math.max(l.size(),r.size());
-        for(int i=0;i<max&&rows.size()<MAX_ROWS;i++){
-            rows.add(new Row("Опис од Setec · "+(i+1),
-                i<l.size()?l.get(i):"Не е наведено",
-                i<r.size()?r.get(i):"Не е наведено",false));
+        // Match identical bullets regardless of their position in the source.
+        List<String> unmatchedRight=new ArrayList<>(r);
+        List<String> unmatchedLeft=new ArrayList<>();
+        for(String item:l){
+            int match=-1;
+            for(int j=0;j<unmatchedRight.size();j++){
+                if(normalize(item).equalsIgnoreCase(normalize(unmatchedRight.get(j)))){
+                    match=j;
+                    break;
+                }
+            }
+            if(match>=0){
+                if(rows.size()<MAX_COMPARE_ROWS)
+                    rows.add(new Row("Заедничка карактеристика",item,
+                        unmatchedRight.get(match),true));
+                unmatchedRight.remove(match);
+            }else unmatchedLeft.add(item);
+        }
+        // Unmatched descriptions are not comparable specifications.
+        int max=Math.max(unmatchedLeft.size(),unmatchedRight.size());
+        for(int i=0;i<max&&rows.size()<MAX_COMPARE_ROWS;i++){
+            rows.add(new Row("Оригинален опис · "+(i+1),
+                i<unmatchedLeft.size()?unmatchedLeft.get(i):"Не е наведено",
+                i<unmatchedRight.size()?unmatchedRight.get(i):"Не е наведено",false));
         }
         return rows;
     }
