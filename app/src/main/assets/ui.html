@@ -479,7 +479,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <div class="offerCount" id="offerCount">0 производи</div>
 <div id="offerItems" class="offerItems"></div>
 <div class="offerAddBox"><strong>Додај производ</strong><p>Пронајди го производот преку пребарување или скенирање, отвори ги деталите и притисни „Додај во листа“.</p><button onclick="offerSearch()">⌕ Пребарај производ</button></div>
-<div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><span class="offerEnabled">✓ Активно</span></div>
+<div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><label style="display:flex;align-items:center;gap:8px;font-weight:700"><input type="checkbox" id="offerInstallmentsEnabled" checked onchange="toggleOfferInstallments(this.checked)" aria-label="Вклучи или исклучи рати"><span id="offerInstallmentsState">ON</span></label></div><div id="offerInstallmentControls">
 <p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок. За опцијата „48 рати без камата“ се пресметуваат само тие 3%, без дополнителна камата.</p>
 <label class="installmentLabel" for="offerInstallmentMonths">Број на рати</label>
 <select id="offerInstallmentMonths" class="installmentSelect" onchange="renderInstallments()">
@@ -491,7 +491,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 </select>
 <div class="installmentResult" id="offerInstallmentResult" aria-live="polite"></div>
 <p class="installmentNote">Информативна пресметка врз клуб цената. Кај „48 рати без камата“ се додава само еднократен административен трошок од 3%, без камата. За другите опции важат наведените стапки. Потврди ги вистинските услови и подобноста кај продавачот.</p>
-</div>
+</div></div>
 <div class="offerExportActions" role="group" aria-label="Извоз на понуда">
 <button class="offerExportButton offerPdf" onclick="exportCustomerOffer('pdf')">▤ Извези PDF</button>
 <button class="offerExportButton offerExcel" onclick="exportCustomerOffer('xlsx')">▦ Извези Excel</button>
@@ -597,6 +597,8 @@ function offerMoney(n){return n.toLocaleString('mk-MK',{maximumFractionDigits:2}
 function offerSave(){try{localStorage.setItem('setec_customer_offer_v1',JSON.stringify(offerItems))}catch(e){}}
 function offerLoad(){try{const raw=JSON.parse(localStorage.getItem('setec_customer_offer_v1')||'[]');if(Array.isArray(raw))offerItems=raw.slice(0,100).filter(x=>x&&typeof x.name==='string'&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99).map(x=>({name:x.name.slice(0,200),sku:String(x.sku||'').slice(0,60),qty:x.qty,club:offerPrice(x.club),regular:offerPrice(x.regular)}))}catch(e){offerItems=[]}}
 function offerTotals(){let club=0,regular=0,clubMissing=0,regularMissing=0,count=0;for(const x of offerItems){count+=x.qty;if(x.club===null)clubMissing+=x.qty;else club+=x.club*x.qty;if(x.regular===null)regularMissing+=x.qty;else regular+=x.regular*x.qty}return{club,regular,clubMissing,regularMissing,count}}
+let offerInstallmentsEnabled=localStorage.getItem('setec_offer_installments_enabled')!=='false';
+function toggleOfferInstallments(enabled){offerInstallmentsEnabled=!!enabled;try{localStorage.setItem('setec_offer_installments_enabled',String(offerInstallmentsEnabled))}catch(e){}const box=$('offerInstallmentControls'),state=$('offerInstallmentsState'),check=$('offerInstallmentsEnabled');if(box)box.style.display=offerInstallmentsEnabled?'':'none';if(state)state.textContent=offerInstallmentsEnabled?'ON':'OFF';if(check)check.checked=offerInstallmentsEnabled;if(offerInstallmentsEnabled)renderInstallments();}
 const INSTALLMENT_RATES=Object.freeze({3:1.99,6:2.49,9:2.79,12:2.99,15:3.99,18:4.99,24:5.99,36:8.99,48:11.99,60:14.99});
 function renderInstallments(){
  const el=$('offerInstallmentResult');if(!el)return;
@@ -650,7 +652,7 @@ function exportCustomerOffer(format){
  if(!offerItems.length){$('offerFeedback').textContent='Прво додај производи во листата.';return}
  if(format!=='pdf'&&format!=='xlsx')return;
  const data={
-  installment:$('offerInstallmentMonths').value,
+  installment:offerInstallmentsEnabled?$('offerInstallmentMonths').value:'',
   items:offerItems.map(p=>({name:p.name,sku:p.sku,qty:p.qty,club:p.club,regular:p.regular}))
  };
  try{
@@ -673,6 +675,7 @@ function copyOffer(){
 }
 function clearOffer(){if(!offerItems.length)return;if(!confirm('Да се избришат сите производи од листата?'))return;offerItems=[];offerSave();offerRender();$('offerFeedback').textContent='Листата е избришана.'}
 offerLoad();
+toggleOfferInstallments(offerInstallmentsEnabled);
 
 /* Category explorer: local instant hierarchy, live SETEC pages and real pagination. */
 
