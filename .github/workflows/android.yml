@@ -1,7 +1,7 @@
 name: Build Setec Zaliha APK
 on:
   push:
-    branches: [main, 'feature/datamatrix-setec-scan-2026-11-06']
+    branches: [main, 'feature/datamatrix-setec-scan-2026-11-06', 'fix-offer-export-installments-20261108']
     paths:
       - 'app/**'
       - '.github/workflows/android.yml'
