@@ -43,11 +43,30 @@ final class SetecCompareRows {
         }
         List<String> l=remaining(leftDetails,leftFacts);
         List<String> r=remaining(rightDetails,rightFacts);
-        int max=Math.max(l.size(),r.size());
+        // Match identical bullets regardless of their position in the source.
+        List<String> unmatchedRight=new ArrayList<>(r);
+        List<String> unmatchedLeft=new ArrayList<>();
+        for(String item:l){
+            int match=-1;
+            for(int j=0;j<unmatchedRight.size();j++){
+                if(normalize(item).equalsIgnoreCase(normalize(unmatchedRight.get(j)))){
+                    match=j;
+                    break;
+                }
+            }
+            if(match>=0){
+                if(rows.size()<MAX_ROWS)
+                    rows.add(new Row("Заедничка карактеристика",item,
+                        unmatchedRight.get(match),true));
+                unmatchedRight.remove(match);
+            }else unmatchedLeft.add(item);
+        }
+        // Unmatched descriptions are not comparable specifications.
+        int max=Math.max(unmatchedLeft.size(),unmatchedRight.size());
         for(int i=0;i<max&&rows.size()<MAX_ROWS;i++){
-            rows.add(new Row("Опис од Setec · "+(i+1),
-                i<l.size()?l.get(i):"Не е наведено",
-                i<r.size()?r.get(i):"Не е наведено",false));
+            rows.add(new Row("Оригинален опис · "+(i+1),
+                i<unmatchedLeft.size()?unmatchedLeft.get(i):"Не е наведено",
+                i<unmatchedRight.size()?unmatchedRight.get(i):"Не е наведено",false));
         }
         return rows;
     }
