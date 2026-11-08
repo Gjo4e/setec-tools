@@ -636,17 +636,17 @@ function offerRender(){
 }
 function offerEditPrices(i){
  const p=offerItems[i];if(!p)return;
- const currentClub=p.club===null?'':String(p.club),currentRegular=p.regular===null?'':String(p.regular);
- const clubText=prompt('Нова КЛУБ цена во денари за '+p.name+' (остави празно за непозната):',currentClub);
- if(clubText===null)return;
- const club=clubText.trim()===''?null:offerPrice(clubText);
- if(clubText.trim()!==''&&(club===null||club<0)){alert('Внеси валидна клуб цена.');return;}
- const regularText=prompt('Нова РЕДОВНА цена во денари (остави празно за непозната):',currentRegular);
- if(regularText===null)return;
- const regular=regularText.trim()===''?null:offerPrice(regularText);
- if(regularText.trim()!==''&&(regular===null||regular<0)){alert('Внеси валидна редовна цена.');return;}
- p.club=club;p.regular=regular;p.priceEdited=true;offerSave();offerRender();
- $('offerFeedback').textContent='✓ Цените се изменети. Новите износи ќе се користат во PDF понудата.';
+ const box=$('offerItems').children[i];if(!box)return;
+ const existing=box.querySelector('.offerPriceEditor');if(existing){existing.remove();return;}
+ const editor=elem('div','offerPriceEditor');editor.style.cssText='padding:14px;margin-top:12px;border:1px solid #4c91c8;border-radius:12px;background:#10273e;display:grid;gap:9px';
+ function field(title,value){const wrap=elem('label','',title);wrap.style.cssText='display:grid;gap:5px;color:#e7f2ff;font-size:13px';const input=document.createElement('input');input.type='number';input.inputMode='decimal';input.min='0';input.step='0.01';input.placeholder='Цена во денари';input.value=value===null?'':String(value);input.style.cssText='width:100%;box-sizing:border-box;padding:12px;border-radius:9px;border:1px solid #648bb0;background:#fff;color:#15243a;font-size:16px';wrap.appendChild(input);editor.appendChild(wrap);return input;}
+ const club=field('Клуб цена (ден.)',p.club),regular=field('Редовна цена (ден.)',p.regular);
+ const actions=elem('div','');actions.style.cssText='display:flex;gap:8px';
+ const save=elem('button','','✓ Зачувај цени');save.type='button';save.style.cssText='flex:1;padding:12px;border:0;border-radius:9px;background:#2484d4;color:white;font-weight:700';
+ const cancel=elem('button','','Откажи');cancel.type='button';cancel.style.cssText='padding:12px;border:1px solid #648bb0;border-radius:9px;background:#1d3248;color:white';cancel.onclick=()=>editor.remove();
+ const error=elem('div','');error.style.cssText='color:#ffb1a5;font-size:12px';
+ save.onclick=()=>{const a=club.value.trim(),b=regular.value.trim();const c=a===''?null:Number(a),d=b===''?null:Number(b);if((c!==null&&(!Number.isFinite(c)||c<0||c>100000000))||(d!==null&&(!Number.isFinite(d)||d<0||d>100000000))){error.textContent='Внеси валидни цени во денари.';return;}p.club=c;p.regular=d;p.priceEdited=true;offerSave();offerRender();$('offerFeedback').textContent='✓ Цените се зачувани и ќе се користат во PDF понудата.';};
+ actions.append(save,cancel);editor.append(actions,error);box.appendChild(editor);club.focus();
 }
 function offerChangeQty(i,delta){const p=offerItems[i];if(!p)return;p.qty=Math.max(1,Math.min(99,p.qty+delta));offerSave();offerRender()}
 function showOffer(){if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}offerReturnTab=tab;offerOpen=true;$('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));offerRender();window.scrollTo(0,0)}
