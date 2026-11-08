@@ -224,7 +224,7 @@ body.dark .categoryNotice{background:var(--surface-alt)!important;color:var(--su
 .offerLocked{font-size:11px;color:var(--subcopy)}
 .offerInstallment button{width:100%;border:1px solid var(--border);background:var(--surface-alt);color:var(--subcopy);padding:13px;border-radius:10px;opacity:.65}
 .offerCopy{margin-top:11px}
-.offerExportActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:17px}
+.offerExportActions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:17px}
 .offerExportButton{border:1px solid #3480b7;border-radius:11px;padding:14px 8px;color:#eff8ff;font-size:12px;font-weight:850;background:linear-gradient(125deg,#124676,#196fa6)}
 .offerExportButton.offerExcel{background:linear-gradient(125deg,#12635c,#16856d);border-color:#268c7b}
 .offerExportButton:active{transform:scale(.99)}
@@ -494,7 +494,6 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 </div></div>
 <div class="offerExportActions" role="group" aria-label="Извоз на понуда">
 <button class="offerExportButton offerPdf" onclick="exportCustomerOffer('pdf')">▤ Извези PDF</button>
-<button class="offerExportButton offerExcel" onclick="exportCustomerOffer('xlsx')">▦ Извези Excel</button>
 </div>
 <button class="offerCopy" onclick="copyOffer()">▤ Копирај понуда</button>
 <button class="offerClear" onclick="clearOffer()">Избриши ја листата</button>
@@ -595,7 +594,7 @@ let offerOpen=false,offerReturnTab='scan',offerItems=[];
 function offerPrice(raw){const v=String(raw===undefined?'':raw).replace(/[^\d.,]/g,'');if(!v)return null;let s=v;if(s.includes('.')&&s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}else if(s.includes('.')){const p=s.split('.');s=p.length>2||p[p.length-1].length===3?p.join(''):s}else if(s.includes(',')){const p=s.split(',');s=p.length>2||p[p.length-1].length===3?p.join(''):s.replace(',','.')}const n=Number(s);return Number.isFinite(n)&&n>=0?n:null}
 function offerMoney(n){return n.toLocaleString('mk-MK',{maximumFractionDigits:2})+' ден.'}
 function offerSave(){try{localStorage.setItem('setec_customer_offer_v1',JSON.stringify(offerItems))}catch(e){}}
-function offerLoad(){try{const raw=JSON.parse(localStorage.getItem('setec_customer_offer_v1')||'[]');if(Array.isArray(raw))offerItems=raw.slice(0,100).filter(x=>x&&typeof x.name==='string'&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99).map(x=>({name:x.name.slice(0,200),sku:String(x.sku||'').slice(0,60),qty:x.qty,club:offerPrice(x.club),regular:offerPrice(x.regular)}))}catch(e){offerItems=[]}}
+function offerLoad(){try{const raw=JSON.parse(localStorage.getItem('setec_customer_offer_v1')||'[]');if(Array.isArray(raw))offerItems=raw.slice(0,100).filter(x=>x&&typeof x.name==='string'&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=99).map(x=>({name:x.name.slice(0,200),sku:String(x.sku||'').slice(0,60),qty:x.qty,club:offerPrice(x.club),regular:offerPrice(x.regular),priceEdited:x.priceEdited===true}))}catch(e){offerItems=[]}}
 function offerTotals(){let club=0,regular=0,clubMissing=0,regularMissing=0,count=0;for(const x of offerItems){count+=x.qty;if(x.club===null)clubMissing+=x.qty;else club+=x.club*x.qty;if(x.regular===null)regularMissing+=x.qty;else regular+=x.regular*x.qty}return{club,regular,clubMissing,regularMissing,count}}
 let offerInstallmentsEnabled=localStorage.getItem('setec_offer_installments_enabled')!=='false';
 function toggleOfferInstallments(enabled){offerInstallmentsEnabled=!!enabled;try{localStorage.setItem('setec_offer_installments_enabled',String(offerInstallmentsEnabled))}catch(e){}const box=$('offerInstallmentControls'),state=$('offerInstallmentsState'),check=$('offerInstallmentsEnabled');if(box)box.style.display=offerInstallmentsEnabled?'':'none';if(state)state.textContent=offerInstallmentsEnabled?'ON':'OFF';if(check)check.checked=offerInstallmentsEnabled;if(offerInstallmentsEnabled)renderInstallments();}
@@ -628,11 +627,26 @@ function offerRender(){
  const box=elem('div','offerItem'),top=elem('div','offerItemTop'),info=elem('div');
  info.append(elem('div','offerItemTitle',p.name),elem('div','offerItemSku','Шифра: '+(p.sku||'непозната')));
  info.appendChild(elem('div','offerItemPrices','Клуб: '+(p.club===null?'непозната':offerMoney(p.club))+' · Редовна: '+(p.regular===null?'непозната':offerMoney(p.regular))));
+ const editPrice=elem('button','offerEditPrice','✎ Промени цени');editPrice.type='button';editPrice.style.cssText='margin-top:8px;padding:9px 13px;border-radius:9px;background:#174e7c;color:#fff;border:1px solid #4c91c8;font-weight:700';editPrice.onclick=()=>offerEditPrices(i);info.appendChild(editPrice);
  top.appendChild(info);box.appendChild(top);
  const qty=elem('div','offerItemQty'),minus=elem('button','','−'),plus=elem('button','','+'),remove=elem('button','offerRemove','Отстрани');
  minus.onclick=()=>offerChangeQty(i,-1);plus.onclick=()=>offerChangeQty(i,1);remove.onclick=()=>{offerItems.splice(i,1);offerSave();offerRender()};
  qty.append(minus,elem('span','',p.qty+' ×'),plus,remove);box.appendChild(qty);host.appendChild(box);
  });
+}
+function offerEditPrices(i){
+ const p=offerItems[i];if(!p)return;
+ const currentClub=p.club===null?'':String(p.club),currentRegular=p.regular===null?'':String(p.regular);
+ const clubText=prompt('Нова КЛУБ цена во денари за '+p.name+' (остави празно за непозната):',currentClub);
+ if(clubText===null)return;
+ const club=clubText.trim()===''?null:offerPrice(clubText);
+ if(clubText.trim()!==''&&(club===null||club<0)){alert('Внеси валидна клуб цена.');return;}
+ const regularText=prompt('Нова РЕДОВНА цена во денари (остави празно за непозната):',currentRegular);
+ if(regularText===null)return;
+ const regular=regularText.trim()===''?null:offerPrice(regularText);
+ if(regularText.trim()!==''&&(regular===null||regular<0)){alert('Внеси валидна редовна цена.');return;}
+ p.club=club;p.regular=regular;p.priceEdited=true;offerSave();offerRender();
+ $('offerFeedback').textContent='✓ Цените се изменети. Новите износи ќе се користат во PDF понудата.';
 }
 function offerChangeQty(i,delta){const p=offerItems[i];if(!p)return;p.qty=Math.max(1,Math.min(99,p.qty+delta));offerSave();offerRender()}
 function showOffer(){if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}offerReturnTab=tab;offerOpen=true;$('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));offerRender();window.scrollTo(0,0)}
@@ -643,14 +657,14 @@ function addCurrentToOffer(){
  const club=offerPrice(p.clubPrice),regular=offerPrice(p.regularPrice);
  const sku=String(p.sku||'').trim(),name=String(p.name||'').trim();
  const idx=offerItems.findIndex(x=>sku?x.sku===sku:x.name===name);
- if(idx>=0){offerItems[idx].qty=Math.min(99,offerItems[idx].qty+1);offerItems[idx].club=club;offerItems[idx].regular=regular}
+ if(idx>=0){offerItems[idx].qty=Math.min(99,offerItems[idx].qty+1);if(!offerItems[idx].priceEdited){offerItems[idx].club=club;offerItems[idx].regular=regular}}
  else if(offerItems.length<100)offerItems.push({name:name.slice(0,200),sku:sku.slice(0,60),qty:1,club,regular});
  else{$('offerAddFeedback').textContent='Максимум 100 различни производи.';return}
  offerSave();$('offerAddFeedback').textContent='✓ Додадено во листата. Отвори „Листа на купувач“ од почетниот екран.';
 }
 function exportCustomerOffer(format){
  if(!offerItems.length){$('offerFeedback').textContent='Прво додај производи во листата.';return}
- if(format!=='pdf'&&format!=='xlsx')return;
+ if(format!=='pdf')return;
  const data={
   installment:offerInstallmentsEnabled?$('offerInstallmentMonths').value:'',
   items:offerItems.map(p=>({name:p.name,sku:p.sku,qty:p.qty,club:p.club,regular:p.regular}))
