@@ -237,16 +237,7 @@ public final class MainActivity extends ComponentActivity {
     private void js(String command) {
         if (ui != null) ui.evaluateJavascript(command, null);
     }
-    private final java.util.concurrent.ExecutorService researchExecutor=java.util.concurrent.Executors.newSingleThreadExecutor();
     private final class UiBridge {
-        @JavascriptInterface public void researchProduct(String model) {
-            String query=model==null?"":model.trim();
-            if(query.isEmpty()||query.length()>180)return;
-            researchExecutor.execute(()->{
-                JSONObject data=ProductWebResearch.search(query);
-                handler.post(()->js("window.onProductResearch("+data.toString()+");"));
-            });
-        }
         @JavascriptInterface public void openReleasePage() {
             runOnUiThread(() -> {
                 try {
