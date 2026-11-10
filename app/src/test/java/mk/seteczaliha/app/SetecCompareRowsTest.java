@@ -20,7 +20,10 @@ public final class SetecCompareRowsTest {
             "HDMI x2","HDR10");
         List<SetecCompareRows.Row> rows=SetecCompareRows.build("TCL X",
             Collections.emptyMap(),one,"SAMSUNG Y",Collections.emptyMap(),two);
-        assertTrue("Unlabelled bullet positions must never be compared",rows.isEmpty());
+        assertEquals("Explicit Resolution labels should be compared",1,rows.size());
+        assertEquals("Резолуција",rows.get(0).label);
+        assertEquals("3840x2160",rows.get(0).left);
+        assertEquals("1920x1080",rows.get(0).right);
     }
 
     @Test public void labeledFactsAlignedBeforeOriginalSetecDetails(){
