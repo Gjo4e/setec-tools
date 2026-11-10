@@ -40,7 +40,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private final AtomicBoolean busy=new AtomicBoolean(false);
     private final BarcodeScanner scanner=BarcodeScanning.getClient(
-        new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX).build());
+        new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX, Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_UPC_A, Barcode.FORMAT_UPC_E, Barcode.FORMAT_CODE_128, Barcode.FORMAT_CODE_39, Barcode.FORMAT_ITF).build());
     private ProcessCameraProvider provider;
     private PreviewView preview;
     private TextView status;
@@ -70,7 +70,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         FrameLayout.LayoutParams gp=new FrameLayout.LayoutParams(dp(230),dp(230),Gravity.CENTER);
         root.addView(guide,gp);
         TextView hint=new TextView(this);
-        hint.setText("Скенирај Data Matrix · Насочи го квадратниот код во рамката");
+        hint.setText("Скенирај баркод · EAN / UPC / Data Matrix");
         hint.setTextColor(Color.WHITE);hint.setTextSize(18);
         hint.setGravity(Gravity.CENTER);hint.setPadding(dp(20),dp(20),dp(20),dp(20));
         hint.setBackgroundColor(0xDD0B1C2E);
@@ -81,7 +81,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         bottom.setBackgroundColor(0xF00B1C2E);
         root.addView(bottom,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         status=new TextView(this);
-        status.setText("Барам квадратен Data Matrix код…");
+        status.setText("Барам баркод…");
         status.setTextColor(Color.WHITE);status.setTextSize(16);status.setGravity(Gravity.CENTER);
         bottom.addView(status);
         LinearLayout actions=new LinearLayout(this);
@@ -117,8 +117,9 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                     scanner.process(input).addOnSuccessListener(codes->{
                         if(finished)return;
                         for(Barcode code:codes) {
-                            if(code.getFormat()!=Barcode.FORMAT_DATA_MATRIX)continue;
+                            if(code.getFormat()==Barcode.FORMAT_UNKNOWN)continue;
                             String payload=code.getRawValue();
+                            if(payload!=null)payload=payload.trim();
                             if(payload!=null&&!payload.trim().isEmpty()){
                                 finished=true;
                                 lastPayload=payload;
