@@ -775,7 +775,10 @@ public final class MainActivity extends ComponentActivity {
             "for(let i=0;node&&i<7;i++,node=node.parentElement){let p=setecPrices(node.innerText||'');if(p.clubPrice||p.regularPrice){price=p;break}}"+
             "let img=document.querySelector('meta[property=\"og:image\"]')?.content||'';"+
             "if(!img)img=[...document.images].find(x=>x.naturalWidth>=170&&x.naturalHeight>=170)?.src||'';"+
-            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice});})()";
+            "let sections=[...document.querySelectorAll('table,dl,[class*=spec],[class*=Spec],[class*=description],[class*=Description]')].map(e=>(e.innerText||'').trim()).filter(t=>t.length>25&&t.length<9000);"+ 
+            "let details=[...new Set(sections)].join('\\n').slice(0,10000);"+
+            "if(details.length<70){let idx=b.search(/(?:Спецификации|Карактеристики|Опис на производ|Specifications|Technical details)/i);if(idx>=0)details=b.slice(idx,idx+6500);}"+
+            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details});})()";
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
