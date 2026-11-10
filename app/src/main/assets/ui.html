@@ -537,7 +537,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <section id="resultsPanel" class="hidden"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <div id="imageViewer" class="imageViewer hidden" role="dialog" aria-modal="true" aria-label="Зголемена слика на производ"><button type="button" onclick="closeProductImage()">✕ Затвори</button><img id="viewerPhoto" alt="Слика на производ"><div class="zoomHint">Развлечи со два прста за зголемување · Двоен допир за ресет</div></div>
 <section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div><div id="pprices"></div></div></div>
-<button class="offerAddDetail" style="background:#176a9c;color:#fff" onclick="explainCurrentProduct()">💬 Објасни му на купувачот</button><div id="customerExplanation" class="detailTool hidden" style="padding:16px;margin:12px 0;border:1px solid #cbd9e8;border-radius:12px;background:#f6faff"><strong>Објаснување за купувачот</strong><p id="customerExplanationText" style="white-space:pre-line;line-height:1.65"></p><button class="official" onclick="copyCustomerExplanation()">📋 Копирај објаснување</button></div>
+<button class="offerAddDetail" style="background:#176a9c;color:#fff" onclick="explainCurrentProduct()">💬 Објасни му на купувачот</button><div id="customerExplanation" class="detailTool hidden" style="padding:16px;margin:12px 0;border:1px solid #cbd9e8;border-radius:12px;background:#f6faff"><strong>Објаснување за купувачот</strong><p id="customerExplanationText" style="white-space:pre-line;line-height:1.65"></p><div id="customerResearch" style="display:grid;gap:8px;margin:12px 0"></div><button class="official" onclick="copyCustomerExplanation()">📋 Копирај објаснување</button></div>
 <button class="offerAddDetail" onclick="addCurrentToOffer()">＋ Додај во листа на купувач</button><p id="offerAddFeedback" class="offerFeedback" aria-live="polite"></p>
 <div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations" aria-live="polite">Отвори производ за проверка на достапноста.</div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">Се прикажуваат само локации што се прочитани од официјалната проверка. Ако податоците не се целосни, статусот останува непотврден.</p>
@@ -1044,26 +1044,62 @@ $('imageViewer').addEventListener('click',e=>{if(e.target.id==='imageViewer')clo
 function explainCurrentProduct(){
  const p=currentProduct||{}, name=String(p.name||'').trim();
  if(!name){alert('Прво отвори производ од пребарувањето.');return;}
- const text=(name+' '+String(document.getElementById('manufacturerSpecs')?.innerText||'')).slice(0,7000);
- const match=(re)=>{const m=text.match(re);return m?m[1]:'';};
- const ram=match(/(?:RAM|работна меморија|меморија)\\s*[:\\-]?\\s*(\\d{1,3}\\s*GB)/i);
- const ssd=match(/(?:SSD|диск|storage)\\s*[:\\-]?\\s*(\\d{2,4}\\s*(?:GB|TB))/i);
- const screen=match(/(?:екран|display|screen)\\s*[:\\-]?\\s*(\\d{1,3}(?:[.,]\\d)?\\s*(?:инчи|inch|\\"|''))/i);
- const lower=name.toLocaleLowerCase();let use='',facts=[];
- if(/лаптоп|notebook|ideapad|thinkpad|vivobook|macbook/.test(lower)){
-  use='Овој лаптоп може да биде избор за учење, интернет и канцелариска работа, зависно од останатите спецификации.';
-  if(ram)facts.push('Има '+ram+' работна меморија, што е важно при работа со повеќе програми.');
-  if(ssd)facts.push('Има '+ssd+' простор за датотеки и програми.');
- }else if(/телевизор|телевизија|\\btv\\b|oled|qled/.test(lower))use='Кај овој телевизор вреди да се проверат резолуцијата, типот на панелот и приклучоците според начинот на користење.';
- else if(/телефон|smartphone|iphone|galaxy|redmi/.test(lower))use='Кај овој телефон најважни за изборот се меморијата, батеријата, камерата и перформансите.';
- else if(/фрижидер|ладилник|refrigerator/.test(lower))use='За овој фрижидер проверете го капацитетот, димензиите и енергетската потрошувачка.';
- else if(/машина за перење|washing machine/.test(lower))use='За оваа машина за перење проверете ги капацитетот, програмите и потрошувачката.';
- else use='Овој производ може да биде соодветен зависно од потребите на купувачот. За конкретна препорака треба да се разгледаат неговите спецификации.';
- if(screen)facts.push('Наведена големина на екран: '+screen+'.');
+ const source=String(document.getElementById('manufacturerSpecs')?.innerText||'');
+ const text=(name+' '+source+' '+String(p.description||'')+' '+String(p.specifications||'')).slice(0,12000);
+ const find=(re)=>{const m=text.match(re);return m?m[1].trim():'';};
+ const lower=name.toLocaleLowerCase();
+ const lines=['Производ: '+name,''];
+ let kind='Општи карактеристики';
+ if(/принтер|печатач|printer|laserjet|deskjet|ecotank|pixma|officejet|laser printer/.test(lower)){
+  kind='Принтер';
+  lines.push('За овој принтер најважни се типот на печатење, брзината, потрошниот материјал и цената по страница.');
+  const speed=find(/(?:брзина|print speed|ppm)\s*[:\-]?\s*(\d{1,3}\s*(?:ppm|стр(?:аници)?\/мин|pages per minute))/i);
+  const toner=find(/(?:тонер|toner|cartridge|кертриџ|мастило|ink)\s*(?:model|модел|тип)?\s*[:\-]\s*([A-Z0-9][A-Z0-9 \-\/]{2,36})/i);
+  const yieldPages=find(/(?:page yield|капацитет на тонер|број на страници|до)\s*[:\-]?\s*(\d[\d., ]{1,8}\s*(?:страници|pages))/i);
+  if(speed)lines.push('Брзина: '+speed+'.');
+  if(toner)lines.push('Тонер / кертриџ: '+toner+'.');
+  if(yieldPages)lines.push('Капацитет на потрошен материјал: '+yieldPages+'.');
+  lines.push('Провери: колку страници печати во минута, кој точен тонер или кертриџ користи, колку страници издржува, дали има двострано печатење, Wi‑Fi и скенер.');
+ }else if(/лаптоп|notebook|ideapad|thinkpad|vivobook|macbook/.test(lower)){
+  kind='Лаптоп';
+  lines.push('Погодноста за учење, работа или игри зависи од процесорот, меморијата, графиката и екранот.');
+  const ram=find(/(?:RAM|работна меморија)\s*[:\-]?\s*(\d{1,3}\s*GB)/i);
+  const ssd=find(/(?:SSD|storage)\s*[:\-]?\s*(\d{2,4}\s*(?:GB|TB))/i);
+  if(ram)lines.push('Работна меморија: '+ram+'.');
+  if(ssd)lines.push('SSD: '+ssd+'.');
+  lines.push('Провери: точен процесор, RAM, SSD, графичка картичка, екран, батерија и можност за надградба.');
+ }else if(/телевизор|телевизија|\btv\b|oled|qled/.test(lower)){
+  kind='Телевизор';lines.push('Провери: големина и тип на панел, резолуција, Hz, HDR, HDMI приклучоци и паметни функции.');
+ }else if(/телефон|smartphone|iphone|galaxy|redmi/.test(lower)){
+  kind='Телефон';lines.push('Провери: процесор, RAM, простор, батерија, полнење, камера, екран и поддршка за ажурирања.');
+ }else if(/фрижидер|ладилник|refrigerator/.test(lower)){
+  kind='Фрижидер';lines.push('Провери: нето капацитет, димензии, No Frost, потрошувачка, бучава и гаранција.');
+ }else if(/машина за перење|washing machine/.test(lower)){
+  kind='Машина за перење';lines.push('Провери: капацитет во kg, вртежи, програми, енергетска класа, потрошувачка и бучава.');
+ }else if(/монитор|monitor/.test(lower)){
+  kind='Монитор';lines.push('Провери: дијагонала, резолуција, тип на панел, Hz, одзив и HDMI/DisplayPort.');
+ }else if(/клима|air conditioner|inverter/.test(lower)){
+  kind='Клима';lines.push('Провери: капацитет за ладење и греење, енергетска класа, препорачана квадратура и бучава.');
+ }else{
+  lines.push('За препорака на купувачот треба да се проверат точните карактеристики и компатибилноста на овој модел.');
+ }
  const price=String(p.clubPrice||p.regularPrice||'').trim();
- const output='Производ: '+name+'.\\n\\n'+use+(facts.length?'\\n\\n'+facts.join(' '):'')+(price?'\\n\\nПрикажана цена: '+price+' денари.':'')+'\\n\\nЗа карактеристики што не се наведени, проверете ја официјалната спецификација пред да му ветите нешто на купувачот.';
+ if(price)lines.push('','Прикажана цена: '+price+' денари.');
+ lines.push('','Непотврдени детали не се прикажуваат како факти. Користи го пребарувањето подолу за спецификации од производителот.');
+ const output=lines.join('\n');
  document.getElementById('customerExplanationText').textContent=output;
  document.getElementById('customerExplanation').classList.remove('hidden');
+ const research=document.getElementById('customerResearch');
+ if(research){
+  research.replaceChildren();
+  const header=document.createElement('strong');header.textContent='Провери детални спецификации на интернет';research.appendChild(header);
+  const q=name+' '+(kind==='Принтер'?'toner cartridge page yield pages per minute specifications':kind==='Лаптоп'?'processor RAM graphics battery specifications':'technical specifications official manufacturer');
+  const a=document.createElement('a');a.className='official';a.href='https://www.google.com/search?q='+encodeURIComponent(q);a.target='_blank';a.rel='noopener noreferrer';a.textContent='🔎 Пребарај го точниот модел на интернет ↗';research.appendChild(a);
+  if(kind==='Принтер'){
+   const toner=document.createElement('a');toner.className='official';toner.href='https://www.google.com/search?q='+encodeURIComponent(name+' compatible toner cartridge ink page yield original manufacturer');toner.target='_blank';toner.rel='noopener noreferrer';toner.textContent='🖨 Провери тонер / кертриџ и број на страници ↗';research.appendChild(toner);
+  }
+  const note=document.createElement('p');note.className='small';note.textContent='Интернет-пребарувањето отвора извори за проверка. Апликацијата сè уште не ги презема и потврдува автоматски нивните податоци.';research.appendChild(note);
+ }
 }
 function copyCustomerExplanation(){const t=document.getElementById('customerExplanationText')?.textContent||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>fallbackCopyExplanation(t));else fallbackCopyExplanation(t)}
 function fallbackCopyExplanation(t){const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove()}
