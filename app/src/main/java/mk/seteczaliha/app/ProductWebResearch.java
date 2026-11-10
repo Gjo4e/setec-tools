@@ -15,7 +15,7 @@ public final class ProductWebResearch {
         JSONObject result=new JSONObject();
         JSONArray sources=new JSONArray();
         try {
-            String query="\\""+model+"\\" specifications "+(isPrinter(model)?"toner cartridge page yield ppm":"technical specifications");
+            String query="\\\""+model+"\\\" specifications "+(isPrinter(model)?"toner cartridge page yield ppm":"technical specifications");
             String url="https://www.bing.com/search?format=rss&q="+URLEncoder.encode(query,"UTF-8");
             Document rss=Jsoup.connect(url).userAgent("Mozilla/5.0 (compatible; SetecTools/1.0)")
                 .timeout(14000).maxBodySize(350000).get();
@@ -25,7 +25,13 @@ public final class ProductWebResearch {
                 String title=item.selectFirst("title")!=null?item.selectFirst("title").text():"";
                 String link=item.selectFirst("link")!=null?item.selectFirst("link").text():"";
                 String description=item.selectFirst("description")!=null?item.selectFirst("description").text():"";
-                if(!link.startsWith("https://")||title.isEmpty())continue;\n                String host=java.net.URI.create(link).getHost();\n                if(host==null||host.matches("(?i).*(chatgpt\\\\.com|openai\\\\.com|facebook\\\\.com|instagram\\\\.com|pinterest\\\\.com).*"))continue;\n                String searchable=(title+" "+description).toLowerCase(Locale.ROOT);\n                String[] tokens=model.toLowerCase(Locale.ROOT).split("[^\\\\p{L}\\\\p{N}]+");\n                int matches=0;for(String token:tokens)if(token.length()>=4&&searchable.contains(token))matches++;\n                if(matches<2)continue;
+                if(!link.startsWith("https://")||title.isEmpty())continue;
+                String host=java.net.URI.create(link).getHost();
+                if(host==null||host.matches("(?i).*(chatgpt\\\\.com|openai\\\\.com|facebook\\\\.com|instagram\\\\.com|pinterest\\\\.com).*"))continue;
+                String searchable=(title+" "+description).toLowerCase(Locale.ROOT);
+                String[] tokens=model.toLowerCase(Locale.ROOT).split("[^\\\\p{L}\\\\p{N}]+");
+                int matches=0;for(String token:tokens)if(token.length()>=4&&searchable.contains(token))matches++;
+                if(matches<2)continue;
                 JSONObject entry=new JSONObject();
                 entry.put("title",title.substring(0,Math.min(180,title.length())));
                 entry.put("url",link);
