@@ -1085,7 +1085,10 @@ function explainCurrentProduct(){
  }
  const price=String(p.clubPrice||p.regularPrice||'').trim();
  if(price)lines.push('','Прикажана цена: '+price+' денари.');
- lines.push('','Непотврдени детали не се прикажуваат како факти. Користи го пребарувањето подолу за спецификации од производителот.');
+ const setecSpecs=String(p.specifications||'').trim();
+ if(setecSpecs){lines.push('','КАРАКТЕРИСТИКИ ОД SETEC:',setecSpecs.slice(0,7000));}
+ else lines.push('','SETEC не врати детални спецификации за овој производ.');
+ lines.push('','Интернет-изворите се прикажани подолу; непроверените податоци не се претставуваат како потврдени.');
  const output=lines.join('\n');
  document.getElementById('customerExplanationText').textContent=output;
  document.getElementById('customerExplanation').classList.remove('hidden');
