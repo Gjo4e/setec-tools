@@ -1,5 +1,5 @@
 name: Build Setec Zaliha APK
-# Barcode scanner build: EAN-13, UPC-A, Code128, Data Matrix, guide ROI, manual modes, automated online product research
+# Barcode scanner build: EAN-13, UPC-A, Code128, Data Matrix, guide ROI, manual modes, automated online product research - rebuild 2026-11-10
 on:
   push:
     branches: [main, 'feature/datamatrix-setec-scan-2026-11-06', 'fix-offer-export-installments-20261108']
