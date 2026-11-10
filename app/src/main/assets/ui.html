@@ -1095,31 +1095,20 @@ function explainCurrentProduct(){
  else if(research)research.textContent='Интернет-пребарувањето не е достапно во оваа верзија.';
 }
 window.onProductResearch=function(data){
- const host=document.getElementById('customerResearch');if(!host)return;
- if(String(data.model||'')!==String(currentProduct?.name||''))return;
- host.replaceChildren();host.appendChild(elem('strong','','🌐 Пронајдени информации од интернет'));
+ const host=document.getElementById('customerResearch');
+ if(!host||!data||String(data.model||'')!==String((currentProduct||{}).name||''))return;
+ host.replaceChildren();host.appendChild(elem('strong','','🌐 Резултати од интернет'));
  if(data.status!=='ok'||!Array.isArray(data.sources)||!data.sources.length){host.appendChild(elem('p','small',data.message||'Не се пронајдени извори. Обиди се повторно.'));return;}
- const printer=/принтер|печатач|printer|laserjet|deskjet|ecotank|pixma|officejet/i.test(data.model||'');
- const facts=[];const seen=new Set();
  for(const src of data.sources){
-  try{const u=new URL(src.url);if(u.protocol!=='https:')continue;
-   const snippet=String(src.snippet||'').replace(/\\s+/g,' ').slice(0,450);
-   const title=String(src.title||'').slice(0,160);
-   if(!snippet&&!title)continue;
-   const block=elem('div','', '');block.style.cssText='padding:10px;border:1px solid #d9e1eb;border-radius:9px;margin-top:8px';
-   const a=elem('a','',title||u.hostname);a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='font-weight:700;overflow-wrap:anywhere';block.appendChild(a);
-   if(snippet)block.appendChild(elem('p','small',snippet));
-   block.appendChild(elem('div','small','Извор: '+u.hostname));host.appendChild(block);
-   if(printer){
-    const patterns=[['Брзина',/(?:up to|до)?\\s*(\\d{1,3}\\s*(?:ppm|pages per minute|страници\\s*(?:во|\\/)\\s*минута))/i],['Тонер / кертриџ',/(?:toner|cartridge|ink|тонер|кертриџ)\\s*(?:number|model|series|бр\\.?|модел)?\\s*[:#-]?\\s*([A-Z]{1,4}[- ]?\\d{2,5}[A-Z]{0,3})/i],['Капацитет',/(?:page yield|yields?|до|up to)\\s*[:~-]?\\s*(\\d[\\d,. ]{1,7}\\s*(?:pages|страници))/i]];
-    for(const [label,re] of patterns){const m=(title+' '+snippet).match(re);if(m){const key=label+': '+m[1];if(!seen.has(key)){seen.add(key);facts.push({label,value:m[1],source:u.href});}}}
-   }
+  try{
+   const u=new URL(String(src.url||''));if(u.protocol!=='https:')continue;
+   const card=elem('div','');card.style.cssText='padding:10px;border:1px solid #d9e1eb;border-radius:9px;margin-top:8px';
+   const a=elem('a','',String(src.title||u.hostname).slice(0,160));a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.style.fontWeight='700';card.appendChild(a);
+   const snippet=String(src.snippet||'').slice(0,650);if(snippet)card.appendChild(elem('p','small',snippet));
+   card.appendChild(elem('p','small','Извор: '+u.hostname));host.appendChild(card);
   }catch(e){}
  }
- if(facts.length){const panel=elem('div','');panel.style.cssText='padding:12px;background:#eaf4ff;border-radius:10px;margin-top:10px';panel.appendChild(elem('strong','','Можни спецификации (провери го изворот)'));
- for(const f of facts){const row=elem('p','small',f.label+': '+f.value+' · ');const a=elem('a','','извор');a.href=f.source;a.target='_blank';a.rel='noopener noreferrer';row.appendChild(a);panel.appendChild(row)}host.insertBefore(panel,host.children[1]||null);
- }
- host.appendChild(elem('p','small','Податоците се извлечени од интернет-резултати и не се независно потврдени. За точен тонер, капацитет и компатибилност провери ја страницата на производителот.'));
+ host.appendChild(elem('p','small','Информациите се преземени од интернет-резултати. Провери ги техничките спецификации кај производителот пред да ги претставиш како потврдени.'));
 };
 function copyCustomerExplanation(){const t=document.getElementById('customerExplanationText')?.textContent||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>fallbackCopyExplanation(t));else fallbackCopyExplanation(t)}
 function fallbackCopyExplanation(t){const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove()}
