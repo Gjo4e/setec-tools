@@ -537,7 +537,6 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <section id="resultsPanel" class="hidden"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <div id="imageViewer" class="imageViewer hidden" role="dialog" aria-modal="true" aria-label="Зголемена слика на производ"><button type="button" onclick="closeProductImage()">✕ Затвори</button><img id="viewerPhoto" alt="Слика на производ"><div class="zoomHint">Развлечи со два прста за зголемување · Двоен допир за ресет</div></div>
 <section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div><div id="pprices"></div></div></div>
-<button class="offerAddDetail" style="background:#176a9c;color:#fff" onclick="explainCurrentProduct()">💬 Објасни му на купувачот</button><div id="customerExplanation" class="detailTool hidden" style="padding:16px;margin:12px 0;border:1px solid #cbd9e8;border-radius:12px;background:#f6faff"><strong>Објаснување за купувачот</strong><p id="customerExplanationText" style="white-space:pre-line;line-height:1.65"></p><div id="customerResearch" style="display:grid;gap:8px;margin:12px 0"></div><button class="official" onclick="copyCustomerExplanation()">📋 Копирај објаснување</button></div>
 <button class="offerAddDetail" onclick="addCurrentToOffer()">＋ Додај во листа на купувач</button><p id="offerAddFeedback" class="offerFeedback" aria-live="polite"></p>
 <div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations" aria-live="polite">Отвори производ за проверка на достапноста.</div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">Се прикажуваат само локации што се прочитани од официјалната проверка. Ако податоците не се целосни, статусот останува непотврден.</p>
@@ -1041,88 +1040,14 @@ $('viewerPhoto').addEventListener('touchmove',e=>{if(e.touches.length===2&&photo
 $('viewerPhoto').addEventListener('dblclick',e=>{photoZoom=1;e.currentTarget.style.transform='scale(1)';});
 $('imageViewer').addEventListener('click',e=>{if(e.target.id==='imageViewer')closeProductImage();});
 
-function explainCurrentProduct(){
- const p=currentProduct||{}, name=String(p.name||'').trim();
- if(!name){alert('Прво отвори производ од пребарувањето.');return;}
- const source=String(document.getElementById('manufacturerSpecs')?.innerText||'');
- const text=(name+' '+source+' '+String(p.description||'')+' '+String(p.specifications||'')).slice(0,12000);
- const find=(re)=>{const m=text.match(re);return m?m[1].trim():'';};
- const lower=name.toLocaleLowerCase();
- const lines=['Производ: '+name,''];
- let kind='Општи карактеристики';
- if(/принтер|печатач|printer|laserjet|deskjet|ecotank|pixma|officejet|laser printer/.test(lower)){
-  kind='Принтер';
-  lines.push('За овој принтер најважни се типот на печатење, брзината, потрошниот материјал и цената по страница.');
-  const speed=find(/(?:брзина|print speed|ppm)\s*[:\-]?\s*(\d{1,3}\s*(?:ppm|стр(?:аници)?\/мин|pages per minute))/i);
-  const toner=find(/(?:тонер|toner|cartridge|кертриџ|мастило|ink)\s*(?:model|модел|тип)?\s*[:\-]\s*([A-Z0-9][A-Z0-9 \-\/]{2,36})/i);
-  const yieldPages=find(/(?:page yield|капацитет на тонер|број на страници|до)\s*[:\-]?\s*(\d[\d., ]{1,8}\s*(?:страници|pages))/i);
-  if(speed)lines.push('Брзина: '+speed+'.');
-  if(toner)lines.push('Тонер / кертриџ: '+toner+'.');
-  if(yieldPages)lines.push('Капацитет на потрошен материјал: '+yieldPages+'.');
-  lines.push('Провери: колку страници печати во минута, кој точен тонер или кертриџ користи, колку страници издржува, дали има двострано печатење, Wi‑Fi и скенер.');
- }else if(/лаптоп|notebook|ideapad|thinkpad|vivobook|macbook/.test(lower)){
-  kind='Лаптоп';
-  lines.push('Погодноста за учење, работа или игри зависи од процесорот, меморијата, графиката и екранот.');
-  const ram=find(/(?:RAM|работна меморија)\s*[:\-]?\s*(\d{1,3}\s*GB)/i);
-  const ssd=find(/(?:SSD|storage)\s*[:\-]?\s*(\d{2,4}\s*(?:GB|TB))/i);
-  if(ram)lines.push('Работна меморија: '+ram+'.');
-  if(ssd)lines.push('SSD: '+ssd+'.');
-  lines.push('Провери: точен процесор, RAM, SSD, графичка картичка, екран, батерија и можност за надградба.');
- }else if(/телевизор|телевизија|\btv\b|oled|qled/.test(lower)){
-  kind='Телевизор';lines.push('Провери: големина и тип на панел, резолуција, Hz, HDR, HDMI приклучоци и паметни функции.');
- }else if(/телефон|smartphone|iphone|galaxy|redmi/.test(lower)){
-  kind='Телефон';lines.push('Провери: процесор, RAM, простор, батерија, полнење, камера, екран и поддршка за ажурирања.');
- }else if(/фрижидер|ладилник|refrigerator/.test(lower)){
-  kind='Фрижидер';lines.push('Провери: нето капацитет, димензии, No Frost, потрошувачка, бучава и гаранција.');
- }else if(/машина за перење|washing machine/.test(lower)){
-  kind='Машина за перење';lines.push('Провери: капацитет во kg, вртежи, програми, енергетска класа, потрошувачка и бучава.');
- }else if(/монитор|monitor/.test(lower)){
-  kind='Монитор';lines.push('Провери: дијагонала, резолуција, тип на панел, Hz, одзив и HDMI/DisplayPort.');
- }else if(/клима|air conditioner|inverter/.test(lower)){
-  kind='Клима';lines.push('Провери: капацитет за ладење и греење, енергетска класа, препорачана квадратура и бучава.');
- }else{
-  lines.push('За препорака на купувачот треба да се проверат точните карактеристики и компатибилноста на овој модел.');
- }
- const price=String(p.clubPrice||p.regularPrice||'').trim();
- if(price)lines.push('','Прикажана цена: '+price+' денари.');
- const setecSpecs=String(p.specifications||'').trim();
- if(setecSpecs){lines.push('','КАРАКТЕРИСТИКИ ОД SETEC:',setecSpecs.slice(0,7000));}
- else lines.push('','SETEC не врати детални спецификации за овој производ.');
- lines.push('','Интернет-изворите се прикажани подолу; непроверените податоци не се претставуваат како потврдени.');
- const output=lines.join('\n');
- document.getElementById('customerExplanationText').textContent=output;
- document.getElementById('customerExplanation').classList.remove('hidden');
- const research=document.getElementById('customerResearch');
- if(research){research.replaceChildren();research.appendChild(elem('div','small','⏳ Автоматски пребарувам спецификации на интернет…'));}
- if(window.SetecApp&&typeof SetecApp.researchProduct==='function')SetecApp.researchProduct(name);
- else if(research)research.textContent='Интернет-пребарувањето не е достапно во оваа верзија.';
-}
-window.onProductResearch=function(data){
- const host=document.getElementById('customerResearch');
- if(!host||!data||String(data.model||'')!==String((currentProduct||{}).name||''))return;
- host.replaceChildren();host.appendChild(elem('strong','','🌐 Резултати од интернет'));
- if(data.status!=='ok'||!Array.isArray(data.sources)||!data.sources.length){host.appendChild(elem('p','small',data.message||'Не се пронајдени извори. Обиди се повторно.'));return;}
- for(const src of data.sources){
-  try{
-   const u=new URL(String(src.url||''));if(u.protocol!=='https:')continue;
-   const card=elem('div','');card.style.cssText='padding:10px;border:1px solid #d9e1eb;border-radius:9px;margin-top:8px';
-   const a=elem('a','',String(src.title||u.hostname).slice(0,160));a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.style.fontWeight='700';card.appendChild(a);
-   const snippet=String(src.snippet||'').slice(0,650);if(snippet)card.appendChild(elem('p','small',snippet));
-   card.appendChild(elem('p','small','Извор: '+u.hostname));host.appendChild(card);
-  }catch(e){}
- }
- host.appendChild(elem('p','small','Информациите се преземени од интернет-резултати. Провери ги техничките спецификации кај производителот пред да ги претставиш како потврдени.'));
-};
-function copyCustomerExplanation(){const t=document.getElementById('customerExplanationText')?.textContent||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>fallbackCopyExplanation(t));else fallbackCopyExplanation(t)}
-function fallbackCopyExplanation(t){const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove()}
 window.showProductLoading=()=>{if(!currentProduct.sku&&!lastScannedSku)$('psku').textContent='Ја вчитувам шифрата…'};
-window.showProduct=function(json){try{document.getElementById('customerExplanation')?.classList.add('hidden');const p=JSON.parse(json);manufacturerLink(p);if(!validUrl(p.url))return;const code=(p.sku||currentProduct.sku||'').trim();currentProduct={...currentProduct,...p,sku:code,clubPrice:p.clubPrice||currentProduct.clubPrice||'',regularPrice:p.regularPrice||currentProduct.regularPrice||''};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=code?'Шифра: '+code:(lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена од Setec':'Шифрата не е наведена на страницата');setHero(currentProduct.img);renderProductPrices(currentProduct);updateRecentProduct(currentProduct)}catch(e){}};
+window.showProduct=function(json){try{const p=JSON.parse(json);manufacturerLink(p);if(!validUrl(p.url))return;const code=(p.sku||currentProduct.sku||'').trim();currentProduct={...currentProduct,...p,sku:code,clubPrice:p.clubPrice||currentProduct.clubPrice||'',regularPrice:p.regularPrice||currentProduct.regularPrice||''};$('ptitle').textContent=currentProduct.name||'Производ';$('psku').textContent=code?'Шифра: '+code:(lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена од Setec':'Шифрата не е наведена на страницата');setHero(currentProduct.img);renderProductPrices(currentProduct);updateRecentProduct(currentProduct)}catch(e){}};
 window.showGodiStatus=function(status){
  if(status==='checking'||status==='unknown'){window.verifiedStockStores=[];renderStockLocations();return}
  if(Array.isArray(window.verifiedStockStores)&&window.verifiedStockStores.length){renderStockLocations();return}
  renderStockLocations();
 };
-window.resetScan=function(){document.getElementById('customerExplanation')?.classList.add('hidden');closeProductImage();pendingSku='';lastScannedSku='';lastQuery='';lastList=[];currentProduct={url:'',name:'',sku:'',img:''};$('query').value='';$('scanCode').textContent='';$('recognized').classList.add('hidden');$('retrySkuBtn').classList.add('hidden');$('resetScanBtn').classList.add('hidden');$('ptitle').textContent='Производ';$('psku').textContent='';$('pprices').replaceChildren();$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');$('list').replaceChildren(elem('div','empty','Скенирај нова шифра од ценовникот.'));switchTab('scan');setStatus('Подготвено за ново скенирање.');window.scrollTo(0,0);SetecApp.search('');};
+window.resetScan=function(){closeProductImage();pendingSku='';lastScannedSku='';lastQuery='';lastList=[];currentProduct={url:'',name:'',sku:'',img:''};$('query').value='';$('scanCode').textContent='';$('recognized').classList.add('hidden');$('retrySkuBtn').classList.add('hidden');$('resetScanBtn').classList.add('hidden');$('ptitle').textContent='Производ';$('psku').textContent='';$('pprices').replaceChildren();$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');$('list').replaceChildren(elem('div','empty','Скенирај нова шифра од ценовникот.'));switchTab('scan');setStatus('Подготвено за ново скенирање.');window.scrollTo(0,0);SetecApp.search('');};
 window.backToResults=()=>{$('dashboard').classList.toggle('hidden',tab!=='scan');$('detail').classList.add('hidden');$('resultsPanel').classList.remove('hidden');$('status').classList.remove('hidden');window.scrollTo(0,0)};
 window.onDataMatrixScanned=function(raw){const text=String(raw||'').trim();const labelled=text.match(/(?:SKU|SETEC[ _-]?SKU|Шифра|Sifra|product[ _-]?code|item[ _-]?code)\\s*[:=#-]\\s*([0-9]{4,8})(?![0-9])/i);const exact=text.match(/^[0-9]{8,14}$/);const ean=text.match(/(?:^|[^0-9])([0-9]{12,14})(?![0-9])/);const short=text.match(/(?:^|[^0-9])([0-9]{4,8})(?![0-9])/);const code=labelled?labelled[1]:(exact?exact[0]:(ean?ean[1]:(short?short[1]:'')));if(!code){switchTab('scan');setStatus('Не е препознаен код. Скенирај го другиот баркод или внеси шифра.');return;}switchTab('scan');$('recognized').classList.remove('hidden');$('retrySkuBtn').classList.remove('hidden');$('resetScanBtn').classList.remove('hidden');$('scanCode').textContent=code;lastScannedSku=code;pendingSku=code;search(code,true);setStatus('Прочитан баркод: '+code+'. Пребарувам на Setec.mk…')};
 window.onScanned=function(sku){if(!/^[0-9]{4,8}$/.test(sku))return;switchTab('scan');$('recognized').classList.remove('hidden');$('retrySkuBtn').classList.remove('hidden');$('resetScanBtn').classList.remove('hidden');$('scanCode').textContent=sku;lastScannedSku=sku;pendingSku=sku;search(sku,true);setStatus('Препознаена шифра: '+sku+'. Го барам производот…')};
