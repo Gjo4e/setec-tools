@@ -5,6 +5,8 @@ on:
     paths:
       - 'app/**'
       - '.github/workflows/android.yml'
+  pull_request:
+    branches: ['backup/before-category-specific-comparison-2026-11-07', main]
   workflow_dispatch:
 permissions:
   contents: read
