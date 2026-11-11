@@ -143,8 +143,8 @@ public final class PriceLabelExporter {
                 !(host.equals("setec.mk")||host.equals("www.setec.mk")||
                   host.endsWith(".digitaloceanspaces.com")))return;
             java.net.HttpURLConnection connection=(java.net.HttpURLConnection)u.openConnection();
-            connection.setConnectTimeout(2500);connection.setReadTimeout(2500);
-            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(6500);connection.setReadTimeout(6500);\n            connection.setRequestProperty("User-Agent","Mozilla/5.0 (Android; Setec Tools)");
+            connection.setInstanceFollowRedirects(true);
             try(java.io.InputStream in=connection.getInputStream()){
                 android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(in);
                 if(bitmap==null)return;
@@ -213,7 +213,7 @@ public final class PriceLabelExporter {
             }
             if(data.optString("specs").trim().isEmpty())
                 text(c,p,"Не се внесени потврдени спецификации.",43,503,15,MUTED,false);
-            text(c,p,price,40,742,28,BLUE,true);
+            photo(c,data.optString("img"),335,466,552,655);\n            text(c,p,price,40,742,28,BLUE,true);
             qr(c,p,url,444,682,97);
         }else{
             text(c,p,"ПРОИЗВОД",36,191,13,BLUE,true);
