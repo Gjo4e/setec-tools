@@ -101,7 +101,6 @@ public final class PriceLabelExporter {
         // Bottom row: real QR to the official product, never a placeholder.
         text(c,p,"ПРОВЕРИ ГО ПРОИЗВОДОТ",42,710,13,INK,true);
         text(c,p,"Скенирај го QR-кодот за детали",42,737,12,MUTED,false);
-        text(c,p,"Провери ја цената пред печатење.",42,791,11,MUTED,false);
         if(SetecPageData.isOfficialProductUrl(url)){
             com.google.zxing.common.BitMatrix qr=new com.google.zxing.qrcode.QRCodeWriter()
                 .encode(url,com.google.zxing.BarcodeFormat.QR_CODE,220,220);
