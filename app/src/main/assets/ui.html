@@ -989,7 +989,7 @@ window.showResults=function(json,reset){
     switchTab('batch');
   }
   displayResults();
- }catch(e){console.error('Results UI:'e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
+ }catch(e){console.error('Results UI:',e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
 };
 
 function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreBusy=true;$('moreResultsBtn').textContent='Вчитувам…';$('moreResultsInfo').textContent='Проверувам дали Setec има следни резултати…';SetecApp.moreResults();}
