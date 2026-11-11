@@ -333,6 +333,18 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
         }
+        @JavascriptInterface public void printPriceLabel(String json) {
+            runOnUiThread(() -> {
+                try {
+                    JSONObject label=new JSONObject(json);
+                    if(label.optString("name").trim().isEmpty())
+                        throw new IllegalArgumentException("Нема име на производ.");
+                    PriceLabelPrinter.print(MainActivity.this,label);
+                } catch(Exception ex) {
+                    Toast.makeText(MainActivity.this,"Не може да се печати ценовникот: "+ex.getMessage(),Toast.LENGTH_LONG).show();
+                }
+            });
+        }
         @JavascriptInterface public void exportPriceLabel(String json) {
             runOnUiThread(() -> {
                 try{
