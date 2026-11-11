@@ -52,7 +52,7 @@ public final class PriceLabelExporter {
         String name=clean(data.optString("name"),140);
         String sku=clean(data.optString("sku"),24);
         String kind=data.optString("kind","standard");
-        if(!"promo".equals(kind)&&!"club".equals(kind))kind="standard";
+        if(!"promo".equals(kind)&&!"club".equals(kind)&&!"photo".equals(kind)&&!"specs".equals(kind)&&!"bundle".equals(kind))kind="promo";
         String regular=data.optString("regular"),club=data.optString("club");
         String url=data.optString("url");
         if("photo".equals(kind)||"specs".equals(kind)||"bundle".equals(kind)){
@@ -170,29 +170,32 @@ public final class PriceLabelExporter {
         String product=data.optString("name"),sku=data.optString("sku"),url=data.optString("url");
         String price=money(validPrice(data.optString("club"))?data.optString("club"):data.optString("regular"));
         if(bundle){
-            JSONObject second=data.optJSONObject("second");
-            if(second==null)throw new IllegalArgumentException("Избери втор производ за пакет понуда.");
-            text(c,p,"ДВА ПРОИЗВОДА ВО ЕДЕН ПАКЕТ",35,191,16,BLUE,true);
+            org.json.JSONArray items=data.optJSONArray("items");
+            if(items==null||items.length()<2)throw new IllegalArgumentException("Додај најмалку два производи.");
+            if(items.length()>16)throw new IllegalArgumentException("Максимум 16 производи во пакет.");
+            text(c,p,"ПАКЕТ ОД "+items.length()+" ПРОИЗВОДИ",35,191,16,BLUE,true);
             double total=0;boolean complete=true;
-            for(int i=0;i<2;i++){
-                JSONObject item=i==0?data:second;
-                float top=i==0?217:432;
-                rect(c,p,Color.rgb(240,245,252),30,top,565,top+193,12);
-                text(c,p,"ПРОИЗВОД "+(i+1),47,top+31,13,BLUE,true);
-                name(c,p,item.optString("name"),47,top+67,475,19,2);
-                text(c,p,"Шифра: "+clean(item.optString("sku"),22),47,top+120,13,MUTED,false);
+            float top=216,available=528,step=available/items.length();
+            for(int i=0;i<items.length();i++){
+                JSONObject item=items.getJSONObject(i);
+                float y=top+i*step;
+                if(i%2==0)rect(c,p,Color.rgb(240,245,252),30,y,565,y+step-3,5);
+                String title=clean(item.optString("name"),65);
+                p.setTextSize(14);p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
+                while(p.measureText(title)>325&&title.length()>4)title=title.substring(0,title.length()-2)+"…";
+                text(c,p,(i+1)+". "+title,43,y+Math.min(23,step*.42f),14,INK,true);
+                text(c,p,"Шифра: "+clean(item.optString("sku"),20),43,y+Math.min(42,step*.77f),11,MUTED,false);
                 String amount=validPrice(item.optString("club"))?item.optString("club"):item.optString("regular");
-                text(c,p,money(amount),47,top+169,24,BLUE,true);
+                text(c,p,money(amount),405,y+Math.min(29,step*.58f),16,BLUE,true);
                 if(validPrice(amount)){
                     try{total+=Double.parseDouble(amount.replace(".","").replace(",","."));}
                     catch(Exception ex){complete=false;}
                 }else complete=false;
             }
-            rect(c,p,NAVY,30,653,565,772,12);
-            text(c,p,"ВКУПНО ЗА ПАКЕТОТ",49,688,16,Color.WHITE,true);
-            String sum=complete?String.format(java.util.Locale.US,"%,.0f ден.",total).replace(",","." ):"Цена непотврдена";
-            text(c,p,sum,49,741,35,Color.WHITE,true);
-            text(c,p,"Збир на цените без дополнителен попуст.",35,806,11,MUTED,false);
+            rect(c,p,NAVY,30,758,565,821,9);
+            text(c,p,"ВКУПНО",46,785,15,Color.WHITE,true);
+            String sum=complete?String.format(java.util.Locale.US,"%,.0f ден.",total).replace(",","."):"Цена непотврдена";
+            text(c,p,sum,250,802,29,Color.WHITE,true);
         }else if(specs){
             text(c,p,"ПОДАТОЦИ ЗА ПРОИЗВОДОТ",36,196,14,BLUE,true);
             name(c,p,product,36,244,520,23,3);
