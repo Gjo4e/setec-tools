@@ -482,7 +482,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <div class="offerSummary"><div><small>Клуб цена вкупно</small><strong id="offerClubTotal">0 ден.</strong></div><div><small>Редовна цена вкупно</small><strong id="offerRegularTotal">0 ден.</strong></div></div>
 <div class="offerCount" id="offerCount">0 производи</div>
 <div id="offerItems" class="offerItems"></div>
-<div class="offerAddBox"><strong>Додај производ</strong><p>Скенирај EAN / баркод: ќе го побарам производот на Setec.mk, ќе ја земам неговата SETEC шифра и автоматски ќе го додадам во листата. Ако не се најде сигурно совпаѓање, нема да додадам погрешен производ.</p><button onclick="offerScanBarcode()" style="background:#258bff;color:white;margin-bottom:8px">▣ Скенирај баркод → во листа</button><button onclick="offerSearch()">⌕ Пребарај производ</button><p id="offerScanFeedback" class="small" aria-live="polite"></p></div>
+<div class="offerAddBox"><strong>Додај производ</strong><p>Пронајди го производот преку пребарување или скенирање, отвори ги деталите и притисни „Додај во листа“.</p><button onclick="offerSearch()">⌕ Пребарај производ</button></div>
 <div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><label style="display:flex;align-items:center;gap:8px;font-weight:700"><input type="checkbox" id="offerInstallmentsEnabled" checked onchange="toggleOfferInstallments(this.checked)" aria-label="Вклучи или исклучи рати"><span id="offerInstallmentsState">ON</span></label></div><div id="offerInstallmentControls">
 <p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок. За опцијата „48 рати без камата“ се пресметуваат само тие 3%, без дополнителна камата.</p>
 <label class="installmentLabel" for="offerInstallmentMonths">Број на рати</label>
@@ -532,7 +532,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <button id="retrySkuBtn" class="cta hidden" onclick="retrySameSku()">⌕ Барај повторно со истата шифра</button>
 <div class="note scanHint"><strong>Совет за стара етикета</strong><p>Избери „Стара шифра (OCR)“ за да прочиташ број од фотографија.</p><div class="chips"><span class="chip">Шифра: 12959</span><span class="chip">шифра/код: 84558</span></div></div></section>
 <section id="searchPanel" class="hidden"><div class="small" style="margin-bottom:9px">Пребарај по име, модел, P/N (Part Number) или SETEC шифра.</div><form id="form" class="form"><input id="query" placeholder="Име, P/N, модел или шифра" aria-label="Име или шифра" type="search" autocomplete="off"><button type="submit">Барај</button></form><p class="small">Производите се пребаруваат од јавниот каталог на Setec.mk.</p></section>
-<section id="batchPanel" class="hidden"><div class="batchTop"><strong>Скенирај повеќе шифри</strong><p class="small">Секоја нова шифра се додава во истата листа. Можеш да ги копираш сите одеднаш.</p><textarea id="batchCodes" class="batchCodes" readonly aria-label="Зачувани шифри разделени со запирка" placeholder="84558,63131,92534"></textarea><div class="batchHint" id="batchCount">0 шифри</div><div class="batchActions"><button class="cta" onclick="SetecApp.scanBatch()">▣ Скенирај</button><button class="secondary" onclick="copyBatch()">⧉ Копирај</button></div><div class="batchActions"><button class="secondary" onclick="toggleBatchManual()">+ Рачно</button><button class="secondary batchDanger" onclick="clearBatch()">Избриши сè</button></div><div class="batchManual hidden" id="batchManualBox"><input type="text" inputmode="numeric" id="batchManualInput" placeholder="Шифра или шифри со запирка" aria-label="Рачно внеси шифра"><button onclick="submitBatchManual()">Додај</button></div><div class="batchConfirm hidden" id="batchConfirmBox"><p>Сигурно сакаш да ги избришеш сите зачувани шифри?</p><div class="batchActions"><button onclick="cancelBatchClear()">Откажи</button><button class="confirmDelete" onclick="confirmBatchClear()">Избриши сè</button></div></div><div class="small" id="batchMessage" aria-live="polite">Шифрите остануваат зачувани и по затворање на апликацијата.</div></div><div class="title">Скенирани производи</div><div id="batchRows" class="batchRows"><div class="empty">Скенирај го првиот ценовник за да започнеш листа.</div></div></section>
+<section id="batchPanel" class="hidden"><div class="batchTop"><strong>Скенирај повеќе шифри</strong><p class="small">Секоја нова шифра се додава во истата листа. Можеш да ги копираш сите одеднаш.</p><textarea id="batchCodes" class="batchCodes" readonly aria-label="Зачувани шифри разделени со запирка" placeholder="84558,63131,92534"></textarea><div class="batchHint" id="batchCount">0 шифри</div><div class="batchActions"><button class="cta" onclick="SetecApp.scanBatch()">▣ Скенирај шифра</button><button class="secondary" onclick="SetecApp.scanBatchBarcode()">▥ Скенирај баркод</button><button class="secondary" onclick="copyBatch()">⧉ Копирај</button></div><div class="batchActions"><button class="secondary" onclick="toggleBatchManual()">+ Рачно</button><button class="secondary batchDanger" onclick="clearBatch()">Избриши сè</button></div><div class="batchManual hidden" id="batchManualBox"><input type="text" inputmode="numeric" id="batchManualInput" placeholder="Шифра или шифри со запирка" aria-label="Рачно внеси шифра"><button onclick="submitBatchManual()">Додај</button></div><div class="batchConfirm hidden" id="batchConfirmBox"><p>Сигурно сакаш да ги избришеш сите зачувани шифри?</p><div class="batchActions"><button onclick="cancelBatchClear()">Откажи</button><button class="confirmDelete" onclick="confirmBatchClear()">Избриши сè</button></div></div><div class="small" id="batchMessage" aria-live="polite">Шифрите остануваат зачувани и по затворање на апликацијата.</div></div><div class="title">Скенирани производи</div><div id="batchRows" class="batchRows"><div class="empty">Скенирај го првиот ценовник за да започнеш листа.</div></div></section>
 <div id="status" class="state hidden">Скенирај шифра или пребарај производ.</div>
 <section id="resultsPanel" class="hidden"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <div id="imageViewer" class="imageViewer hidden" role="dialog" aria-modal="true" aria-label="Зголемена слика на производ"><button type="button" onclick="closeProductImage()">✕ Затвори</button><img id="viewerPhoto" alt="Слика на производ"><div class="zoomHint">Развлечи со два прста за зголемување · Двоен допир за ресет</div></div>
@@ -595,7 +595,7 @@ const setecCategories=(Array.isArray(window.SETEC_OFFICIAL_CATEGORIES)?window.SE
   .map(raw=>({...officialCategoryNode(raw),icon:categoryIcons[raw.name]||'▦'}));
 let categoriesOpen=false,expandedCategory=-1;
 
-let offerOpen=false,offerReturnTab='scan',offerItems=[],offerScanPending=null;
+let offerOpen=false,offerReturnTab='scan',offerItems=[];
 function offerPrice(raw){const v=String(raw===undefined?'':raw).replace(/[^\d.,]/g,'');if(!v)return null;let s=v;if(s.includes('.')&&s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}else if(s.includes('.')){const p=s.split('.');s=p.length>2||p[p.length-1].length===3?p.join(''):s}else if(s.includes(',')){const p=s.split(',');s=p.length>2||p[p.length-1].length===3?p.join(''):s.replace(',','.')}const n=Number(s);return Number.isFinite(n)&&n>=0?n:null}
 function offerMoney(n){return n.toLocaleString('mk-MK',{maximumFractionDigits:2})+' ден.'}
 function offerSave(){try{localStorage.setItem('setec_customer_offer_v1',JSON.stringify(offerItems))}catch(e){}}
@@ -656,28 +656,7 @@ function offerEditPrices(i){
 function offerChangeQty(i,delta){const p=offerItems[i];if(!p)return;p.qty=Math.max(1,Math.min(99,p.qty+delta));offerSave();offerRender()}
 function showOffer(){if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}offerReturnTab=tab;offerOpen=true;$('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));offerRender();window.scrollTo(0,0)}
 function closeOffer(){offerOpen=false;$('offerPanel').classList.add('hidden');switchTab(offerReturnTab);window.scrollTo(0,0)}
-function offerScanBarcode(){offerScanPending=null;$('offerScanFeedback').textContent='Отворам камера за баркод…';try{SetecApp.scanForOffer()}catch(e){$('offerScanFeedback').textContent='Камерата не може да се отвори.'}}
-function offerSearch(){offerScanPending=null;offerOpen=false;$('offerPanel').classList.add('hidden');switchTab('search');$('query').focus();window.scrollTo(0,0)}
-function offerAddVerifiedProduct(p){
- const sku=String(p&&p.sku||'').trim();
- if(!/^[0-9]{5}$/.test(sku))return false;
- const name=String(p.name||'').trim();if(!name)return false;
- const club=offerPrice(p.clubPrice),regular=offerPrice(p.regularPrice);
- const idx=offerItems.findIndex(x=>x.sku===sku);
- if(idx>=0){offerItems[idx].qty=Math.min(99,offerItems[idx].qty+1);if(!offerItems[idx].priceEdited){offerItems[idx].club=club;offerItems[idx].regular=regular}}
- else if(offerItems.length<100)offerItems.push({name:name.slice(0,200),sku,qty:1,club,regular});
- else return false;
- offerSave();offerRender();return true;
-}
-window.onOfferBarcodeScanned=function(raw){
- const text=String(raw||'').trim();const labelled=text.match(/(?:SETEC[ _-]?SKU|Шифра|Sifra|SKU)\s*[:=#-]\s*([0-9]{5})(?![0-9])/i);
- const code=labelled?labelled[1]:(/^[0-9]{5}$/.test(text)?text:(/^[0-9]{8,14}$/.test(text)?text:''));
- if(!code){$('offerScanFeedback').textContent='Баркодот не е препознаен. Пробај повторно или пребарај рачно.';return;}
- offerScanPending=code;$('offerScanFeedback').textContent='Барам производ и SETEC шифра за баркод '+code+'…';
- // Keep the buyer list visible while the existing Setec search runs in the background.
- search(code,true);
- $('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');$('searchPanel').classList.add('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');offerOpen=true;
-};
+function offerSearch(){offerOpen=false;$('offerPanel').classList.add('hidden');switchTab('search');$('query').focus();window.scrollTo(0,0)}
 function addCurrentToOffer(){
  const p=currentProduct;if(!p||!p.name){$('offerAddFeedback').textContent='Нема избран производ.';return}
  const club=offerPrice(p.clubPrice),regular=offerPrice(p.regularPrice);
@@ -1002,19 +981,15 @@ window.showResults=function(json,reset){
   if(!a.length&&categoryRetryPending&&categoryAlternates.length){const next=categoryAlternates.shift();categoryRetryPending=categoryAlternates.length>0;search(next);return}
   if(a.length||!categoryAlternates.length)categoryRetryPending=false;
   if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched){try{updateRecentProduct(matched)}catch(historyError){console.warn('Recent history:',historyError)}}}
-  if(offerScanPending && lastQuery===offerScanPending){
-    const code=offerScanPending;offerScanPending=null;
-    const exact=a.filter(p=>p.sku===code&&/^[0-9]{5}$/.test(p.sku));
-    const candidates=exact.length?exact:a.filter(p=>/^[0-9]{5}$/.test(String(p.sku||'')));
-    if(candidates.length===1 && offerAddVerifiedProduct(candidates[0])){
-      $('offerScanFeedback').textContent='✓ '+candidates[0].sku+' · '+candidates[0].name+' е додаден во листата.';
-    }else{
-      $('offerScanFeedback').textContent='Не е потврдена единствена SETEC шифра за баркод '+code+'. Ништо не е додадено. Пребарај рачно.';
-    }
-    $('offerPanel').classList.remove('hidden');$('searchPanel').classList.add('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');offerOpen=true;
+  if(batchBarcodePending && lastQuery===batchBarcodePending){
+    const barcode=batchBarcodePending;batchBarcodePending=null;
+    const verified=a.filter(p=>/^[0-9]{5}$/.test(String(p.sku||'')));
+    if(verified.length===1){addBatchSku(verified[0].sku);$('batchMessage').textContent='✓ Баркод '+barcode+' → SETEC шифра '+verified[0].sku+' · додадена во Листа.';}
+    else {$('batchMessage').textContent='Не најдов единствен производ со 5-цифрена SETEC шифра за '+barcode+'. Ништо не е додадено.';}
+    switchTab('batch');
   }
   displayResults();
- }catch(e){console.error('Results UI:',e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
+ }catch(e){console.error('Results UI:'e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
 };
 
 function requestMoreResults(){if(moreBusy||!moreCanLoad||!lastQuery)return;moreBusy=true;$('moreResultsBtn').textContent='Вчитувам…';$('moreResultsInfo').textContent='Проверувам дали Setec има следни резултати…';SetecApp.moreResults();}
@@ -1087,13 +1062,23 @@ function retrySameSku(){const sku=lastScannedSku||$('scanCode').textContent.trim
 function refresh(){if(!$('detail').classList.contains('hidden'))backToResults();const q=lastQuery||$('query').value;setStatus('Освежувам од Setec.mk…');SetecApp.refresh(q)}
 
 /* Independent multi-scan register. Main single-product scanner is unchanged. */
-let batchRecords=[], batchQueue=[], batchActive=null, batchTimer=null,batchPriceRequests=new Set();
+let batchRecords=[], batchQueue=[], batchActive=null, batchTimer=null,batchPriceRequests=new Set(),batchBarcodePending=null;
 function batchPersist(){try{SetecApp.saveBatch(JSON.stringify(batchRecords));}catch(e){}}
 function refreshSavedPrices(){if(!batchRecords.length)return;const codes=[...new Set(batchRecords.filter(x=>!x.clubPrice&&!x.regularPrice).map(x=>x.code))].filter(code=>!batchPriceRequests.has(code));const pending=codes.slice(0,25);for(const code of pending){batchPriceRequests.add(code);if(code!==batchActive&&!batchQueue.includes(code))batchQueue.push(code)}if(pending.length)batchNext()}
 function batchLoad(){try{const r=JSON.parse(SetecApp.loadBatch()||'[]');if(Array.isArray(r)){batchRecords=r.filter(x=>x&&/^[0-9]{4,8}$/.test(x.code)).slice(0,2000).map(x=>({code:x.code,name:String(x.name||''),img:String(x.img||''),clubPrice:String(x.clubPrice||''),regularPrice:String(x.regularPrice||''),state:x.name?'found':'pending'}));}}catch(e){}batchRender();}
 function batchRender(){const codes=batchRecords.map(x=>x.code);$('batchCodes').value=codes.join(',');$('batchCount').textContent=codes.length+' шифри';const host=$('batchRows');host.replaceChildren();if(!codes.length){host.appendChild(elem('div','empty','Скенирај го првиот ценовник за да започнеш листа.'));return;}batchRecords.forEach((x,i)=>{const item=elem('div','batchRow');const left=elem('div','batchRowMain');left.appendChild(elem('div','batchRowTitle',(i+1)+'. '+x.code+' · '+(x.name||'Моделот сè уште не е пронајден')));left.appendChild(elem('div','batchRowState',x.name?'Производ од Setec.mk':x.state==='pending'?'Се бара модел…':'Шифрата е зачувана · моделот не е потврден'));left.appendChild(miniPrices(x));const del=elem('button','batchDelete','×');del.setAttribute('aria-label','Избриши шифра '+x.code);del.onclick=()=>{batchRecords.splice(i,1);batchPersist();batchRender()};item.append(left,del);host.appendChild(item)})}
 function addBatchSku(code){code=String(code||'').trim();if(!/^[0-9]{4,8}$/.test(code))return;batchRecords.push({code,name:'',img:'',clubPrice:'',regularPrice:'',state:'pending'});batchPersist();batchRender();$('batchMessage').textContent='Зачувана шифра: '+code;switchTab('batch');if(code!==batchActive&&!batchQueue.includes(code))batchQueue.push(code);batchNext();}
 window.onBatchScanned=addBatchSku;
+window.onBatchBarcodeScanned=function(raw){
+ const text=String(raw||'').trim();const label=text.match(/(?:SETEC[ _-]?SKU|Шифра|Sifra|SKU)\s*[:=#-]\s*([0-9]{5})(?![0-9])/i);
+ const code=label?label[1]:(/^[0-9]{5}$/.test(text)?text:(/^[0-9]{8,14}$/.test(text)?text:''));
+ if(!code){$('batchMessage').textContent='Не е прочитан валиден баркод. Пробај повторно.';return;}
+ if(/^[0-9]{5}$/.test(code)){addBatchSku(code);return;}
+ batchBarcodePending=code;
+ switchTab('batch');$('batchMessage').textContent='Барам SETEC шифра за баркод '+code+'…';
+ search(code,true);
+ $('batchPanel').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');
+};
 function toggleBatchManual(){const box=$('batchManualBox');box.classList.toggle('hidden');if(!box.classList.contains('hidden'))$('batchManualInput').focus();}
 function submitBatchManual(){const text=($('batchManualInput').value||'').trim();if(!/^[0-9]{4,8}(\s*,\s*[0-9]{4,8})*$/.test(text)){$('batchMessage').textContent='Внеси 4–8 цифри, или повеќе шифри разделени со запирка.';return;}const codes=text.split(',').map(x=>x.trim());$('batchManualInput').value='';$('batchManualBox').classList.add('hidden');for(const code of codes)addBatchSku(code);$('batchMessage').textContent='Додадени '+codes.length+' шифри.';}
 function copyBatch(){const text=$('batchCodes').value;if(!text){$('batchMessage').textContent='Нема зачувани шифри.';return;}SetecApp.copyText(text);$('batchMessage').textContent='Копирани '+batchRecords.length+' шифри — можеш да ги залепиш (Paste).'}
