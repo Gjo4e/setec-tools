@@ -537,7 +537,18 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <section id="resultsPanel" class="hidden"><div class="title" id="resultTitle">Производи</div><div id="list" class="results"><div class="empty">Насочи ја камерата кон шифрата на ценовникот или избери „Барај“.</div></div><button id="moreResultsBtn" class="secondary hidden" style="width:100%;margin-top:12px;padding:13px;font-weight:800" onclick="requestMoreResults()">Прикажи повеќе производи ↓</button><p id="moreResultsInfo" class="small" aria-live="polite"></p></section>
 <div id="imageViewer" class="imageViewer hidden" role="dialog" aria-modal="true" aria-label="Зголемена слика на производ"><button type="button" onclick="closeProductImage()">✕ Затвори</button><img id="viewerPhoto" alt="Слика на производ"><div class="zoomHint">Развлечи со два прста за зголемување · Двоен допир за ресет</div></div>
 <section id="detail" class="hidden"><button class="back" onclick="resetScan()">‹ Назад · Избриши шифра</button><div class="productCard"><div id="hero" class="productImg">SETEC</div><div style="min-width:0"><div id="ptitle" class="productName">Производ</div><div id="psku" class="productSku"></div><div id="pprices"></div></div></div>
-<div class="detailTool" style="margin:10px 0;padding:12px"><b>▤ Ценовни етикети</b><p class="small" style="margin:5px 0 10px">Еден производ на посебен A4 лист, со празен простор околу ценовникот и QR-код.</p><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="secondary" onclick="exportPriceLabel('standard')">Стандарден</button><button class="secondary" onclick="exportPriceLabel('promo')">Промо</button><button class="secondary" onclick="exportPriceLabel('club')">Клуб</button></div><div style="margin-top:10px;border-top:1px solid #e5e6eb;padding-top:10px"><b style="font-size:13px">Директно печатење</b><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button class="secondary" onclick="exportPriceLabel('standard',true)">🖨 Стандарден</button><button class="secondary" onclick="exportPriceLabel('promo',true)">🖨 Промо</button><button class="secondary" onclick="exportPriceLabel('club',true)">🖨 Клуб</button></div></div><p id="priceLabelFeedback" class="small" aria-live="polite"></p></div>
+<div class="detailTool" style="margin:10px 0;padding:12px"><b>▤ Ценовни етикети</b><p class="small" style="margin:5px 0 10px">Еден производ на посебен A4 лист, со празен простор околу ценовникот и QR-код.</p><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="secondary" onclick="exportPriceLabel('standard')">Стандарден</button><button class="secondary" onclick="exportPriceLabel('promo')">Промо</button><button class="secondary" onclick="exportPriceLabel('club')">Клуб</button></div><div style="margin-top:10px;border-top:1px solid #e5e6eb;padding-top:10px"><b style="font-size:13px">Директно печатење</b><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button class="secondary" onclick="exportPriceLabel('standard',true)">🖨 Стандарден</button><button class="secondary" onclick="exportPriceLabel('promo',true)">🖨 Промо</button><button class="secondary" onclick="exportPriceLabel('club',true)">🖨 Клуб</button></div></div><div style="margin-top:12px;border-top:1px solid #e5e6eb;padding-top:12px"><b>Дополнителни A4 дизајни</b><p class="small">Секој дизајн може да се зачува како PDF или да се печати директно.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+<button class="secondary" onclick="exportPriceLabel('photo')">▧ Со слика · PDF</button>
+<button class="secondary" onclick="exportPriceLabel('photo',true)">🖨 Со слика</button>
+<button class="secondary" onclick="exportPriceLabel('specs')">▤ Спецификации · PDF</button>
+<button class="secondary" onclick="exportPriceLabel('specs',true)">🖨 Спецификации</button>
+<button class="secondary" onclick="exportPriceLabel('compare')">⇄ Споредба · PDF</button>
+<button class="secondary" onclick="exportPriceLabel('compare',true)">🖨 Споредба</button>
+</div>
+<label class="small" for="labelSpecs" style="display:block;margin:11px 0 5px">Потврдени спецификации (по една во ред)</label>
+<textarea id="labelSpecs" rows="3" placeholder="Процесор: ...&#10;RAM: ...&#10;SSD: ..." style="width:100%;padding:9px;border:1px solid #d9dce3;border-radius:8px"></textarea>
+<div style="margin-top:10px"><button class="secondary" onclick="selectCompareFirst()">＋ Зачувај како прв производ за A4 споредба</button><p class="small" id="labelCompareState">За споредба, зачувај прв производ, па отвори втор.</p></div></div><p id="priceLabelFeedback" class="small" aria-live="polite"></p></div>
 <button class="secondary" style="width:100%;margin:8px 0" onclick="showProductQr()">▦ QR-код за производот</button><div id="productQrBox" class="detailTool hidden" style="text-align:center"><img id="productQrImage" alt="QR-код за производот" style="width:240px;max-width:100%;background:white;padding:10px;border-radius:12px"><p id="productQrStatus" class="small"></p><button class="secondary" onclick="shareProductQr()">Сподели линк</button><button class="secondary" onclick="copyProductQr()">Копирај линк</button></div><button class="offerAddDetail" onclick="addCurrentToOffer()">＋ Додај во листа на купувач</button><p id="offerAddFeedback" class="offerFeedback" aria-live="polite"></p>
 <div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations" aria-live="polite">Отвори производ за проверка на достапноста.</div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">Се прикажуваат само локации што се прочитани од официјалната проверка. Ако податоците не се целосни, статусот останува непотврден.</p>
@@ -1038,16 +1049,32 @@ window.showStoreAvailability=function(raw){
   renderStockLocations();
  }catch(e){window.showGodiStatus('unknown')}
 };
-function openProduct(p){$('productQrBox').classList.add('hidden');$('productQrImage').removeAttribute('src');updateRecentProduct(p);document.body.classList.toggle('availabilityOnly',availabilityOnly);window.verifiedStockStores=[];renderStockLocations();$("dashboard").classList.add("hidden");manufacturerLink(p);currentProduct=p;$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
+function openProduct(p){$('productQrBox').classList.add('hidden');$('productQrImage').removeAttribute('src');updateRecentProduct(p);document.body.classList.toggle('availabilityOnly',availabilityOnly);window.verifiedStockStores=[];renderStockLocations();$("dashboard").classList.add("hidden");manufacturerLink(p);currentProduct=p;if($('labelSpecs'))$('labelSpecs').value='';$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 let photoZoom=1,photoStartDist=0,photoStartZoom=1;
 function closeProductImage(){const v=$('imageViewer');v.classList.add('hidden');$('viewerPhoto').removeAttribute('src');document.body.style.overflow='';}
+let priceLabelFirst=null;
+function selectCompareFirst(){
+ const p=currentProduct||{};
+ if(!p.name){$('priceLabelFeedback').textContent='Прво отвори производ.';return;}
+ priceLabelFirst={name:p.name,sku:p.sku||'',url:validUrl(p.url)?p.url:'',club:p.clubPrice||'',regular:p.regularPrice||''};
+ $('labelCompareState').textContent='Прв: '+p.name+'. Отвори го вториот производ и избери „Споредба“.';
+}
 function exportPriceLabel(kind,printNow=false){
  const p=currentProduct||{};
  const regular=String(p.regularPrice||"").trim(),club=String(p.clubPrice||"").trim();
  if(!p.name){$('priceLabelFeedback').textContent="Прво отвори производ.";return}
  if(!regular&&!club){$('priceLabelFeedback').textContent="Цената не е потврдена. Провери ја пред печатење.";}
  else $('priceLabelFeedback').textContent=printNow?"Се отвора Android печатење…":"Избери каде да се зачува A4 PDF ценовникот.";
- try{const data=JSON.stringify({name:p.name,sku:p.sku||"",url:validUrl(p.url)?p.url:"",regular,club,kind});if(printNow)SetecApp.printPriceLabel(data);else SetecApp.exportPriceLabel(data);}
+ try{
+  if(kind==='compare'&&(!priceLabelFirst||priceLabelFirst.sku===p.sku)){
+    $('priceLabelFeedback').textContent='Зачувај го првиот производ, па отвори друг производ.';return;
+  }
+  const payload={name:p.name,sku:p.sku||"",url:validUrl(p.url)?p.url:"",regular,club,kind,
+    img:safeImage(p.img),specs:$('labelSpecs').value.trim()};
+  if(kind==='compare'){payload.second={...payload};Object.assign(payload,priceLabelFirst);payload.second.kind=kind;}
+  const data=JSON.stringify(payload);
+  if(printNow)SetecApp.printPriceLabel(data);else SetecApp.exportPriceLabel(data);
+}
  catch(e){$('priceLabelFeedback').textContent="Извозот е достапен во новата Android APK."}
 }
 function showProductQr(){const url=String(currentProduct&&currentProduct.url||'');if(!/^https:\/\/(?:www\.)?setec\.mk\/products\//i.test(url)){alert('Нема потврден линк за овој производ.');return;}$('productQrBox').classList.remove('hidden');$('productQrStatus').textContent='Се генерира QR-код…';SetecApp.generateProductQr(url)}
