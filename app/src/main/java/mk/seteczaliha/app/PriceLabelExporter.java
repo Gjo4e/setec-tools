@@ -190,32 +190,36 @@ public final class PriceLabelExporter {
         if(specs){
             text(c,p,"ПОДАТОЦИ ЗА ПРОИЗВОДОТ",36,196,14,BLUE,true);
             name(c,p,product,36,244,520,23,3);
-            rect(c,p,Color.rgb(239,244,250),30,350,565,416,10);
-            text(c,p,"ШИФРА",49,377,12,MUTED,true);
-            text(c,p,clean(sku,24),49,403,21,INK,true);
-            text(c,p,"КАРАКТЕРИСТИКИ",36,463,15,BLUE,true);
+            rect(c,p,Color.rgb(239,244,250),36,350,226,394,8);
+            text(c,p,"ШИФРА",48,367,10,MUTED,true);
+            text(c,p,clean(sku,24),48,386,16,INK,true);
+            text(c,p,"КАРАКТЕРИСТИКИ",36,435,15,BLUE,true);
             String[] lines=data.optString("specs","").split("\\n");
-            int y=499;
+            int y=467;
             for(String entry:lines){
                 entry=clean(entry,82);
                 if(entry.isEmpty())continue;
-                if(y>673)break;
-                text(c,p,"• "+entry,43,y,15,INK,false);y+=32;
+                if(y>657)break;
+                p.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));p.setTextSize(13);
+                for(String line:wrap(p,"• "+entry,245,2)){
+                    if(y>657)break;
+                    text(c,p,line,43,y,13,INK,false);y+=21;
+                }
+                y+=7;
             }
             if(data.optString("specs").trim().isEmpty())
-                text(c,p,"Не се внесени потврдени спецификации.",43,503,15,MUTED,false);
-            photo(c,data.optString("img"),335,466,552,655);
+                text(c,p,"Не се внесени потврдени спецификации.",43,467,12,MUTED,false);
+            photo(c,data.optString("img"),300,405,565,675);
             discount(c,p,data.optString("regular"),data.optString("club"),269,705);
             text(c,p,price,40,742,28,BLUE,true);
             qr(c,p,url,444,682,97);
         }else{
             text(c,p,"ПРОИЗВОД",36,191,13,BLUE,true);
             name(c,p,product,36,237,520,24,3);
-            rect(c,p,Color.rgb(244,247,251),35,337,560,598,12);
-            photo(c,data.optString("img"),48,350,548,584);
+            photo(c,data.optString("img"),35,315,560,602);
             rect(c,p,Color.rgb(234,244,255),30,618,565,779,13);
             text(c,p,"Шифра: "+clean(sku,24),49,649,14,MUTED,true);
-            discount(c,p,data.optString("regular"),data.optString("club"),48,745);
+            discount(c,p,data.optString("regular"),data.optString("club"),48,736);
             text(c,p,price,48,726,38,BLUE,true);
             qr(c,p,url,432,647,105);
         }
