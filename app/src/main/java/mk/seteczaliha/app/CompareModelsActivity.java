@@ -83,11 +83,11 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(safeSource(source)){
                     p.source=source;
                     p.description=obj.optString("description").trim();
-                    if(p.description.length()>800)
-                        p.description=p.description.substring(0,800);
+                    if(p.description.length()>16000)
+                        p.description=p.description.substring(0,16000);
                     JSONArray detailArray=obj.optJSONArray("details");
                     if(detailArray!=null)
-                        for(int i=0;i<detailArray.length()&&p.details.size()<150;i++){
+                        for(int i=0;i<detailArray.length()&&p.details.size()<220;i++){
                             String line=detailArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -306,8 +306,13 @@ public final class CompareModelsActivity extends ComponentActivity {
                 "let title=(document.querySelector('h1')?.innerText||document.title||'').trim();"+
                 "let club=body.match(/Клуб\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
                 "let regular=body.match(/Редовна\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
-                "let specs=[...document.querySelectorAll('table tr,dl div,li')].map(x=>x.innerText?.replace(/\\s+/g,' ').trim()).filter(x=>x&&x.length>8&&x.length<200).slice(0,70);"+
-                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:specs.slice(0,70),description:specs.slice(0,60).join('\\n')});})()";
+                "let details=[],seen=new Set();"+
+                "function add(label,value){let x=(label?label+': ':'')+value;x=x.replace(/\\s+/g,' ').trim();if(x.length<3||x.length>230||seen.has(x.toLowerCase()))return;seen.add(x.toLowerCase());details.push(x)}"+
+                "document.querySelectorAll('table tr').forEach(tr=>{let cells=[...tr.querySelectorAll('th,td')].map(x=>x.innerText.trim()).filter(Boolean);if(cells.length>=2)add(cells[0],cells.slice(1).join(' · '));else if(cells.length===1)add('',cells[0])});"+
+                "document.querySelectorAll('dl').forEach(dl=>{let key='';[...dl.children].forEach(el=>{if(el.tagName==='DT')key=el.innerText.trim();else if(el.tagName==='DD')add(key,el.innerText.trim())})});"+
+                "document.querySelectorAll('[class*=specification] li,[class*=Specification] li,[class*=description] li,[class*=Description] li,[id*=description] li,[id*=spec] li').forEach(el=>add('',el.innerText));"+
+                "document.querySelectorAll('li').forEach(el=>{if(details.length<180)add('',el.innerText)});"+
+                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:details.slice(0,220),description:details.slice(0,120).join('\\n')});})()";
             lookupBrowsers[slot].evaluateJavascript(script,result->{
                 if(serial!=lookupSerial[slot])return;
                 String json=decodeWebString(result);
@@ -449,7 +454,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         row("Клуб цена", left==null?"—":price(left.club),right==null?"—":price(right.club),false);
         row("Редовна цена",left==null?"—":price(left.regular),right==null?"—":price(right.regular),false);
 
-        TextView keyTitle=text("СПЕЦИФИКАЦИИ ПО ПРОИЗВОД",15,true,INK);
+        TextView keyTitle=text("СИТЕ ДОСТАПНИ СПЕЦИФИКАЦИИ ПО ПРОИЗВОД",15,true,INK);
         LinearLayout.LayoutParams kh=new LinearLayout.LayoutParams(-1,-2);
         kh.topMargin=dp(20);
         table.addView(keyTitle,kh);
@@ -635,7 +640,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(seen.add(key))groups.computeIfAbsent(specGroup(label),k->new java.util.LinkedHashMap<>()).putIfAbsent(label,value);
             }else if(seen.add(line.toLowerCase(java.util.Locale.ROOT)))other.add(line);
         }
-        for(String group:new String[]{"Процесор и перформанси","Меморија и складирање","Екран и графика","Поврзување и порти","Батерија и напојување","Димензии и дизајн","Други карактеристики"}){
+        for(String group:new String[]{"Процесор и перформанси","Меморија и складирање","Екран и графика","Поврзување и порти","Батерија и напојување","Димензии и дизајн","Камера и звук","Оперативен систем и софтвер","Гаранција и сертификати","Други карактеристики"}){
             Map<String,String> values=groups.get(group);
             if(values==null||values.isEmpty())continue;
             TextView heading=text(group,13,true,0xFF77C9FF);
@@ -661,6 +666,9 @@ public final class CompareModelsActivity extends ComponentActivity {
         if(s.matches(".*(wifi|wi-fi|bluetooth|usb|hdmi|порт|port|lan|ethernet|поврзува).*"))return "Поврзување и порти";
         if(s.matches(".*(батери|battery|power|напојува|полнач|adapter).*"))return "Батерија и напојување";
         if(s.matches(".*(тежина|weight|дименз|dimension|боја|color|материјал|size).*"))return "Димензии и дизајн";
+        if(s.matches(".*(оперативен|operating system|windows|linux|software|софтвер).*"))return "Оперативен систем и софтвер";
+        if(s.matches(".*(камера|camera|webcam|микрофон|microphone|звучник|speaker|audio|звук).*"))return "Камера и звук";
+        if(s.matches(".*(гаранци|warranty|сертифик|certificat).*"))return "Гаранција и сертификати";
         return "Други карактеристики";
     }
 
