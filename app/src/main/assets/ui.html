@@ -1086,7 +1086,7 @@ window.onBatchBarcodeScanned=function(raw){
 };
 function toggleBatchManual(){const box=$('batchManualBox');box.classList.toggle('hidden');if(!box.classList.contains('hidden'))$('batchManualInput').focus();}
 function submitBatchManual(){const text=($('batchManualInput').value||'').trim();if(!/^[0-9]{4,8}(\s*,\s*[0-9]{4,8})*$/.test(text)){$('batchMessage').textContent='Внеси 4–8 цифри, или повеќе шифри разделени со запирка.';return;}const codes=text.split(',').map(x=>x.trim());$('batchManualInput').value='';$('batchManualBox').classList.add('hidden');for(const code of codes)addBatchSku(code);$('batchMessage').textContent='Додадени '+codes.length+' шифри.';}
-function copyBatch(){const text=$('batchCodes').value;if(!text){$('batchMessage').textContent='Нема зачувани шифри.';return;}SetecApp.copyText(text);$('batchMessage').textContent='Копирани '+batchRecords.length+' различни шифри со количини.''}
+function copyBatch(){const text=$('batchCodes').value;if(!text){$('batchMessage').textContent='Нема зачувани шифри.';return;}SetecApp.copyText(text);$('batchMessage').textContent='Копирани '+batchRecords.length+' различни шифри со количини.'}
 function clearBatch(){if(!batchRecords.length){$('batchMessage').textContent='Листата е празна.';return;}$('batchConfirmBox').classList.remove('hidden');}
 function cancelBatchClear(){$('batchConfirmBox').classList.add('hidden');}
 function confirmBatchClear(){const oldActive=batchActive;batchRecords=[];batchQueue=[];batchActive=null;if(batchTimer){clearTimeout(batchTimer);batchTimer=null;}batchPersist();batchRender();$('batchConfirmBox').classList.add('hidden');$('batchMessage').textContent='Сите шифри се избришани.';}
