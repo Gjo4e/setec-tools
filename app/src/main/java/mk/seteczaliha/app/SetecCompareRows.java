@@ -108,7 +108,7 @@ final class SetecCompareRows {
         if(key.matches("weight|тежина"))return "Тежина";
         if(key.matches("noise|бучава"))return "Бучава";
         if(key.matches("warranty|гаранција"))return "";
-        return key.length()>=3&&key.length()<=45?key:"";
+        return key.length()>=3&&key.length()<=45?normalize(raw):"";
     }
 
     /** Read generic named specifications, not just laptop-specific fields. */
