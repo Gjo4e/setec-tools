@@ -8,73 +8,111 @@ import android.graphics.Typeface;
 import android.graphics.pdf.PdfDocument;
 import org.json.JSONObject;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
-/** One product label per A4 PDF page, with generous margins and a real QR link. */
+/** Print-ready A4 single-product price poster. */
 public final class PriceLabelExporter {
-    private PriceLabelExporter(){}
-    private static void line(Canvas c,Paint p,String text,float x,float y,int size,int color,boolean bold){
+    private PriceLabelExporter() {}
+    private static final int NAVY=Color.rgb(19,38,70);
+    private static final int BLUE=Color.rgb(29,100,190);
+    private static final int RED=Color.rgb(201,38,47);
+    private static final int INK=Color.rgb(27,39,56);
+    private static final int MUTED=Color.rgb(106,119,136);
+    private static void rect(Canvas c,Paint p,int color,float l,float t,float r,float b,float radius){
+        p.setStyle(Paint.Style.FILL);p.setColor(color);
+        c.drawRoundRect(new RectF(l,t,r,b),radius,radius,p);
+    }
+    private static void text(Canvas c,Paint p,String s,float x,float y,float size,int color,boolean bold){
         p.setStyle(Paint.Style.FILL);p.setColor(color);p.setTextSize(size);
-        p.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));
-        c.drawText(text,x,y,p);
+        p.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
+        c.drawText(s,x,y,p);
     }
-    private static String shortText(String value,int max){
-        value=value==null?"":value.replaceAll("[\\r\\n\\t]+"," ").trim();
-        return value.length()>max?value.substring(0,max-1)+"…":value;
+    private static String clean(String s,int max){
+        s=s==null?"":s.replaceAll("[\\r\\n\\t]+"," ").trim();
+        return s.length()>max?s.substring(0,max-1)+"…":s;
     }
-    private static String price(String value){
-        return value!=null&&value.matches("[0-9][0-9.,]{0,15}")?value+" ден.":"Цена: непотврдена";
+    private static boolean validPrice(String s){return s!=null&&s.matches("[0-9][0-9.,]{0,15}");}
+    private static String money(String s){return validPrice(s)?s+" ден.":"Цена непотврдена";}
+    private static ArrayList<String> wrap(Paint p,String name,float maxWidth,int maxLines){
+        ArrayList<String> lines=new ArrayList<>();
+        String current="";
+        for(String word:name.split("\\s+")){
+            String trial=current.isEmpty()?word:current+" "+word;
+            if(p.measureText(trial)<=maxWidth){current=trial;}
+            else {
+                if(!current.isEmpty())lines.add(current);
+                current=word;
+                if(lines.size()==maxLines-1)break;
+            }
+        }
+        if(!current.isEmpty()&&lines.size()<maxLines)lines.add(current);
+        return lines;
     }
     public static void write(OutputStream stream,JSONObject data)throws Exception{
-        String name=shortText(data.optString("name"),75),sku=shortText(data.optString("sku"),24);
+        String name=clean(data.optString("name"),140);
+        String sku=clean(data.optString("sku"),24);
         String kind=data.optString("kind","standard");
-        if(!kind.equals("promo")&&!kind.equals("club"))kind="standard";
+        if(!"promo".equals(kind)&&!"club".equals(kind))kind="standard";
         String regular=data.optString("regular"),club=data.optString("club");
         String url=data.optString("url");
-        int blue=Color.rgb(18,67,134),red=Color.rgb(191,33,36),dark=Color.rgb(31,38,49);
+        boolean promo="promo".equals(kind),membership="club".equals(kind);
+        int accent=promo?RED:BLUE;
+        String primary=promo||membership?(validPrice(club)?club:regular):(validPrice(regular)?regular:club);
+        String heading=promo?"СПЕЦИЈАЛНА ПОНУДА":membership?"КЛУБ ЦЕНА":"ЦЕНА НА ПРОИЗВОД";
         PdfDocument pdf=new PdfDocument();
         PdfDocument.Page page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,1).create());
         Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
         Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-        // Label content deliberately uses only part of each A4 sheet.
-        float left=26,right=569,top=32,bottom=810;
-        p.setColor(Color.rgb(216,222,231));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
-        c.drawRoundRect(new RectF(left,top,right,bottom),5,5,p);
-        p.setStyle(Paint.Style.FILL);
-        line(c,p,"Setec",53,104,36,blue,true);
-        line(c,p,"НЕОФИЦИЈАЛЕН ЦЕНОВНИК",53,131,10,Color.GRAY,false);
-        if(kind.equals("promo"))line(c,p,"АКЦИЈА",437,104,18,red,true);
-        if(kind.equals("club"))line(c,p,"КЛУБ ЦЕНА",415,104,15,blue,true);
-        p.setColor(blue);c.drawRect(53,154,542,158,p);
-        // Wrap product name to at most two lines; avoid clipping long model names.
-        p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(22);
-        String[] words=name.split(" ");String first="",second="";
-        for(String w:words){
-            String trial=first.isEmpty()?w:first+" "+w;
-            if(p.measureText(trial)<480||first.isEmpty())first=trial;
-            else second+=(second.isEmpty()?"":" ")+w;
+        // Strong full-width header, but retain 20pt printer-safe margins.
+        rect(c,p,NAVY,20,20,575,151,13);
+        rect(c,p,accent,20,137,575,151,0);
+        text(c,p,"SETEC",43,80,39,Color.WHITE,true);
+        text(c,p,"ЦЕНОВНИ ЕТИКЕТИ",44,112,12,Color.rgb(203,219,239),false);
+        rect(c,p,accent,365,48,551,98,9);
+        text(c,p,promo?"АКЦИЈА":membership?"КЛУБ ЦЕНА":"РЕДОВНА ЦЕНА",
+            promo?402:membership?388:377,80,promo?21:17,Color.WHITE,true);
+
+        text(c,p,"ПРОИЗВОД",40,204,13,accent,true);
+        p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
+        p.setTextSize(26);
+        ArrayList<String> title=wrap(p,name,510,3);
+        float y=250;
+        for(String row:title){text(c,p,clean(row,65),40,y,26,INK,true);y+=37;}
+        rect(c,p,Color.rgb(239,243,249),40,367,555,414,8);
+        text(c,p,"ШИФРА",56,397,12,MUTED,true);
+        text(c,p,sku.isEmpty()?"—":sku,135,398,18,INK,true);
+
+        // Price block is the visual focal point.
+        rect(c,p,promo?Color.rgb(255,242,242):Color.rgb(237,246,255),30,444,565,662,14);
+        rect(c,p,accent,30,444,39,662,0);
+        text(c,p,heading,55,488,17,accent,true);
+        if(promo&&validPrice(regular)&&validPrice(club)&&!regular.equals(club)){
+            text(c,p,"Редовна: "+money(regular),55,526,17,MUTED,false);
+        } else if(membership&&validPrice(regular)&&!regular.equals(club)){
+            text(c,p,"Редовна: "+money(regular),55,526,17,MUTED,false);
         }
-        line(c,p,shortText(first,58),53,223,25,dark,true);
-        if(!second.isEmpty())line(c,p,shortText(second,54),53,263,23,dark,true);
-        line(c,p,"Шифра: "+(sku.isEmpty()?"—":sku),53,344,15,Color.DKGRAY,false);
-        String primary=kind.equals("standard")?(!regular.isEmpty()?regular:club):(!club.isEmpty()?club:regular);
-        if(kind.equals("promo")&&!regular.isEmpty()&&!club.isEmpty()&&!regular.equals(club)){
-            line(c,p,"Редовна: "+price(regular),53,435,16,Color.GRAY,false);
-        }
-        if(kind.equals("club"))line(c,p,"Клуб цена",53,508,16,blue,true);
-        else if(kind.equals("promo"))line(c,p,"Промотивна цена",73,466,16,red,true);
-        else line(c,p,"Цена",73,466,16,blue,true);
-        line(c,p,price(primary),53,596,43,kind.equals("promo")?red:blue,true);
+        String value=money(primary);
+        p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
+        float priceSize=validPrice(primary)?52:25;
+        p.setTextSize(priceSize);
+        while(p.measureText(value)>474&&priceSize>24){priceSize-=2;p.setTextSize(priceSize);}
+        text(c,p,value,55,615,priceSize,accent,true);
+
+        // Bottom row: real QR to the official product, never a placeholder.
+        text(c,p,"ПРОВЕРИ ГО ПРОИЗВОДОТ",42,710,13,INK,true);
+        text(c,p,"Скенирај го QR-кодот за детали",42,737,12,MUTED,false);
+        text(c,p,"Провери ја цената пред печатење.",42,791,11,MUTED,false);
         if(SetecPageData.isOfficialProductUrl(url)){
             com.google.zxing.common.BitMatrix qr=new com.google.zxing.qrcode.QRCodeWriter()
-                .encode(url,com.google.zxing.BarcodeFormat.QR_CODE,180,180);
-            float cell=128f/qr.getWidth();
-            p.setColor(Color.WHITE);c.drawRect(397,592,542,737,p);
+                .encode(url,com.google.zxing.BarcodeFormat.QR_CODE,220,220);
+            int count=qr.getWidth();
+            float size=118f,cell=size/count;
+            rect(c,p,Color.WHITE,421,670,551,800,7);
             p.setColor(Color.BLACK);
-            for(int y=0;y<qr.getHeight();y++)for(int x=0;x<qr.getWidth();x++)
-                if(qr.get(x,y))c.drawRect(404+x*cell,605+y*cell,404+(x+1)*cell+.1f,605+(y+1)*cell+.1f,p);
-            line(c,p,"Скенирај за производ",402,758,9,Color.GRAY,false);
+            for(int yy=0;yy<count;yy++)for(int xx=0;xx<count;xx++)
+                if(qr.get(xx,yy))c.drawRect(427+xx*cell,676+yy*cell,
+                    427+(xx+1)*cell+.05f,676+(yy+1)*cell+.05f,p);
         }
-        line(c,p,"Цените провери ги пред печатење.",53,764,10,Color.GRAY,false);
         pdf.finishPage(page);
         try{pdf.writeTo(stream);}finally{pdf.close();}
     }
