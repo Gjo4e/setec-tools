@@ -63,6 +63,8 @@ public final class MainActivity extends ComponentActivity {
     private ActivityResultLauncher<String> saveOfferPdfLauncher;
     private ActivityResultLauncher<String> saveOfferExcelLauncher;
     private OfferExporter.Quote pendingOffer;
+    private JSONObject pendingPriceLabel;
+    private ActivityResultLauncher<String> savePriceLabelLauncher;
 
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
@@ -101,6 +103,15 @@ public final class MainActivity extends ComponentActivity {
         saveOfferPdfLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/pdf"),
                 uri -> saveOfferFile(uri, true));
+        savePriceLabelLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument("application/pdf"), uri -> {
+            JSONObject label=pendingPriceLabel;pendingPriceLabel=null;
+            if(uri==null||label==null)return;
+            try(OutputStream stream=getContentResolver().openOutputStream(uri,"w")){
+                if(stream==null)throw new java.io.IOException("Не може да се зачува фајлот.");
+                PriceLabelExporter.write(stream,label);
+                Toast.makeText(this,"Ценовникот е зачуван како A4 PDF.",Toast.LENGTH_LONG).show();
+            }catch(Exception ex){Toast.makeText(this,"Грешка при извоз: "+ex.getMessage(),Toast.LENGTH_LONG).show();}
+        });
         saveOfferExcelLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 uri -> saveOfferFile(uri, false));
@@ -321,6 +332,17 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
+        }
+        @JavascriptInterface public void exportPriceLabel(String json) {
+            runOnUiThread(() -> {
+                try{
+                    JSONObject label=new JSONObject(json);
+                    if(label.optString("name").trim().isEmpty())throw new IllegalArgumentException("Нема име на производ.");
+                    pendingPriceLabel=label;
+                    String sku=label.optString("sku","proizvod").replaceAll("[^0-9A-Za-z_-]","");
+                    savePriceLabelLauncher.launch("Setec-Cenovnik-"+sku+".pdf");
+                }catch(Exception ex){Toast.makeText(MainActivity.this,"Не може да се направи ценовник.",Toast.LENGTH_LONG).show();}
+            });
         }
         @JavascriptInterface public void exportOffer(String type, String json) {
             runOnUiThread(() -> exportCustomerOffer(type, json));
