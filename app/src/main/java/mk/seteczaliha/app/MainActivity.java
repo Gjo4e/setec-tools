@@ -47,7 +47,7 @@ public final class MainActivity extends ComponentActivity {
     private String batchCurrentSku = null;
     private int batchSerial = 0;
     private boolean nextScanBatch = false;
-    private boolean nextScanOffer = false;
+    private boolean nextScanBatchBarcode = false;
     private String activeQuery = "";
     private String queuedQuery = null;
     private String productUrl = null;
@@ -83,12 +83,12 @@ public final class MainActivity extends ComponentActivity {
                 String payload=result.getData().getStringExtra("data_matrix_payload");
                 if(payload!=null && !payload.trim().isEmpty()){
                     nextScanBatch=false;
-                    js((nextScanOffer ? "window.onOfferBarcodeScanned(" : "window.onDataMatrixScanned(")+JSONObject.quote(payload.trim())+");");
-                    nextScanOffer=false;
+                    js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onDataMatrixScanned(")+JSONObject.quote(payload.trim())+");
+                    nextScanBatchBarcode=false;");
                 } else {
                     String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
                     if(sku!=null && sku.matches("[0-9]{4,8}"))
-                        { js((nextScanOffer ? "window.onOfferBarcodeScanned(" : "window.onScanned(")+JSONObject.quote(sku)+");"); nextScanOffer=false; }
+                        { js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onScanned(")+JSONObject.quote(sku)+"); nextScanBatchBarcode=false; }");
                 }
             }
         });
@@ -259,11 +259,11 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
-        @JavascriptInterface public void scanForOffer() {
-            runOnUiThread(() -> { nextScanOffer=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)); });
+        @JavascriptInterface public void scanBatchBarcode() {
+            runOnUiThread(() -> { nextScanBatchBarcode=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)); });
         }
         @JavascriptInterface public void openModelScanner() {
-            nextScanOffer=false;
+            nextScanBatchBarcode=false;
             runOnUiThread(() -> dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)));
         }
         @JavascriptInterface public void moreResults() {
