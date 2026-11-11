@@ -1056,7 +1056,7 @@ function addBundleProduct(){
  const p=currentProduct||{};
  if(!p.name||!p.sku){$('priceLabelFeedback').textContent='Отвори производ со шифра.';return;}
  if(priceLabelBundleItems.length>=16){$('priceLabelFeedback').textContent='Максимум 16 производи.';return;}
- const item={name:p.name,sku:String(p.sku),url:validUrl(p.url)?p.url:'',regular:String(p.regularPrice||''),club:String(p.clubPrice||'')};
+ const item={name:p.name,sku:String(p.sku),url:validUrl(p.url)?p.url:'',regular:String(p.regularPrice||''),club:String(p.clubPrice||''),img:safeImage(p.img)};
  if(priceLabelBundleItems.some(x=>x.sku===item.sku)){$('priceLabelFeedback').textContent='Оваа шифра веќе е во пакетот.';return;}
  priceLabelBundleItems.push(item);
  $('labelBundleState').textContent='Во пакет ('+priceLabelBundleItems.length+'): '+priceLabelBundleItems.map(x=>x.sku).join(', ');
