@@ -48,14 +48,30 @@ public final class PriceLabelExporter {
         if(!current.isEmpty()&&lines.size()<maxLines)lines.add(current);
         return lines;
     }
+    private static int roundedDiscount(String regular,String discounted){
+        if(!validPrice(regular)||!validPrice(discounted))return 0;
+        try{
+            double old=Double.parseDouble(regular.replace(".","").replace(",","."));
+            double now=Double.parseDouble(discounted.replace(".","").replace(",","."));
+            if(old<=0||now<=0||now>=old)return 0;
+            double actual=(old-now)*100.0/old;
+            return Math.min(100,(int)(Math.ceil((actual-0.000001)/5.0)*5));
+        }catch(Exception ex){return 0;}
+    }
+    private static void discount(Canvas c,Paint p,String regular,String discounted,float x,float y){
+        int pct=roundedDiscount(regular,discounted);
+        if(pct<=0)return;
+        rect(c,p,RED,x,y,x+154,y+39,8);
+        text(c,p,"ДО "+pct+"% ПОПУСТ",x+12,y+26,16,Color.WHITE,true);
+    }
     public static void write(OutputStream stream,JSONObject data)throws Exception{
         String name=clean(data.optString("name"),140);
         String sku=clean(data.optString("sku"),24);
         String kind=data.optString("kind","standard");
-        if(!"promo".equals(kind)&&!"club".equals(kind)&&!"photo".equals(kind)&&!"specs".equals(kind)&&!"bundle".equals(kind))kind="promo";
+        if(!"promo".equals(kind)&&!"club".equals(kind)&&!"photo".equals(kind)&&!"specs".equals(kind))kind="promo";
         String regular=data.optString("regular"),club=data.optString("club");
         String url=data.optString("url");
-        if("photo".equals(kind)||"specs".equals(kind)||"bundle".equals(kind)){
+        if("photo".equals(kind)||"specs".equals(kind)){
             writeSpecial(stream,data,kind);
             return;
         }
@@ -102,6 +118,7 @@ public final class PriceLabelExporter {
         while(p.measureText(value)>474&&priceSize>24){priceSize-=2;p.setTextSize(priceSize);}
         text(c,p,value,55,615,priceSize,accent,true);
 
+        discount(c,p,regular,primary,386,527);
         // Bottom row: real QR to the official product, never a placeholder.
         text(c,p,"ПРОВЕРИ ГО ПРОИЗВОДОТ",42,710,13,INK,true);
         text(c,p,"Скенирај го QR-кодот за детали",42,737,12,MUTED,false);
@@ -143,7 +160,8 @@ public final class PriceLabelExporter {
                 !(host.equals("setec.mk")||host.equals("www.setec.mk")||
                   host.endsWith(".digitaloceanspaces.com")))return;
             java.net.HttpURLConnection connection=(java.net.HttpURLConnection)u.openConnection();
-            connection.setConnectTimeout(6500);connection.setReadTimeout(6500);\n            connection.setRequestProperty("User-Agent","Mozilla/5.0 (Android; Setec Tools)");
+            connection.setConnectTimeout(6500);connection.setReadTimeout(6500);
+            connection.setRequestProperty("User-Agent","Mozilla/5.0 (Android; Setec Tools)");
             connection.setInstanceFollowRedirects(true);
             try(java.io.InputStream in=connection.getInputStream()){
                 android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(in);
@@ -161,42 +179,15 @@ public final class PriceLabelExporter {
         PdfDocument.Page page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,1).create());
         Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
         Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-        boolean bundle="bundle".equals(kind),specs="specs".equals(kind);
+        boolean specs="specs".equals(kind);
         rect(c,p,NAVY,20,20,575,148,12);
         rect(c,p,BLUE,20,138,575,148,0);
         text(c,p,"SETEC",42,77,37,Color.WHITE,true);
-        text(c,p,bundle?"ПАКЕТ ПОНУДА":specs?"ЛИСТ СО СПЕЦИФИКАЦИИ":"ЦЕНОВНИК СО СЛИКА",
+        text(c,p,specs?"ЛИСТ СО СПЕЦИФИКАЦИИ":"ЦЕНОВНИК СО СЛИКА",
             43,112,15,Color.rgb(210,229,250),true);
         String product=data.optString("name"),sku=data.optString("sku"),url=data.optString("url");
         String price=money(validPrice(data.optString("club"))?data.optString("club"):data.optString("regular"));
-        if(bundle){
-            org.json.JSONArray items=data.optJSONArray("items");
-            if(items==null||items.length()<2)throw new IllegalArgumentException("Додај најмалку два производи.");
-            if(items.length()>16)throw new IllegalArgumentException("Максимум 16 производи во пакет.");
-            text(c,p,"ПАКЕТ ОД "+items.length()+" ПРОИЗВОДИ",35,191,16,BLUE,true);
-            double total=0;boolean complete=true;
-            float top=216,available=528,step=available/items.length();
-            for(int i=0;i<items.length();i++){
-                JSONObject item=items.getJSONObject(i);
-                float y=top+i*step;
-                if(i%2==0)rect(c,p,Color.rgb(240,245,252),30,y,565,y+step-3,5);
-                String title=clean(item.optString("name"),65);
-                p.setTextSize(14);p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-                while(p.measureText(title)>325&&title.length()>4)title=title.substring(0,title.length()-2)+"…";
-                if(items.length()<=8)photo(c,item.optString("img"),43,y+4,43+Math.min(55,step-8),y+step-6);\n                float textX=items.length()<=8?110:43;\n                text(c,p,(i+1)+". "+title,textX,y+Math.min(23,step*.42f),14,INK,true);
-                text(c,p,"Шифра: "+clean(item.optString("sku"),20),textX,y+Math.min(42,step*.77f),11,MUTED,false);
-                String amount=validPrice(item.optString("club"))?item.optString("club"):item.optString("regular");
-                text(c,p,money(amount),405,y+Math.min(29,step*.58f),16,BLUE,true);
-                if(validPrice(amount)){
-                    try{total+=Double.parseDouble(amount.replace(".","").replace(",","."));}
-                    catch(Exception ex){complete=false;}
-                }else complete=false;
-            }
-            rect(c,p,NAVY,30,758,565,821,9);
-            text(c,p,"ВКУПНО",46,785,15,Color.WHITE,true);
-            String sum=complete?String.format(java.util.Locale.US,"%,.0f ден.",total).replace(",","."):"Цена непотврдена";
-            text(c,p,sum,250,802,29,Color.WHITE,true);
-        }else if(specs){
+        if(specs){
             text(c,p,"ПОДАТОЦИ ЗА ПРОИЗВОДОТ",36,196,14,BLUE,true);
             name(c,p,product,36,244,520,23,3);
             rect(c,p,Color.rgb(239,244,250),30,350,565,416,10);
@@ -213,7 +204,9 @@ public final class PriceLabelExporter {
             }
             if(data.optString("specs").trim().isEmpty())
                 text(c,p,"Не се внесени потврдени спецификации.",43,503,15,MUTED,false);
-            photo(c,data.optString("img"),335,466,552,655);\n            text(c,p,price,40,742,28,BLUE,true);
+            photo(c,data.optString("img"),335,466,552,655);
+            discount(c,p,data.optString("regular"),data.optString("club"),269,705);
+            text(c,p,price,40,742,28,BLUE,true);
             qr(c,p,url,444,682,97);
         }else{
             text(c,p,"ПРОИЗВОД",36,191,13,BLUE,true);
@@ -222,6 +215,7 @@ public final class PriceLabelExporter {
             photo(c,data.optString("img"),48,350,548,584);
             rect(c,p,Color.rgb(234,244,255),30,618,565,779,13);
             text(c,p,"Шифра: "+clean(sku,24),49,649,14,MUTED,true);
+            discount(c,p,data.optString("regular"),data.optString("club"),48,745);
             text(c,p,price,48,726,38,BLUE,true);
             qr(c,p,url,432,647,105);
         }
