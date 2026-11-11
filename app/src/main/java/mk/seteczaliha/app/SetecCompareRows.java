@@ -57,8 +57,13 @@ final class SetecCompareRows {
             sharedLeft.put(label,left);
             sharedRight.put(label,right);
         }
-        List<String> keys=ComparisonSummary.topSpecs(
-            leftName,sharedLeft,rightName,sharedRight);
+        // The summary's five-feature limit is for short previews only.
+        // The full comparison aligns EVERY verified shared specification,
+        // including arbitrary product-category fields from Setec.
+        List<String> keys=new ArrayList<>();
+        keys.addAll(ComparisonSummary.topSpecs(leftName,sharedLeft,rightName,sharedRight));
+        for(String key:sharedLeft.keySet())
+            if(!keys.contains(key))keys.add(key);
         for(String key:keys){
             if(rows.size()>=MAX_ROWS)break;
             rows.add(new Row(key,known(sharedLeft,key),known(sharedRight,key),true));
@@ -103,7 +108,7 @@ final class SetecCompareRows {
         if(key.matches("weight|тежина"))return "Тежина";
         if(key.matches("noise|бучава"))return "Бучава";
         if(key.matches("warranty|гаранција"))return "";
-        return key.length()>=3&&key.length()<=45?normalize(raw):"";
+        return key.length()>=3&&key.length()<=45?key:"";
     }
 
     /** Read generic named specifications, not just laptop-specific fields. */
