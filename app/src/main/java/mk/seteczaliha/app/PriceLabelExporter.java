@@ -183,8 +183,8 @@ public final class PriceLabelExporter {
                 String title=clean(item.optString("name"),65);
                 p.setTextSize(14);p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
                 while(p.measureText(title)>325&&title.length()>4)title=title.substring(0,title.length()-2)+"…";
-                text(c,p,(i+1)+". "+title,43,y+Math.min(23,step*.42f),14,INK,true);
-                text(c,p,"Шифра: "+clean(item.optString("sku"),20),43,y+Math.min(42,step*.77f),11,MUTED,false);
+                if(items.length()<=8)photo(c,item.optString("img"),43,y+4,43+Math.min(55,step-8),y+step-6);\n                float textX=items.length()<=8?110:43;\n                text(c,p,(i+1)+". "+title,textX,y+Math.min(23,step*.42f),14,INK,true);
+                text(c,p,"Шифра: "+clean(item.optString("sku"),20),textX,y+Math.min(42,step*.77f),11,MUTED,false);
                 String amount=validPrice(item.optString("club"))?item.optString("club"):item.optString("regular");
                 text(c,p,money(amount),405,y+Math.min(29,step*.58f),16,BLUE,true);
                 if(validPrice(amount)){
