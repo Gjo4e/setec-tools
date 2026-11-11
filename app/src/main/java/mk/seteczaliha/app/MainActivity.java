@@ -83,12 +83,16 @@ public final class MainActivity extends ComponentActivity {
                 String payload=result.getData().getStringExtra("data_matrix_payload");
                 if(payload!=null && !payload.trim().isEmpty()){
                     nextScanBatch=false;
-                    js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onDataMatrixScanned(")+JSONObject.quote(payload.trim())+");
-                    nextScanBatchBarcode=false;");
+                    js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onDataMatrixScanned(")
+                        + JSONObject.quote(payload.trim()) + ");");
+                    nextScanBatchBarcode=false;
                 } else {
                     String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
-                    if(sku!=null && sku.matches("[0-9]{4,8}"))
-                        { js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onScanned(")+JSONObject.quote(sku)+"); nextScanBatchBarcode=false; }");
+                    if(sku!=null && sku.matches("[0-9]{4,8}")) {
+                        js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onScanned(")
+                            + JSONObject.quote(sku) + ");");
+                    }
+                    nextScanBatchBarcode=false;
                 }
             }
         });
