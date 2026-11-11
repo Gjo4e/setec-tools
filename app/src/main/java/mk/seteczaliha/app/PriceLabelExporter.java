@@ -55,6 +55,10 @@ public final class PriceLabelExporter {
         if(!"promo".equals(kind)&&!"club".equals(kind))kind="standard";
         String regular=data.optString("regular"),club=data.optString("club");
         String url=data.optString("url");
+        if("photo".equals(kind)||"specs".equals(kind)||"compare".equals(kind)){
+            writeSpecial(stream,data,kind);
+            return;
+        }
         boolean promo="promo".equals(kind),membership="club".equals(kind);
         int accent=promo?RED:BLUE;
         String primary=promo||membership?(validPrice(club)?club:regular):(validPrice(regular)?regular:club);
@@ -115,4 +119,103 @@ public final class PriceLabelExporter {
         pdf.finishPage(page);
         try{pdf.writeTo(stream);}finally{pdf.close();}
     }
+    private static void qr(Canvas c,Paint p,String url,float x,float y,float size)throws Exception{
+        if(!SetecPageData.isOfficialProductUrl(url))return;
+        com.google.zxing.common.BitMatrix matrix=new com.google.zxing.qrcode.QRCodeWriter()
+            .encode(url,com.google.zxing.BarcodeFormat.QR_CODE,200,200);
+        float step=size/matrix.getWidth();
+        rect(c,p,Color.WHITE,x-5,y-5,x+size+5,y+size+5,4);
+        p.setColor(Color.BLACK);
+        for(int row=0;row<matrix.getHeight();row++)for(int col=0;col<matrix.getWidth();col++)
+            if(matrix.get(col,row))c.drawRect(x+col*step,y+row*step,
+                x+(col+1)*step+.04f,y+(row+1)*step+.04f,p);
+    }
+    private static void name(Canvas c,Paint p,String value,float x,float y,float width,int font,int maxLines){
+        p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));p.setTextSize(font);
+        ArrayList<String> lines=wrap(p,clean(value,160),width,maxLines);
+        for(String row:lines){text(c,p,clean(row,66),x,y,font,INK,true);y+=font+9;}
+    }
+    private static void photo(Canvas c,String url,float l,float t,float r,float b){
+        try{
+            java.net.URL u=new java.net.URL(url);
+            String host=u.getHost().toLowerCase(java.util.Locale.ROOT);
+            if(!"https".equalsIgnoreCase(u.getProtocol())||
+                !(host.equals("setec.mk")||host.equals("www.setec.mk")||
+                  host.endsWith(".digitaloceanspaces.com")))return;
+            java.net.HttpURLConnection connection=(java.net.HttpURLConnection)u.openConnection();
+            connection.setConnectTimeout(2500);connection.setReadTimeout(2500);
+            connection.setInstanceFollowRedirects(false);
+            try(java.io.InputStream in=connection.getInputStream()){
+                android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(in);
+                if(bitmap==null)return;
+                Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+                float scale=Math.min((r-l)/bitmap.getWidth(),(b-t)/bitmap.getHeight());
+                float w=bitmap.getWidth()*scale,h=bitmap.getHeight()*scale;
+                c.drawBitmap(bitmap,null,new RectF(l+(r-l-w)/2,t+(b-t-h)/2,l+(r-l+w)/2,t+(b-t+h)/2),p);
+                bitmap.recycle();
+            }finally{connection.disconnect();}
+        }catch(Exception ignored){}
+    }
+    private static void writeSpecial(OutputStream stream,JSONObject data,String kind)throws Exception{
+        PdfDocument pdf=new PdfDocument();
+        PdfDocument.Page page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,1).create());
+        Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
+        Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+        boolean comparison="compare".equals(kind),specs="specs".equals(kind);
+        rect(c,p,NAVY,20,20,575,148,12);
+        rect(c,p,BLUE,20,138,575,148,0);
+        text(c,p,"SETEC",42,77,37,Color.WHITE,true);
+        text(c,p,comparison?"СПОРЕДБА НА ПРОИЗВОДИ":specs?"ЛИСТ СО СПЕЦИФИКАЦИИ":"ЦЕНОВНИК СО СЛИКА",
+            43,112,15,Color.rgb(210,229,250),true);
+        String product=data.optString("name"),sku=data.optString("sku"),url=data.optString("url");
+        String price=money(validPrice(data.optString("club"))?data.optString("club"):data.optString("regular"));
+        if(comparison){
+            JSONObject second=data.optJSONObject("second");
+            if(second==null)throw new IllegalArgumentException("Избери втор производ за споредба.");
+            text(c,p,"ДВА ПРОИЗВОДА • ЕДНА СПОРЕДБА",35,193,16,BLUE,true);
+            for(int i=0;i<2;i++){
+                JSONObject item=i==0?data:second;
+                float left=i==0?30:303,right=i==0?290:565;
+                rect(c,p,Color.rgb(240,245,252),left,217,right,734,12);
+                text(c,p,i==0?"ПРОИЗВОД 1":"ПРОИЗВОД 2",left+17,253,13,BLUE,true);
+                name(c,p,item.optString("name"),left+17,297,right-left-34,17,4);
+                text(c,p,"Шифра: "+clean(item.optString("sku"),18),left+17,427,13,MUTED,false);
+                String amount=validPrice(item.optString("club"))?item.optString("club"):item.optString("regular");
+                text(c,p,money(amount),left+17,509,24,BLUE,true);
+                qr(c,p,item.optString("url"),left+68,567,111);
+            }
+            text(c,p,"Споредбата ги прикажува потврдените називи, шифри и цени.",34,782,11,MUTED,false);
+        }else if(specs){
+            text(c,p,"ПОДАТОЦИ ЗА ПРОИЗВОДОТ",36,196,14,BLUE,true);
+            name(c,p,product,36,244,520,23,3);
+            rect(c,p,Color.rgb(239,244,250),30,350,565,416,10);
+            text(c,p,"ШИФРА",49,377,12,MUTED,true);
+            text(c,p,clean(sku,24),49,403,21,INK,true);
+            text(c,p,"КАРАКТЕРИСТИКИ",36,463,15,BLUE,true);
+            String[] lines=data.optString("specs","").split("\\n");
+            int y=499;
+            for(String entry:lines){
+                entry=clean(entry,82);
+                if(entry.isEmpty())continue;
+                if(y>673)break;
+                text(c,p,"• "+entry,43,y,15,INK,false);y+=32;
+            }
+            if(data.optString("specs").trim().isEmpty())
+                text(c,p,"Не се внесени потврдени спецификации.",43,503,15,MUTED,false);
+            text(c,p,price,40,742,28,BLUE,true);
+            qr(c,p,url,444,682,97);
+        }else{
+            text(c,p,"ПРОИЗВОД",36,191,13,BLUE,true);
+            name(c,p,product,36,237,520,24,3);
+            rect(c,p,Color.rgb(244,247,251),35,337,560,598,12);
+            photo(c,data.optString("img"),48,350,548,584);
+            rect(c,p,Color.rgb(234,244,255),30,618,565,779,13);
+            text(c,p,"Шифра: "+clean(sku,24),49,649,14,MUTED,true);
+            text(c,p,price,48,726,38,BLUE,true);
+            qr(c,p,url,432,647,105);
+        }
+        pdf.finishPage(page);
+        try{pdf.writeTo(stream);}finally{pdf.close();}
+    }
+
 }
