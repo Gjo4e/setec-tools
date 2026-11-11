@@ -260,9 +260,6 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void openCompare() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, CompareModelsActivity.class)));
         }
-        @JavascriptInterface public void openYiwuHtml() {
-            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, YiwuHtmlActivity.class)));
-        }
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
