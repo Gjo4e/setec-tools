@@ -543,11 +543,11 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <button class="secondary" onclick="exportPriceLabel('photo',true)">🖨 Со слика</button>
 <button class="secondary" onclick="exportPriceLabel('specs')">▤ Спецификации · PDF</button>
 <button class="secondary" onclick="exportPriceLabel('specs',true)">🖨 Спецификации</button>
-<button class="secondary" onclick="exportPriceLabel('bundle')">▣ Пакет понуда · PDF</button><button class="secondary" onclick="exportPriceLabel('bundle',true)">🖨 Пакет понуда</button>
+
 </div>
 <label class="small" for="labelSpecs" style="display:block;margin:11px 0 5px">Потврдени спецификации (по една во ред)</label>
 <textarea id="labelSpecs" rows="3" placeholder="Процесор: ...&#10;RAM: ...&#10;SSD: ..." style="width:100%;padding:9px;border:1px solid #d9dce3;border-radius:8px"></textarea>
-<div style="margin-top:10px"><button class="secondary" onclick="addBundleProduct()">＋ Додај го овој производ во пакет</button> <button class="secondary" onclick="clearBundleProducts()">Исчисти пакет</button><p class="small" id="labelBundleState">Додавај производи со отворање на нивните шифри (најмалку 2, максимум 16).</p></div></div><p id="priceLabelFeedback" class="small" aria-live="polite"></p></div></details>
+</div><p id="priceLabelFeedback" class="small" aria-live="polite"></p></div></details>
 <button class="secondary" style="width:100%;margin:8px 0" onclick="showProductQr()">▦ QR-код за производот</button><div id="productQrBox" class="detailTool hidden" style="text-align:center"><img id="productQrImage" alt="QR-код за производот" style="width:240px;max-width:100%;background:white;padding:10px;border-radius:12px"><p id="productQrStatus" class="small"></p><button class="secondary" onclick="shareProductQr()">Сподели линк</button><button class="secondary" onclick="copyProductQr()">Копирај линк</button></div><button class="offerAddDetail" onclick="addCurrentToOffer()">＋ Додај во листа на купувач</button><p id="offerAddFeedback" class="offerFeedback" aria-live="polite"></p>
 <div class="stock stockLocationRow"><div class="stockLabel"><span class="stockIcon">⬡</span><span id="stockLocationLabel">Достапност · Сите локации</span></div><div id="godiStatus" class="stockState">Непотврдено</div></div><div id="stockLocations" class="stockLocations" aria-live="polite">Отвори производ за проверка на достапноста.</div>
 <button class="official" onclick="SetecApp.openOfficial(currentProduct.url)">Провери на официјалниот Setec ↗</button><p class="small">Се прикажуваат само локации што се прочитани од официјалната проверка. Ако податоците не се целосни, статусот останува непотврден.</p>
@@ -1051,30 +1051,13 @@ window.showStoreAvailability=function(raw){
 function openProduct(p){$('productQrBox').classList.add('hidden');$('productQrImage').removeAttribute('src');updateRecentProduct(p);document.body.classList.toggle('availabilityOnly',availabilityOnly);window.verifiedStockStores=[];renderStockLocations();$("dashboard").classList.add("hidden");manufacturerLink(p);currentProduct=p;if($('labelSpecs'))$('labelSpecs').value='';$('detail').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');$('ptitle').textContent=p.name||'Производ';$('psku').textContent=p.sku?'Шифра: '+p.sku:(lastScannedSku&&lastQuery===lastScannedSku?'Скенирана шифра: '+lastScannedSku+' · непотврдена':'Ја вчитувам шифрата…');$('godiStatus').textContent='Непотврдено';$('godiStatus').className='stockState';setHero(p.img);renderProductPrices(p);window.scrollTo(0,0);SetecApp.openProduct(p.url)}
 let photoZoom=1,photoStartDist=0,photoStartZoom=1;
 function closeProductImage(){const v=$('imageViewer');v.classList.add('hidden');$('viewerPhoto').removeAttribute('src');document.body.style.overflow='';}
-let priceLabelBundleItems=[];
-function addBundleProduct(){
- const p=currentProduct||{};
- if(!p.name||!p.sku){$('priceLabelFeedback').textContent='Отвори производ со шифра.';return;}
- if(priceLabelBundleItems.length>=16){$('priceLabelFeedback').textContent='Максимум 16 производи.';return;}
- const item={name:p.name,sku:String(p.sku),url:validUrl(p.url)?p.url:'',regular:String(p.regularPrice||''),club:String(p.clubPrice||''),img:safeImage(p.img)};
- if(priceLabelBundleItems.some(x=>x.sku===item.sku)){$('priceLabelFeedback').textContent='Оваа шифра веќе е во пакетот.';return;}
- priceLabelBundleItems.push(item);
- $('labelBundleState').textContent='Во пакет ('+priceLabelBundleItems.length+'): '+priceLabelBundleItems.map(x=>x.sku).join(', ');
- $('priceLabelFeedback').textContent='Производот е додаден. Можеш да отвориш друга шифра.';
-}
-function clearBundleProducts(){
- priceLabelBundleItems=[];
- $('labelBundleState').textContent='Пакетот е празен. Додај најмалку 2 производи.';
-}
 function exportPriceLabel(kind,printNow=false){
  const p=currentProduct||{};
  const regular=String(p.regularPrice||'').trim(),club=String(p.clubPrice||'').trim();
- if(kind!=='bundle'&&!p.name){$('priceLabelFeedback').textContent='Прво отвори производ.';return;}
- if(kind==='bundle'&&priceLabelBundleItems.length<2){$('priceLabelFeedback').textContent='Додај најмалку две различни шифри во пакетот.';return;}
+ if(!p.name){$('priceLabelFeedback').textContent='Прво отвори производ.';return;}
  try{
   const payload={name:p.name||'',sku:p.sku||'',url:validUrl(p.url)?p.url:'',regular,club,kind,
     img:safeImage(p.img),specs:$('labelSpecs').value.trim()};
-  if(kind==='bundle')payload.items=priceLabelBundleItems.slice();
   $('priceLabelFeedback').textContent=printNow?'Се отвора печатење…':'Избери каде да го зачуваш PDF.';
   if(printNow)SetecApp.printPriceLabel(JSON.stringify(payload));
   else SetecApp.exportPriceLabel(JSON.stringify(payload));
