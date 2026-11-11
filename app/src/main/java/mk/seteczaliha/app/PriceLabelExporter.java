@@ -161,7 +161,7 @@ public final class PriceLabelExporter {
         PdfDocument.Page page=pdf.startPage(new PdfDocument.PageInfo.Builder(595,842,1).create());
         Canvas c=page.getCanvas();c.drawColor(Color.WHITE);
         Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-        boolean comparison="compare".equals(kind),specs="specs".equals(kind);
+        boolean bundle="bundle".equals(kind),specs="specs".equals(kind);
         rect(c,p,NAVY,20,20,575,148,12);
         rect(c,p,BLUE,20,138,575,148,0);
         text(c,p,"SETEC",42,77,37,Color.WHITE,true);
