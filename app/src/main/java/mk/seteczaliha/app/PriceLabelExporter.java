@@ -58,8 +58,13 @@ public final class PriceLabelExporter {
             return Math.min(100,(int)(Math.ceil((actual-0.000001)/5.0)*5));
         }catch(Exception ex){return 0;}
     }
-    private static void discount(Canvas c,Paint p,String regular,String discounted,float x,float y){
+    private static void discount(Canvas c,Paint p,JSONObject data,String regular,String discounted,float x,float y){
+        String manual=data.optString("discount","").trim();
         int pct=roundedDiscount(regular,discounted);
+        if(!manual.isEmpty()){
+            try{pct=Integer.parseInt(manual);}catch(NumberFormatException ex){return;}
+            if(pct<0||pct>100)return;
+        }
         if(pct<=0)return;
         rect(c,p,RED,x,y,x+154,y+39,8);
         text(c,p,"ДО "+pct+"% ПОПУСТ",x+12,y+26,16,Color.WHITE,true);
@@ -118,7 +123,7 @@ public final class PriceLabelExporter {
         while(p.measureText(value)>474&&priceSize>24){priceSize-=2;p.setTextSize(priceSize);}
         text(c,p,value,55,615,priceSize,accent,true);
 
-        discount(c,p,regular,primary,386,527);
+        discount(c,p,data,regular,primary,386,527);
         // Bottom row: real QR to the official product, never a placeholder.
         text(c,p,"ПРОВЕРИ ГО ПРОИЗВОДОТ",42,710,13,INK,true);
         text(c,p,"Скенирај го QR-кодот за детали",42,737,12,MUTED,false);
@@ -210,7 +215,7 @@ public final class PriceLabelExporter {
             if(data.optString("specs").trim().isEmpty())
                 text(c,p,"Не се внесени потврдени спецификации.",43,467,12,MUTED,false);
             photo(c,data.optString("img"),300,405,565,675);
-            discount(c,p,data.optString("regular"),data.optString("club"),269,705);
+            discount(c,p,data,data.optString("regular"),data.optString("club"),269,705);
             text(c,p,price,40,742,28,BLUE,true);
             qr(c,p,url,444,682,97);
         }else{
@@ -219,7 +224,7 @@ public final class PriceLabelExporter {
             photo(c,data.optString("img"),35,315,560,602);
             rect(c,p,Color.rgb(234,244,255),30,618,565,779,13);
             text(c,p,"Шифра: "+clean(sku,24),49,649,14,MUTED,true);
-            discount(c,p,data.optString("regular"),data.optString("club"),48,736);
+            discount(c,p,data,data.optString("regular"),data.optString("club"),48,736);
             text(c,p,price,48,726,38,BLUE,true);
             qr(c,p,url,432,647,105);
         }
