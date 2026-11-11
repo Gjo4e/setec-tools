@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Produces up to five meaningful side-by-side rows.
+ * Produces all available meaningful side-by-side rows.
  *
  * Named specifications are aligned by label. When a Setec product only has
  * original technical bullets, its original bullet text is still shown in
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * and therefore must not be marked as factual differences.
  */
 final class SetecCompareRows {
-    static final int MAX_ROWS=12;
+    static final int MAX_ROWS=150;
     private SetecCompareRows(){}
 
     static final class Row {
