@@ -63,7 +63,7 @@ public final class YiwuHtmlActivity extends ComponentActivity {
         choose.setOnClickListener(v->picker.launch(new String[]{"text/html","application/xhtml+xml","application/octet-stream"}));
         String saved=getPreferences(MODE_PRIVATE).getString(URI_KEY,"");
         if(!saved.isEmpty())openHtml(Uri.parse(saved));
-        else picker.launch(new String[]{"text/html","application/xhtml+xml","application/octet-stream"});
+        else Toast.makeText(this,"Првпат избери го YIWU HTML фајлот преку копчето горе.",Toast.LENGTH_LONG).show();
     }
     private void openHtml(Uri uri){
         try(InputStream in=getContentResolver().openInputStream(uri)){
@@ -71,7 +71,7 @@ public final class YiwuHtmlActivity extends ComponentActivity {
             ByteArrayOutputStream bytes=new ByteArrayOutputStream();
             byte[] buffer=new byte[16384];int n;
             while((n=in.read(buffer))!=-1){
-                if(bytes.size()+n>16*1024*1024)throw new IllegalStateException("File too large");
+                if(bytes.size()+n>80*1024*1024)throw new IllegalStateException("File too large");
                 bytes.write(buffer,0,n);
             }
             String html=new String(bytes.toByteArray(),StandardCharsets.UTF_8);
