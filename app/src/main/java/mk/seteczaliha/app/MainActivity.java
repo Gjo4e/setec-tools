@@ -106,11 +106,15 @@ public final class MainActivity extends ComponentActivity {
         savePriceLabelLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument("application/pdf"), uri -> {
             JSONObject label=pendingPriceLabel;pendingPriceLabel=null;
             if(uri==null||label==null)return;
-            try(OutputStream stream=getContentResolver().openOutputStream(uri,"w")){
-                if(stream==null)throw new java.io.IOException("Не може да се зачува фајлот.");
-                PriceLabelExporter.write(stream,label);
-                Toast.makeText(this,"Ценовникот е зачуван како A4 PDF.",Toast.LENGTH_LONG).show();
-            }catch(Exception ex){Toast.makeText(this,"Грешка при извоз: "+ex.getMessage(),Toast.LENGTH_LONG).show();}
+            new Thread(() -> {
+                try(OutputStream stream=getContentResolver().openOutputStream(uri,"w")){
+                    if(stream==null)throw new java.io.IOException("Не може да се зачува фајлот.");
+                    PriceLabelExporter.write(stream,label);
+                    runOnUiThread(() -> Toast.makeText(this,"Ценовникот е зачуван како A4 PDF.",Toast.LENGTH_LONG).show());
+                }catch(Exception ex){
+                    runOnUiThread(() -> Toast.makeText(this,"Грешка при извоз: "+ex.getMessage(),Toast.LENGTH_LONG).show());
+                }
+            },"SetecPriceLabelExport").start();
         });
         saveOfferExcelLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
