@@ -325,6 +325,30 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void exportOffer(String type, String json) {
             runOnUiThread(() -> exportCustomerOffer(type, json));
         }
+        @JavascriptInterface public void generateProductQr(String url) {
+            if (!SetecPageData.isOfficialProductUrl(url)) {
+                runOnUiThread(() -> js("window.onProductQrError('Невалиден линк.')"));
+                return;
+            }
+            new Thread(() -> {
+                try {
+                    com.google.zxing.common.BitMatrix matrix =
+                        new com.google.zxing.qrcode.QRCodeWriter().encode(
+                            url, com.google.zxing.BarcodeFormat.QR_CODE, 480, 480);
+                    android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(
+                        480,480,android.graphics.Bitmap.Config.ARGB_8888);
+                    for(int y=0;y<480;y++)for(int x=0;x<480;x++)
+                        bitmap.setPixel(x,y,matrix.get(x,y)?android.graphics.Color.BLACK:android.graphics.Color.WHITE);
+                    java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,bytes);
+                    String data="data:image/png;base64,"+android.util.Base64.encodeToString(
+                        bytes.toByteArray(),android.util.Base64.NO_WRAP);
+                    runOnUiThread(() -> js("window.onProductQrReady("+JSONObject.quote(url)+","+JSONObject.quote(data)+");"));
+                }catch(Exception e){
+                    runOnUiThread(() -> js("window.onProductQrError('QR-кодот не е генериран.')"));
+                }
+            }).start();
+        }
         @JavascriptInterface public void copyText(String text) {
             if (text == null || text.length() > 180000) return;
             runOnUiThread(() -> {
