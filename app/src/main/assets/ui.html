@@ -482,7 +482,7 @@ body.dark #scanPanel .scanWelcome .capture,#scanPanel .scanWelcome .capture{
 <div class="offerSummary"><div><small>Клуб цена вкупно</small><strong id="offerClubTotal">0 ден.</strong></div><div><small>Редовна цена вкупно</small><strong id="offerRegularTotal">0 ден.</strong></div></div>
 <div class="offerCount" id="offerCount">0 производи</div>
 <div id="offerItems" class="offerItems"></div>
-<div class="offerAddBox"><strong>Додај производ</strong><p>Пронајди го производот преку пребарување или скенирање, отвори ги деталите и притисни „Додај во листа“.</p><button onclick="offerSearch()">⌕ Пребарај производ</button></div>
+<div class="offerAddBox"><strong>Додај производ</strong><p>Скенирај EAN / баркод: ќе го побарам производот на Setec.mk, ќе ја земам неговата SETEC шифра и автоматски ќе го додадам во листата. Ако не се најде сигурно совпаѓање, нема да додадам погрешен производ.</p><button onclick="offerScanBarcode()" style="background:#258bff;color:white;margin-bottom:8px">▣ Скенирај баркод → во листа</button><button onclick="offerSearch()">⌕ Пребарај производ</button><p id="offerScanFeedback" class="small" aria-live="polite"></p></div>
 <div class="offerInstallment"><div class="offerInstallmentTop"><span>▣ Пресметка на рати</span><label style="display:flex;align-items:center;gap:8px;font-weight:700"><input type="checkbox" id="offerInstallmentsEnabled" checked onchange="toggleOfferInstallments(this.checked)" aria-label="Вклучи или исклучи рати"><span id="offerInstallmentsState">ON</span></label></div><div id="offerInstallmentControls">
 <p>Пресметката се прави на <strong>целата клуб цена</strong> со фиксни 3% административен трошок. За опцијата „48 рати без камата“ се пресметуваат само тие 3%, без дополнителна камата.</p>
 <label class="installmentLabel" for="offerInstallmentMonths">Број на рати</label>
@@ -595,7 +595,7 @@ const setecCategories=(Array.isArray(window.SETEC_OFFICIAL_CATEGORIES)?window.SE
   .map(raw=>({...officialCategoryNode(raw),icon:categoryIcons[raw.name]||'▦'}));
 let categoriesOpen=false,expandedCategory=-1;
 
-let offerOpen=false,offerReturnTab='scan',offerItems=[];
+let offerOpen=false,offerReturnTab='scan',offerItems=[],offerScanPending=null;
 function offerPrice(raw){const v=String(raw===undefined?'':raw).replace(/[^\d.,]/g,'');if(!v)return null;let s=v;if(s.includes('.')&&s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}else if(s.includes('.')){const p=s.split('.');s=p.length>2||p[p.length-1].length===3?p.join(''):s}else if(s.includes(',')){const p=s.split(',');s=p.length>2||p[p.length-1].length===3?p.join(''):s.replace(',','.')}const n=Number(s);return Number.isFinite(n)&&n>=0?n:null}
 function offerMoney(n){return n.toLocaleString('mk-MK',{maximumFractionDigits:2})+' ден.'}
 function offerSave(){try{localStorage.setItem('setec_customer_offer_v1',JSON.stringify(offerItems))}catch(e){}}
@@ -656,7 +656,28 @@ function offerEditPrices(i){
 function offerChangeQty(i,delta){const p=offerItems[i];if(!p)return;p.qty=Math.max(1,Math.min(99,p.qty+delta));offerSave();offerRender()}
 function showOffer(){if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}offerReturnTab=tab;offerOpen=true;$('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));offerRender();window.scrollTo(0,0)}
 function closeOffer(){offerOpen=false;$('offerPanel').classList.add('hidden');switchTab(offerReturnTab);window.scrollTo(0,0)}
-function offerSearch(){offerOpen=false;$('offerPanel').classList.add('hidden');switchTab('search');$('query').focus();window.scrollTo(0,0)}
+function offerScanBarcode(){offerScanPending=null;$('offerScanFeedback').textContent='Отворам камера за баркод…';try{SetecApp.scanForOffer()}catch(e){$('offerScanFeedback').textContent='Камерата не може да се отвори.'}}
+function offerSearch(){offerScanPending=null;offerOpen=false;$('offerPanel').classList.add('hidden');switchTab('search');$('query').focus();window.scrollTo(0,0)}
+function offerAddVerifiedProduct(p){
+ const sku=String(p&&p.sku||'').trim();
+ if(!/^[0-9]{5}$/.test(sku))return false;
+ const name=String(p.name||'').trim();if(!name)return false;
+ const club=offerPrice(p.clubPrice),regular=offerPrice(p.regularPrice);
+ const idx=offerItems.findIndex(x=>x.sku===sku);
+ if(idx>=0){offerItems[idx].qty=Math.min(99,offerItems[idx].qty+1);if(!offerItems[idx].priceEdited){offerItems[idx].club=club;offerItems[idx].regular=regular}}
+ else if(offerItems.length<100)offerItems.push({name:name.slice(0,200),sku,qty:1,club,regular});
+ else return false;
+ offerSave();offerRender();return true;
+}
+window.onOfferBarcodeScanned=function(raw){
+ const text=String(raw||'').trim();const labelled=text.match(/(?:SETEC[ _-]?SKU|Шифра|Sifra|SKU)\s*[:=#-]\s*([0-9]{5})(?![0-9])/i);
+ const code=labelled?labelled[1]:(/^[0-9]{5}$/.test(text)?text:(/^[0-9]{8,14}$/.test(text)?text:''));
+ if(!code){$('offerScanFeedback').textContent='Баркодот не е препознаен. Пробај повторно или пребарај рачно.';return;}
+ offerScanPending=code;$('offerScanFeedback').textContent='Барам производ и SETEC шифра за баркод '+code+'…';
+ // Keep the buyer list visible while the existing Setec search runs in the background.
+ search(code,true);
+ $('offerPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');$('searchPanel').classList.add('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');offerOpen=true;
+};
 function addCurrentToOffer(){
  const p=currentProduct;if(!p||!p.name){$('offerAddFeedback').textContent='Нема избран производ.';return}
  const club=offerPrice(p.clubPrice),regular=offerPrice(p.regularPrice);
@@ -981,6 +1002,17 @@ window.showResults=function(json,reset){
   if(!a.length&&categoryRetryPending&&categoryAlternates.length){const next=categoryAlternates.shift();categoryRetryPending=categoryAlternates.length>0;search(next);return}
   if(a.length||!categoryAlternates.length)categoryRetryPending=false;
   if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched){try{updateRecentProduct(matched)}catch(historyError){console.warn('Recent history:',historyError)}}}
+  if(offerScanPending && lastQuery===offerScanPending){
+    const code=offerScanPending;offerScanPending=null;
+    const exact=a.filter(p=>p.sku===code&&/^[0-9]{5}$/.test(p.sku));
+    const candidates=exact.length?exact:a.filter(p=>/^[0-9]{5}$/.test(String(p.sku||'')));
+    if(candidates.length===1 && offerAddVerifiedProduct(candidates[0])){
+      $('offerScanFeedback').textContent='✓ '+candidates[0].sku+' · '+candidates[0].name+' е додаден во листата.';
+    }else{
+      $('offerScanFeedback').textContent='Не е потврдена единствена SETEC шифра за баркод '+code+'. Ништо не е додадено. Пребарај рачно.';
+    }
+    $('offerPanel').classList.remove('hidden');$('searchPanel').classList.add('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');offerOpen=true;
+  }
   displayResults();
  }catch(e){console.error('Results UI:',e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
 };
