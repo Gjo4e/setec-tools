@@ -18,6 +18,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve app version
+        run: |
+          minor=$((GITHUB_RUN_NUMBER-680))
+          if [ "$minor" -lt 2 ]; then minor=2; fi
+          echo "APP_VERSION=7.$minor" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -35,12 +40,12 @@ jobs:
         run: gradle --no-daemon :app:testDebugUnitTest --stacktrace
       - name: Build original-package APK
         run: |
-          gradle --no-daemon -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=2.0.${GITHUB_RUN_NUMBER} :app:assembleDebug --stacktrace
+          gradle --no-daemon -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           mkdir -p app/build/outputs/release-candidates
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-Update-v65.apk
       - name: Build side-by-side category APK
         run: |
-          gradle --no-daemon -PparallelCatalog=true -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=2.0.${GITHUB_RUN_NUMBER} :app:assembleDebug --stacktrace
+          gradle --no-daemon -PparallelCatalog=true -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-v65-Separate.apk
       - name: Verify both APK application IDs and labels
         shell: bash
@@ -75,7 +80,7 @@ jobs:
           fi
           code=$((1000+GITHUB_RUN_NUMBER))
           export UPDATE_CODE="$code"
-          export UPDATE_NAME="2.0.$GITHUB_RUN_NUMBER"
+          export UPDATE_NAME="$APP_VERSION"
           dir=app/build/outputs/release-candidates
           export UPDATE_DIR="$dir"
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
