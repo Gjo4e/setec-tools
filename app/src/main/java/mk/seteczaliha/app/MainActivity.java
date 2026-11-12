@@ -37,6 +37,7 @@ public final class MainActivity extends ComponentActivity {
     private static final String HOME = "https://www.setec.mk/";
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView ui;
+    private AppUpdater updater;
     private WebView merchant;
     private WebView batchMerchant;
     private WebView categoryMerchant;
@@ -69,6 +70,8 @@ public final class MainActivity extends ComponentActivity {
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
         super.onCreate(state);
+        updater=new AppUpdater(this);
+        handler.postDelayed(()->updater.check(false),2500);
         getWindow().setStatusBarColor(Color.rgb(8,13,20));
         getWindow().setNavigationBarColor(Color.BLACK);
         scannerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -337,6 +340,7 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
         }
+        @JavascriptInterface public void checkAppUpdate() { runOnUiThread(()->updater.check(true)); }
         @JavascriptInterface public void printPriceLabel(String json) {
             runOnUiThread(() -> {
                 try {
