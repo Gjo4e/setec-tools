@@ -1,4 +1,4 @@
-name: Build Setec Zaliha APK
+name: Build Setec Tools APK
 # Barcode scanner build: EAN-13, UPC-A, Code128, Data Matrix, guide ROI, manual modes, automated online product research - SETEC specs and relevance fix
 on:
   push:
