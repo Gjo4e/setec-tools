@@ -6,7 +6,7 @@ plugins {
 def parallelCatalog = project.findProperty('parallelCatalog') == 'true'
 
 def resolvedVersionCode = (project.findProperty('updateVersionCode') ?: '65').toString().toInteger()
-def resolvedVersionName = (project.findProperty('updateVersionName') ?: '1.5-scan-compare-safe').toString()
+def resolvedVersionName = (project.findProperty('updateVersionName') ?: '7.2').toString()
 
 android {
     namespace 'mk.seteczaliha.app'
