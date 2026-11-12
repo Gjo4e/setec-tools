@@ -11,6 +11,9 @@ import android.print.PrintManager;
 import android.print.PageRange;
 import org.json.JSONObject;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import android.app.Activity;
+import android.widget.Toast;
 
 /** Sends the same single-page A4 PDF used by export to Android's native print dialog. */
 public final class PriceLabelPrinter {
@@ -23,6 +26,27 @@ public final class PriceLabelPrinter {
             .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
             .build();
         String sku=data.optString("sku","proizvod").replaceAll("[^0-9A-Za-z_-]","");
+        Activity activity=(Activity)context;
+        Toast.makeText(context,"Се подготвува ценовникот…",Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                ByteArrayOutputStream pdf=new ByteArrayOutputStream();
+                PriceLabelExporter.write(pdf,data);
+                byte[] bytes=pdf.toByteArray();
+                activity.runOnUiThread(() -> {
+                    if(activity.isFinishing() || activity.isDestroyed())return;
+                    try {
+                        openPrint(manager,attributes,sku,bytes);
+                    } catch(Exception ex) {
+                        Toast.makeText(context,"Печатењето не успеа: "+ex.getMessage(),Toast.LENGTH_LONG).show();
+                    }
+                });
+            } catch(Exception ex) {
+                activity.runOnUiThread(() -> Toast.makeText(context,"Не може да се подготви ценовникот: "+ex.getMessage(),Toast.LENGTH_LONG).show());
+            }
+        },"price-label-print").start();
+    }
+    private static void openPrint(PrintManager manager,PrintAttributes attributes,String sku,byte[] bytes){
         manager.print("Setec-Cenovnik-"+sku,new PrintDocumentAdapter(){
             @Override public void onLayout(PrintAttributes oldAttributes,PrintAttributes newAttributes,
                     CancellationSignal cancellation,LayoutResultCallback callback,Bundle extras){
@@ -38,7 +62,7 @@ public final class PriceLabelPrinter {
                     callback.onWriteCancelled();return;
                 }
                 try(FileOutputStream stream=new FileOutputStream(destination.getFileDescriptor())){
-                    PriceLabelExporter.write(stream,data);
+                    stream.write(bytes);
                     stream.flush();
                     if(cancellation.isCanceled())callback.onWriteCancelled();
                     else callback.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES});
