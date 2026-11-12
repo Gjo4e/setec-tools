@@ -16,7 +16,7 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 
 final class AppUpdater {
-    private static final String BASE="https://github.com/Gjo4e/setec-zaliha/releases/download/setec-tools-updates/";
+    private static final String BASE="https://github.com/Gjo4e/setec-tools/releases/download/setec-tools-updates/";
     private final MainActivity activity;
     private boolean busy;
     AppUpdater(MainActivity activity){this.activity=activity;}
