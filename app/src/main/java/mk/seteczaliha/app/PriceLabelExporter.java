@@ -103,9 +103,11 @@ public final class PriceLabelExporter {
         ArrayList<String> title=wrap(p,name,510,3);
         float y=250;
         for(String row:title){text(c,p,clean(row,65),40,y,26,INK,true);y+=37;}
-        rect(c,p,Color.rgb(239,243,249),40,367,555,414,8);
-        text(c,p,"ШИФРА",56,397,12,MUTED,true);
-        text(c,p,sku.isEmpty()?"—":sku,135,398,18,INK,true);
+        p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));p.setTextSize(16);
+        float skuWidth=Math.min(515,Math.max(150,78+p.measureText(sku)));
+        rect(c,p,Color.rgb(239,243,249),40,367,40+skuWidth,405,8);
+        text(c,p,"ШИФРА",52,391,11,MUTED,true);
+        text(c,p,sku.isEmpty()?"—":sku,112,392,16,INK,true);
 
         // Price block is the visual focal point.
         rect(c,p,promo?Color.rgb(255,242,242):Color.rgb(237,246,255),30,444,565,662,14);
@@ -158,6 +160,9 @@ public final class PriceLabelExporter {
         for(String row:lines){text(c,p,clean(row,66),x,y,font,INK,true);y+=font+9;}
     }
     private static void photo(Canvas c,String url,float l,float t,float r,float b){
+        photo(c,url,l,t,r,b,false);
+    }
+    private static void photo(Canvas c,String url,float l,float t,float r,float b,boolean trimWhite){
         try{
             java.net.URL u=new java.net.URL(url);
             String host=u.getHost().toLowerCase(java.util.Locale.ROOT);
@@ -172,9 +177,28 @@ public final class PriceLabelExporter {
                 android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(in);
                 if(bitmap==null)return;
                 Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
-                float scale=Math.min((r-l)/bitmap.getWidth(),(b-t)/bitmap.getHeight());
-                float w=bitmap.getWidth()*scale,h=bitmap.getHeight()*scale;
-                c.drawBitmap(bitmap,null,new RectF(l+(r-l-w)/2,t+(b-t-h)/2,l+(r-l+w)/2,t+(b-t+h)/2),p);
+                android.graphics.Rect source=new android.graphics.Rect(0,0,bitmap.getWidth(),bitmap.getHeight());
+                if(trimWhite){
+                    int minX=bitmap.getWidth(),minY=bitmap.getHeight(),maxX=-1,maxY=-1;
+                    int stride=Math.max(1,Math.max(bitmap.getWidth(),bitmap.getHeight())/600);
+                    for(int yy=0;yy<bitmap.getHeight();yy+=stride){
+                        for(int xx=0;xx<bitmap.getWidth();xx+=stride){
+                            int pixel=bitmap.getPixel(xx,yy);
+                            if(Color.alpha(pixel)>32 && Math.min(Color.red(pixel),Math.min(Color.green(pixel),Color.blue(pixel)))<240){
+                                minX=Math.min(minX,xx);minY=Math.min(minY,yy);
+                                maxX=Math.max(maxX,xx);maxY=Math.max(maxY,yy);
+                            }
+                        }
+                    }
+                    if(maxX>minX&&maxY>minY){
+                        int pad=Math.max(stride*2,Math.max(maxX-minX,maxY-minY)/25);
+                        source.set(Math.max(0,minX-pad),Math.max(0,minY-pad),
+                            Math.min(bitmap.getWidth(),maxX+pad+stride),Math.min(bitmap.getHeight(),maxY+pad+stride));
+                    }
+                }
+                float scale=Math.min((r-l)/source.width(),(b-t)/source.height());
+                float w=source.width()*scale,h=source.height()*scale;
+                c.drawBitmap(bitmap,source,new RectF(l+(r-l-w)/2,t+(b-t-h)/2,l+(r-l+w)/2,t+(b-t+h)/2),p);
                 bitmap.recycle();
             }finally{connection.disconnect();}
         }catch(Exception ignored){}
@@ -206,15 +230,15 @@ public final class PriceLabelExporter {
                 if(entry.isEmpty())continue;
                 if(y>657)break;
                 p.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));p.setTextSize(13);
-                for(String line:wrap(p,"• "+entry,245,2)){
+                for(String line:wrap(p,"• "+entry,205,2)){
                     if(y>657)break;
                     text(c,p,line,43,y,13,INK,false);y+=21;
                 }
                 y+=7;
             }
             if(data.optString("specs").trim().isEmpty())
-                text(c,p,"Не се внесени потврдени спецификации.",43,467,12,MUTED,false);
-            photo(c,data.optString("img"),300,405,565,675);
+                text(c,p,"Нема внесени спецификации.",43,467,12,MUTED,false);
+            photo(c,data.optString("img"),255,397,565,675,true);
             discount(c,p,data,data.optString("regular"),data.optString("club"),269,705);
             text(c,p,price,40,742,28,BLUE,true);
             qr(c,p,url,444,682,97);
