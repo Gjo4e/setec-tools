@@ -65,7 +65,14 @@ jobs:
           fi
           key="$RUNNER_TEMP/setec-update.jks"
           trap 'rm -f "$key"' EXIT
-          printf '%s' "$UPDATE_KEYSTORE" | base64 -d > "$key"
+          if ! printf '%s' "$UPDATE_KEYSTORE" | tr -d '[:space:]' | base64 -d > "$key"; then
+            echo "::error::UPDATE_KEYSTORE_BASE64 is invalid. Copy the complete Base64 text, not the JKS file or its filename."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$key" -storepass:env UPDATE_PASSWORD -alias "$UPDATE_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Signing keystore, password or alias is invalid. Check all three update secrets."
+            exit 1
+          fi
           code=$((1000+GITHUB_RUN_NUMBER))
           export UPDATE_CODE="$code"
           export UPDATE_NAME="2.0.$GITHUB_RUN_NUMBER"
