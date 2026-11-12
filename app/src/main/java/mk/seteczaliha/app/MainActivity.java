@@ -340,6 +340,10 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
         }
+        @JavascriptInterface public String getAppVersion() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception e) { return "7.2"; }
+        }
         @JavascriptInterface public void checkAppUpdate() { runOnUiThread(()->updater.check(true)); }
         @JavascriptInterface public void printPriceLabel(String json) {
             runOnUiThread(() -> {
