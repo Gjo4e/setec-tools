@@ -5,6 +5,9 @@ plugins {
 // Optional independent installer: leaves the existing APK and customer lists intact.
 def parallelCatalog = project.findProperty('parallelCatalog') == 'true'
 
+def resolvedVersionCode = (project.findProperty('updateVersionCode') ?: '65').toString().toInteger()
+def resolvedVersionName = (project.findProperty('updateVersionName') ?: '1.5-scan-compare-safe').toString()
+
 android {
     namespace 'mk.seteczaliha.app'
     compileSdk 35
@@ -14,8 +17,8 @@ android {
         manifestPlaceholders = [appLabel: 'Setec Tools']
         minSdk 26
         targetSdk 35
-        versionCode (project.findProperty("updateVersionCode") ?: "65").toInteger()
-        versionName (project.findProperty("updateVersionName") ?: "1.5-scan-compare-safe")
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
