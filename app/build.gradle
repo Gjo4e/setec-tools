@@ -14,8 +14,8 @@ android {
         manifestPlaceholders = [appLabel: 'Setec Tools']
         minSdk 26
         targetSdk 35
-        versionCode 65
-        versionName '1.5-scan-compare-safe'
+        versionCode (project.findProperty("updateVersionCode") ?: "65").toInteger()
+        versionName (project.findProperty("updateVersionName") ?: "1.5-scan-compare-safe")
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
