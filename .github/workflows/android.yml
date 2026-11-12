@@ -14,16 +14,30 @@ permissions:
   contents: write
 concurrency:
   group: android-build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Resolve app version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          minor=$((GITHUB_RUN_NUMBER-680))
-          if [ "$minor" -lt 2 ]; then minor=2; fi
-          echo "APP_VERSION=7.$minor" >> "$GITHUB_ENV"
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/previous-update.json"
+          gh release download setec-tools-updates --repo "$GITHUB_REPOSITORY" --pattern update.json --output "$manifest"
+          python3 - "$manifest" <<'PY'
+          import json, os, re, sys
+          with open(sys.argv[1]) as f:
+              previous = json.load(f)
+          match = re.fullmatch(r"7\.(\d+)", previous["versionName"])
+          if not match:
+              raise ValueError("Unexpected published versionName")
+          version = f"7.{int(match.group(1)) + 1}"
+          code = max(int(previous["versionCode"]) + 1, 1000 + int(os.environ["GITHUB_RUN_NUMBER"]))
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"APP_VERSION={version}\nAPP_VERSION_CODE={code}\n")
+          PY
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -41,12 +55,12 @@ jobs:
         run: gradle --no-daemon :app:testDebugUnitTest --stacktrace
       - name: Build original-package APK
         run: |
-          gradle --no-daemon -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
+          gradle --no-daemon -PupdateVersionCode=$APP_VERSION_CODE -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           mkdir -p app/build/outputs/release-candidates
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-Update-v65.apk
       - name: Build side-by-side category APK
         run: |
-          gradle --no-daemon -PparallelCatalog=true -PupdateVersionCode=$((1000+GITHUB_RUN_NUMBER)) -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
+          gradle --no-daemon -PparallelCatalog=true -PupdateVersionCode=$APP_VERSION_CODE -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-v65-Separate.apk
       - name: Verify both APK application IDs and labels
         shell: bash
@@ -79,7 +93,7 @@ jobs:
             echo "::error::Signing keystore, password or alias is invalid. Check all three update secrets."
             exit 1
           fi
-          code=$((1000+GITHUB_RUN_NUMBER))
+          code="$APP_VERSION_CODE"
           export UPDATE_CODE="$code"
           export UPDATE_NAME="$APP_VERSION"
           dir=app/build/outputs/release-candidates
