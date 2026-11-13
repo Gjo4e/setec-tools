@@ -48,6 +48,7 @@ public final class MainActivity extends ComponentActivity {
     private String batchCurrentSku = null;
     private int batchSerial = 0;
     private boolean nextScanBatch = false;
+    private boolean nextScanTrack = false;
     private boolean nextScanBatchBarcode = false;
     private String activeQuery = "";
     private String queuedQuery = null;
@@ -78,10 +79,11 @@ public final class MainActivity extends ComponentActivity {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 String sku = result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
                 if (sku != null && sku.matches("[0-9]{4,8}")) {
-                    js((nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
+                    js((nextScanTrack ? "window.onTrackScanned(" : nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
                     nextScanBatch = false;
                 }
             }
+            nextScanTrack = false;
         });
         dataMatrixLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if(result.getResultCode()==RESULT_OK && result.getData()!=null){
@@ -323,13 +325,22 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public void scan() {
             runOnUiThread(() -> {
+                nextScanTrack = false;
                 nextScanBatch = false;
                 startScanner();
             });
         }
         @JavascriptInterface public void scanBatch() {
             runOnUiThread(() -> {
+                nextScanTrack = false;
                 nextScanBatch = true;
+                startScanner();
+            });
+        }
+        @JavascriptInterface public void scanTrack() {
+            runOnUiThread(() -> {
+                nextScanBatch = false;
+                nextScanTrack = true;
                 startScanner();
             });
         }
