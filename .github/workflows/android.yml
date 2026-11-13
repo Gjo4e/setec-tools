@@ -7,8 +7,6 @@ on:
     paths:
       - 'app/**'
       - '.github/workflows/android.yml'
-  pull_request:
-    branches: ['backup/before-category-specific-comparison-2026-11-07', main]
   workflow_dispatch:
 permissions:
   contents: write
@@ -34,7 +32,7 @@ jobs:
           if not match:
               raise ValueError("Unexpected published versionName")
           version = f"7.{int(match.group(1)) + 1}"
-          code = max(int(previous["versionCode"]) + 1, 1000 + int(os.environ["GITHUB_RUN_NUMBER"]))
+          code = int(previous["versionCode"]) + 1
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"APP_VERSION={version}\nAPP_VERSION_CODE={code}\n")
           PY
