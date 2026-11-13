@@ -867,8 +867,8 @@ public final class MainActivity extends ComponentActivity {
         String clickScript = "(function(){\n try{\n const elements=[...document.querySelectorAll('button,[role=\"button\"]')];\n const visible=e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';};\n const b=elements.find(e=>visible(e)&&/провери\\s*достапност/i.test((e.innerText||e.textContent||'').trim()));\n if(!b)return 'missing-button';\n const set=new WeakSet();\n for(const e of document.querySelectorAll('body *'))if(visible(e))set.add(e);\n window.__setecStockBaseline=set;\n window.__setecStockOpenedAt=Date.now();\n b.click();\n return 'clicked';\n }catch(e){return 'click-error'}\n})()";
         merchant.evaluateJavascript(clickScript, reply -> {
             if (serial != availabilitySerial || !url.equals(productUrl)) return;
-            for (long wait : new long[]{500, 1300, 2800, 4700, 7000}) {
-                handler.postDelayed(() -> readGodi(serial, url, wait == 7000), wait);
+            for (long wait : new long[]{500, 1300, 2800, 4700, 7000, 10000}) {
+                handler.postDelayed(() -> readGodi(serial, url, wait == 10000), wait);
             }
         });
     }
@@ -885,7 +885,7 @@ public final class MainActivity extends ComponentActivity {
             "for(const e of all){if(baseline.has(e)||!visible(e))continue;"+
             "let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();if(t.length<2||t.length>90)continue;"+
             "if([...e.children].filter(visible).some(x=>(x.innerText||x.textContent||'').replace(/\\s+/g,' ').trim()===t))continue;fresh.push(t)}"+
-            "const known=/^(?:(?:сетек|setec)\\s*)?(?:годи|главен\\s*магацин|магацин|чаир|гостивар|охрид|тетово|битола|велес|гтц|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица|кисела\\s*вода)(?:\\s*[-–:]\\s*.+)?$/i;"+
+            "const known=/^(?:(?:сетек|setec)\\s*)?(?:годи|главен\\s*магацин|централен\\s*магацин|г\\.?\\s*магацин|магацин|чаир|гостивар|охрид|тетово|битола|велес|гтц(?:\\s*ит)?|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица(?:\\s*retail\\s*park)?|кисела\\s*вода|дебар|кичево|струга|кочани|кавадарци|гевгелија|сити\\s*мол|дајмонд\\s*мол|рузвелтова|стадион|ѓорче\\s*петров|свети\\s*николе|неготино|крива\\s*паланка|делчево|ресен|mi\\s*store(?:\\s*скопје)?)(?:\\s+\\d+)?(?:\\s*[-–:]\\s*.+)?$/i;"+
             "const stores=[...new Set(fresh.filter(t=>known.test(t)))];"+
             "return JSON.stringify({stores:stores,complete:stores.length>0})"+
             "}catch(e){return JSON.stringify({stores:[],complete:false})}})()";
@@ -900,7 +900,6 @@ public final class MainActivity extends ComponentActivity {
                 JSONObject parsed = new JSONObject(payload);
                 JSONArray stores = parsed.optJSONArray("stores");
                 if (stores != null && stores.length() > 0) {
-                    availabilitySerial++;
                     js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
                 } else if (finalAttempt) {
                     js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
