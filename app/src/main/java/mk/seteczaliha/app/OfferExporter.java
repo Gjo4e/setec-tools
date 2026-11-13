@@ -67,15 +67,15 @@ final class OfferExporter {
         else{
             try{months=Integer.parseInt(installment);}catch(NumberFormatException e){throw new JSONException("Неважечки број на рати.");}
             switch(months){
-                case 3:interest=1.99;break;
-                case 6:interest=2.49;break;
-                case 9:interest=2.79;break;
-                case 12:interest=2.99;break;
-                case 15:interest=3.99;break;
-                case 18:interest=4.99;break;
-                case 24:interest=5.99;break;
-                case 36:interest=8.99;break;
-                case 48:interest=11.99;break;
+                case 3:interest=0;break;
+                case 6:interest=0;break;
+                case 9:interest=0;break;
+                case 12:interest=0;break;
+                case 15:interest=0;break;
+                case 18:interest=0;break;
+                case 24:interest=0;break;
+                case 36:interest=0;break;
+                case 48:interest=0;break;
                 case 60:interest=14.99;break;
                 default:throw new JSONException("Неважечки број на рати.");
             }
