@@ -1,17 +1,43 @@
-name: Build Setec Zaliha APK
+name: Build Setec Tools APK
+# Version-only build to test in-app update from 7.7
+# Barcode scanner build: EAN-13, UPC-A, Code128, Data Matrix, guide ROI, manual modes, automated online product research - SETEC specs and relevance fix
 on:
   push:
-    branches: [main, 'feature/datamatrix-setec-scan-2026-11-06']
+    branches: [main, 'feature/datamatrix-setec-scan-2026-11-06', 'fix-offer-export-installments-20261108']
     paths:
       - 'app/**'
       - '.github/workflows/android.yml'
+  pull_request:
+    branches: ['backup/before-category-specific-comparison-2026-11-07', main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve app version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/previous-update.json"
+          gh release download setec-tools-updates --repo "$GITHUB_REPOSITORY" --pattern update.json --output "$manifest"
+          python3 - "$manifest" <<'PY'
+          import json, os, re, sys
+          with open(sys.argv[1]) as f:
+              previous = json.load(f)
+          match = re.fullmatch(r"7\.(\d+)", previous["versionName"])
+          if not match:
+              raise ValueError("Unexpected published versionName")
+          version = f"7.{int(match.group(1)) + 1}"
+          code = max(int(previous["versionCode"]) + 1, 1000 + int(os.environ["GITHUB_RUN_NUMBER"]))
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"APP_VERSION={version}\nAPP_VERSION_CODE={code}\n")
+          PY
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -29,12 +55,12 @@ jobs:
         run: gradle --no-daemon :app:testDebugUnitTest --stacktrace
       - name: Build original-package APK
         run: |
-          gradle --no-daemon :app:assembleDebug --stacktrace
+          gradle --no-daemon -PupdateVersionCode=$APP_VERSION_CODE -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           mkdir -p app/build/outputs/release-candidates
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-Update-v65.apk
       - name: Build side-by-side category APK
         run: |
-          gradle --no-daemon -PparallelCatalog=true :app:assembleDebug --stacktrace
+          gradle --no-daemon -PparallelCatalog=true -PupdateVersionCode=$APP_VERSION_CODE -PupdateVersionName=${APP_VERSION} :app:assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/release-candidates/SETEC-TOOLS-v65-Separate.apk
       - name: Verify both APK application IDs and labels
         shell: bash
@@ -43,6 +69,57 @@ jobs:
           "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-Update-v65.apk | grep "package: name='mk.setecsifri.compare60'"
           "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-v65-Separate.apk | grep "package: name='mk.setecsifri.compare60.catalog65'"
           "$AAPT" dump badging app/build/outputs/release-candidates/SETEC-TOOLS-v65-Separate.apk | grep "application-label:'Setec Tools'"
+      - name: Sign and publish in-app updates
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/fix-offer-export-installments-20261108'
+        env:
+          UPDATE_KEYSTORE: ${{ secrets.UPDATE_KEYSTORE_BASE64 }}
+          UPDATE_PASSWORD: ${{ secrets.UPDATE_KEYSTORE_PASSWORD }}
+          UPDATE_ALIAS: ${{ secrets.UPDATE_KEY_ALIAS }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$UPDATE_KEYSTORE" ] || [ -z "$UPDATE_PASSWORD" ] || [ -z "$UPDATE_ALIAS" ]; then
+            echo "::warning::Stable update signing key not configured; APK artifacts remain available but in-app publication is skipped."
+            exit 0
+          fi
+          key="$RUNNER_TEMP/setec-update.jks"
+          trap 'rm -f "$key"' EXIT
+          if ! printf '%s' "$UPDATE_KEYSTORE" | tr -d '[:space:]' | base64 -d > "$key"; then
+            echo "::error::UPDATE_KEYSTORE_BASE64 is invalid. Copy the complete Base64 text, not the JKS file or its filename."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$key" -storepass:env UPDATE_PASSWORD -alias "$UPDATE_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Signing keystore, password or alias is invalid. Check all three update secrets."
+            exit 1
+          fi
+          code="$APP_VERSION_CODE"
+          export UPDATE_CODE="$code"
+          export UPDATE_NAME="$APP_VERSION"
+          dir=app/build/outputs/release-candidates
+          export UPDATE_DIR="$dir"
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          for variant in original separate; do
+            if [ "$variant" = original ]; then input="$dir/SETEC-TOOLS-Update-v65.apk"; else input="$dir/SETEC-TOOLS-v65-Separate.apk"; fi
+            output="$dir/Setec-Tools-$code-$variant.apk"
+            "$signer" sign --ks "$key" --ks-key-alias "$UPDATE_ALIAS" --ks-pass env:UPDATE_PASSWORD --key-pass env:UPDATE_PASSWORD --out "$output" "$input"
+            "$signer" verify "$output"
+            cp "$output" "$input"
+          done
+          python3 - <<'PY'
+          import os, json, hashlib, pathlib, subprocess
+          d=pathlib.Path(os.environ["UPDATE_DIR"])
+          code=int(os.environ["UPDATE_CODE"])
+          packages={}
+          for variant, package in [("original","mk.setecsifri.compare60"),("separate","mk.setecsifri.compare60.catalog65")]:
+              f=d/f"Setec-Tools-{code}-{variant}.apk"
+              packages[package]={"file":f.name,"size":f.stat().st_size,"sha256":hashlib.sha256(f.read_bytes()).hexdigest()}
+          notes=subprocess.check_output(["git","log","-1","--pretty=%s"],text=True).strip()
+          (d/"update.json").write_text(json.dumps({"versionCode":code,"versionName":os.environ["UPDATE_NAME"],"notes":notes,"packages":packages}))
+          PY
+          gh release view setec-tools-updates >/dev/null 2>&1 || gh release create setec-tools-updates --target "$GITHUB_SHA" --title "Setec Tools updates" --notes "Automatic Android updates" --latest=false
+          gh release upload setec-tools-updates "$dir/Setec-Tools-$code-original.apk" "$dir/Setec-Tools-$code-separate.apk" --clobber
+          gh release upload setec-tools-updates "$dir/update.json" --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: Setec-Zaliha-APK

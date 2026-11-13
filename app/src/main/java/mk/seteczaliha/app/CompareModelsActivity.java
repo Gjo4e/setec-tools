@@ -42,7 +42,7 @@ import java.util.Map;
 /**
  * Compare precisely two real models. The existing opt-in camera scanner
  * finds and verifies each Setec product and extracts its listed specs.
- * Only up to five key specs appear side by side, with unknown values marked.
+ * All available verified specifications are presented in organized sections, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
     private static final int ORANGE=0xFF279DFF;
@@ -83,11 +83,11 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(safeSource(source)){
                     p.source=source;
                     p.description=obj.optString("description").trim();
-                    if(p.description.length()>800)
-                        p.description=p.description.substring(0,800);
+                    if(p.description.length()>16000)
+                        p.description=p.description.substring(0,16000);
                     JSONArray detailArray=obj.optJSONArray("details");
                     if(detailArray!=null)
-                        for(int i=0;i<detailArray.length()&&p.details.size()<5;i++){
+                        for(int i=0;i<detailArray.length()&&p.details.size()<220;i++){
                             String line=detailArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -97,7 +97,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                         p.details=SetecCompareRows.parseLines(p.description);
                     JSONArray highlightArray=obj.optJSONArray("highlights");
                     if(highlightArray!=null)
-                        for(int i=0;i<highlightArray.length()&&p.highlights.size()<5;i++){
+                        for(int i=0;i<highlightArray.length()&&p.highlights.size()<20;i++){
                             String line=highlightArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -119,7 +119,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                     List<String> fromSetec=SetecCompareRows.highlights(
                         p.name,p.facts,p.details,p.description);
                     for(String line:fromSetec){
-                        if(p.highlights.size()>=5)break;
+                        if(p.highlights.size()>=20)break;
                         if(!p.highlights.contains(line))p.highlights.add(line);
                     }
                 }
@@ -306,8 +306,13 @@ public final class CompareModelsActivity extends ComponentActivity {
                 "let title=(document.querySelector('h1')?.innerText||document.title||'').trim();"+
                 "let club=body.match(/Клуб\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
                 "let regular=body.match(/Редовна\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
-                "let specs=[...document.querySelectorAll('table tr,dl div,li')].map(x=>x.innerText?.replace(/\\s+/g,' ').trim()).filter(x=>x&&x.length>8&&x.length<200).slice(0,70);"+
-                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:specs.slice(0,5),description:specs.slice(0,12).join('\\n')});})()";
+                "let details=[],seen=new Set();"+
+                "function add(label,value){let x=(label?label+': ':'')+value;x=x.replace(/\\s+/g,' ').trim();if(x.length<3||x.length>230||seen.has(x.toLowerCase()))return;seen.add(x.toLowerCase());details.push(x)}"+
+                "document.querySelectorAll('table tr').forEach(tr=>{let cells=[...tr.querySelectorAll('th,td')].map(x=>x.innerText.trim()).filter(Boolean);if(cells.length>=2)add(cells[0],cells.slice(1).join(' · '));else if(cells.length===1)add('',cells[0])});"+
+                "document.querySelectorAll('dl').forEach(dl=>{let key='';[...dl.children].forEach(el=>{if(el.tagName==='DT')key=el.innerText.trim();else if(el.tagName==='DD')add(key,el.innerText.trim())})});"+
+                "document.querySelectorAll('[class*=specification] li,[class*=Specification] li,[class*=description] li,[class*=Description] li,[id*=description] li,[id*=spec] li').forEach(el=>add('',el.innerText));"+
+                "document.querySelectorAll('li').forEach(el=>{if(details.length<180)add('',el.innerText)});"+
+                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:details.slice(0,220),description:details.slice(0,120).join('\\n')});})()";
             lookupBrowsers[slot].evaluateJavascript(script,result->{
                 if(serial!=lookupSerial[slot])return;
                 String json=decodeWebString(result);
@@ -449,7 +454,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         row("Клуб цена", left==null?"—":price(left.club),right==null?"—":price(right.club),false);
         row("Редовна цена",left==null?"—":price(left.regular),right==null?"—":price(right.regular),false);
 
-        TextView keyTitle=text("5 НАЈВАЖНИ ПОДАТОЦИ ЗА СЕКОЈ ПРОИЗВОД",15,true,INK);
+        TextView keyTitle=text("СИТЕ ДОСТАПНИ СПЕЦИФИКАЦИИ ПО ПРОИЗВОД",15,true,INK);
         LinearLayout.LayoutParams kh=new LinearLayout.LayoutParams(-1,-2);
         kh.topMargin=dp(20);
         table.addView(keyTitle,kh);
@@ -459,10 +464,10 @@ public final class CompareModelsActivity extends ComponentActivity {
         kp.topMargin=dp(9);
         table.addView(keyColumns,kp);
         LinearLayout.LayoutParams model1=new LinearLayout.LayoutParams(-1,-2);
-        keyColumns.addView(highlightCard(left,1),model1);
+        keyColumns.addView(fullSpecsCard(left,1),model1);
         LinearLayout.LayoutParams model2=new LinearLayout.LayoutParams(-1,-2);
         model2.topMargin=dp(10);
-        keyColumns.addView(highlightCard(right,2),model2);
+        keyColumns.addView(fullSpecsCard(right,2),model2);
 
         if(left==null||right==null)return;
         String categoryWarning=CompareCategoryGuard.incompatibility(left.name,right.name);
@@ -499,8 +504,8 @@ public final class CompareModelsActivity extends ComponentActivity {
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" заеднички потврдени спецификации (најмногу 5). "+
-            "Описите погоре се одвоени за секој модел; овде се порамнуваат само исти полиња со соодветни мерни единици.",
+        TextView count=text("Прикажани "+rows.size()+" заеднички карактеристики. "+
+            "Описите погоре се одвоени за секој модел; овде се порамнуваат исти технички полиња или дословно исти карактеристики од описите.",
             12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
@@ -591,7 +596,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         }else if(product.highlights.isEmpty()){
             t.append("Нема потврдени технички детали на Setec.");
         }else{
-            for(int i=0;i<product.highlights.size()&&i<5;i++)
+            for(int i=0;i<product.highlights.size();i++)
                 t.append("\n• ").append(product.highlights.get(i));
         }
         TextView v=text(t.toString(),13,false,0xFFE9F4FF);
@@ -603,6 +608,68 @@ public final class CompareModelsActivity extends ComponentActivity {
         bg.setStroke(dp(1),0xFF2C5575);
         v.setBackground(bg);
         return v;
+    }
+
+    /** Complete, de-duplicated Setec specifications, grouped for quick reading. */
+    private LinearLayout fullSpecsCard(Product product,int slot){
+        LinearLayout card=new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(13),dp(13),dp(13),dp(13));
+        card.setBackground(gradient(0xFF15283B,0xFF101D2C,0xFF2C5575,12));
+        card.addView(text("МОДЕЛ "+slot+(product==null?"":" · "+product.name),14,true,0xFF58C5FF));
+        if(product==null){card.addView(text("Скенирај или внеси шифра.",12,false,0xFFE9F4FF));return card;}
+        java.util.LinkedHashMap<String,java.util.LinkedHashMap<String,String>> groups=new java.util.LinkedHashMap<>();
+        java.util.LinkedHashSet<String> seen=new java.util.LinkedHashSet<>();
+        for(Map.Entry<String,String> entry:product.facts.entrySet()){
+            String label=entry.getKey()==null?"":entry.getKey().trim();
+            String value=entry.getValue()==null?"":entry.getValue().trim();
+            if(label.isEmpty()||value.isEmpty()||SetecCompareRows.isUiOrSalesText(label+" "+value))continue;
+            String key=(label+":"+value).toLowerCase(java.util.Locale.ROOT);
+            if(!seen.add(key))continue;
+            String group=specGroup(label);
+            groups.computeIfAbsent(group,k->new java.util.LinkedHashMap<>()).put(label,value);
+        }
+        java.util.ArrayList<String> other=new java.util.ArrayList<>();
+        for(String raw:product.details){
+            String line=raw==null?"":raw.trim();
+            if(line.length()<3||SetecCompareRows.isUiOrSalesText(line))continue;
+            java.util.regex.Matcher match=java.util.regex.Pattern.compile("^([^:：]{2,48})\\s*[:：]\\s*(.{2,180})$").matcher(line);
+            if(match.matches()){
+                String label=match.group(1).trim(),value=match.group(2).trim();
+                String key=(label+":"+value).toLowerCase(java.util.Locale.ROOT);
+                if(seen.add(key))groups.computeIfAbsent(specGroup(label),k->new java.util.LinkedHashMap<>()).putIfAbsent(label,value);
+            }else if(seen.add(line.toLowerCase(java.util.Locale.ROOT)))other.add(line);
+        }
+        for(String group:new String[]{"Процесор и перформанси","Меморија и складирање","Екран и графика","Поврзување и порти","Батерија и напојување","Димензии и дизајн","Камера и звук","Оперативен систем и софтвер","Гаранција и сертификати","Други карактеристики"}){
+            Map<String,String> values=groups.get(group);
+            if(values==null||values.isEmpty())continue;
+            TextView heading=text(group,13,true,0xFF77C9FF);
+            LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(12);card.addView(heading,hp);
+            for(Map.Entry<String,String> e:values.entrySet()){
+                TextView line=text(e.getKey()+"  ·  "+e.getValue(),12,false,0xFFE5F0FF);
+                line.setPadding(dp(4),dp(6),dp(4),dp(6));card.addView(line);
+            }
+        }
+        if(!other.isEmpty()){
+            TextView heading=text("Дополнителни детали",13,true,0xFF77C9FF);
+            LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(12);card.addView(heading,hp);
+            for(String line:other){TextView item=text("• "+line,12,false,0xFFE5F0FF);item.setPadding(dp(4),dp(5),dp(4),dp(5));card.addView(item);}
+        }
+        if(groups.isEmpty()&&other.isEmpty())card.addView(text("Нема објавени потврдени спецификации.",12,false,0xFFE5F0FF));
+        return card;
+    }
+    private static String specGroup(String label){
+        String s=label.toLowerCase(java.util.Locale.ROOT);
+        if(s.matches(".*(процесор|processor|cpu|чипсет|chipset|јадра|cores|clock).*"))return "Процесор и перформанси";
+        if(s.matches(".*(ram|мемори|ssd|storage|диск|disk|hdd|капацитет на диск).*"))return "Меморија и складирање";
+        if(s.matches(".*(екран|display|screen|резолуц|resolution|графич|graphics|gpu|refresh|освежува).*"))return "Екран и графика";
+        if(s.matches(".*(wifi|wi-fi|bluetooth|usb|hdmi|порт|port|lan|ethernet|поврзува).*"))return "Поврзување и порти";
+        if(s.matches(".*(батери|battery|power|напојува|полнач|adapter).*"))return "Батерија и напојување";
+        if(s.matches(".*(тежина|weight|дименз|dimension|боја|color|материјал|size).*"))return "Димензии и дизајн";
+        if(s.matches(".*(оперативен|operating system|windows|linux|software|софтвер).*"))return "Оперативен систем и софтвер";
+        if(s.matches(".*(камера|camera|webcam|микрофон|microphone|звучник|speaker|audio|звук).*"))return "Камера и звук";
+        if(s.matches(".*(гаранци|warranty|сертифик|certificat).*"))return "Гаранција и сертификати";
+        return "Други карактеристики";
     }
 
     private String subtitle(Product p){

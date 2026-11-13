@@ -23,6 +23,14 @@ final class CompareCategoryGuard {
         HOOD("Аспиратор"),
         OVEN("Шпорет / рерна"),
         TOASTER("Тостер"),
+        HEADPHONES("Слушалки"), TABLET("Таблет"), SMARTWATCH("Паметен часовник"),
+        VACUUM("Правосмукалка"), COFFEE_MACHINE("Кафемат"), BOILER("Бојлер"),
+        COOKTOP("Плотна"), MICROWAVE("Микробранова"), PRINTER("Печатач"),
+        ROUTER("Рутер"), CAMERA("Камера"), SPEAKER("Звучник"),
+        KEYBOARD("Тастатура"), MOUSE("Глушец"), GAME_CONSOLE("Конзола"),
+        AIR_PURIFIER("Прочистувач на воздух"), FAN("Вентилатор"),
+        HAIR_DRYER("Фен"), BLENDER("Блендер"), IRON("Пегла"),
+        FREEZER("Замрзнувач"),
         UNKNOWN("Непозната категорија");
         final String label;
         Kind(String label){this.label=label;}
@@ -37,7 +45,28 @@ final class CompareCategoryGuard {
         if(contains(n,"МАШИНА ЗА СУШЕЊЕ","СУШАРА","TUMBLE DRYER","CLOTHES DRYER"))return Kind.DRYER;
         if(contains(n,"МАШИНА ЗА САДОВИ","МИЕЊЕ САДОВИ","DISHWASHER"))return Kind.DISHWASHER;
         if(contains(n,"МАШИНА ЗА ПЕРЕЊЕ","МАШИНА ЗА АЛИШТА","ПЕРАЛНА","ПРАЛНА","WASHING MACHINE","WASHER","TWM 10","MF110W"))return Kind.WASHER;
+        if(contains(n,"ЗАМРЗНУВАЧ","FREEZER","ЗАМРЗНАТА"))return Kind.FREEZER;
         if(contains(n,"ФРИЖИДЕР","ЛАДИЛНИК","ЗАМРЗНУВАЧ","REFRIGERATOR","FREEZER","FRIDGE"))return Kind.REFRIGERATOR;
+        if(contains(n,"СЛУШАЛКИ","HEADPHONES","EARBUDS","EARPHONES","TWS","HEADSET"))return Kind.HEADPHONES;
+        if(contains(n,"ТАБЛЕТ","TABLET","IPAD","IDEA TAB"))return Kind.TABLET;
+        if(contains(n,"ПАМЕТЕН ЧАСОВНИК","SMARTWATCH","SMART WATCH","GALAXY WATCH","APPLE WATCH"))return Kind.SMARTWATCH;
+        if(contains(n,"ПРАВОСМУКАЛКА","VACUUM","ROBOT CLEANER"))return Kind.VACUUM;
+        if(contains(n,"КАФЕМАТ","COFFEE MACHINE","ESPRESSO","АПАРАТ ЗА КАФЕ"))return Kind.COFFEE_MACHINE;
+        if(contains(n,"БОЈЛЕР","WATER HEATER"))return Kind.BOILER;
+        if(contains(n,"ПЛОТНА","HOB","COOKTOP"))return Kind.COOKTOP;
+        if(contains(n,"МИКРОБРАНОВА","MICROWAVE"))return Kind.MICROWAVE;
+        if(contains(n,"ПЕЧАТАЧ","PRINTER","MULTIFUNCTION PRINTER"))return Kind.PRINTER;
+        if(contains(n,"РУТЕР","ROUTER","MESH WIFI"))return Kind.ROUTER;
+        if(contains(n,"ФОТОАПАРАТ","WEB CAMERA","WEBCAM","DIGITAL CAMERA"))return Kind.CAMERA;
+        if(contains(n,"ЗВУЧНИК","SPEAKER","SOUNDBAR"))return Kind.SPEAKER;
+        if(contains(n,"ТАСТАТУРА","KEYBOARD"))return Kind.KEYBOARD;
+        if(contains(n,"ГЛУШЕЦ","MOUSE"))return Kind.MOUSE;
+        if(contains(n,"КОНЗОЛА","PLAYSTATION","XBOX","NINTENDO SWITCH"))return Kind.GAME_CONSOLE;
+        if(contains(n,"ПРОЧИСТУВАЧ НА ВОЗДУХ","AIR PURIFIER"))return Kind.AIR_PURIFIER;
+        if(contains(n,"ВЕНТИЛАТОР","FAN"))return Kind.FAN;
+        if(contains(n,"ФЕН ЗА КОСА","HAIR DRYER"))return Kind.HAIR_DRYER;
+        if(contains(n,"БЛЕНДЕР","BLENDER"))return Kind.BLENDER;
+        if(contains(n,"ПЕГЛА","IRON"))return Kind.IRON;
         if(contains(n,"МОНИТОР","MONITOR"))return Kind.MONITOR;
         if(contains(n,"ТЕЛЕВИЗОР","TELEVISION","SMART TV"," QLED"," OLED"," LED TV"," ТВ "))return Kind.TV;
         if(contains(n,"ЛАПТОП","NOTEBOOK","LAPTOP","MACBOOK","IDEAPAD","VIVOBOOK","THINKPAD","ZENBOOK","ASPIRE","PAVILION","INSPIRON"))return Kind.LAPTOP;

@@ -7,6 +7,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
@@ -40,10 +43,16 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private final AtomicBoolean busy=new AtomicBoolean(false);
     private final BarcodeScanner scanner=BarcodeScanning.getClient(
-        new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX).build());
+        new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX, Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_UPC_A, Barcode.FORMAT_UPC_E, Barcode.FORMAT_CODE_128, Barcode.FORMAT_CODE_39, Barcode.FORMAT_ITF).build());
     private ProcessCameraProvider provider;
     private PreviewView preview;
     private TextView status;
+    private android.view.View guide;
+    private TextView hint;
+    private Button trigger, autoToggle, shapeToggle;
+    private volatile boolean automatic=true;
+    private volatile boolean lineMode=false;
+    private volatile boolean captureRequested=false;
     private String lastPayload="";
     private boolean finished=false;
     private ActivityResultLauncher<String> permission;
@@ -61,7 +70,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         preview=new PreviewView(this);
         preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
         root.addView(preview,new FrameLayout.LayoutParams(-1,-1));
-        android.view.View guide=new android.view.View(this);
+        guide=new android.view.View(this);
         GradientDrawable border=new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(dp(14));
@@ -69,8 +78,8 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         guide.setBackground(border);
         FrameLayout.LayoutParams gp=new FrameLayout.LayoutParams(dp(230),dp(230),Gravity.CENTER);
         root.addView(guide,gp);
-        TextView hint=new TextView(this);
-        hint.setText("Скенирај Data Matrix · Насочи го квадратниот код во рамката");
+        hint=new TextView(this);
+        hint.setText("Скенирај баркод · EAN / UPC / Data Matrix");
         hint.setTextColor(Color.WHITE);hint.setTextSize(18);
         hint.setGravity(Gravity.CENTER);hint.setPadding(dp(20),dp(20),dp(20),dp(20));
         hint.setBackgroundColor(0xDD0B1C2E);
@@ -81,9 +90,23 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         bottom.setBackgroundColor(0xF00B1C2E);
         root.addView(bottom,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         status=new TextView(this);
-        status.setText("Барам квадратен Data Matrix код…");
+        status.setText("Барам баркод…");
         status.setTextColor(Color.WHITE);status.setTextSize(16);status.setGravity(Gravity.CENTER);
         bottom.addView(status);
+        LinearLayout controls=new LinearLayout(this);
+        controls.setGravity(Gravity.CENTER);
+        bottom.addView(controls);
+        autoToggle=button("Автоматски: ON",0xFF176A9C);
+        shapeToggle=button("Рамка: квадрат",0xFF176A9C);
+        controls.addView(autoToggle,new LinearLayout.LayoutParams(0,dp(48),1));
+        controls.addView(shapeToggle,new LinearLayout.LayoutParams(0,dp(48),1));
+        trigger=button("СКЕНИРАЈ СЕГА",0xFF258BFF);
+        bottom.addView(trigger,new LinearLayout.LayoutParams(-1,dp(52)));
+        trigger.setVisibility(android.view.View.GONE);
+        autoToggle.setOnClickListener(v->{automatic=!automatic;captureRequested=false;updateMode();});
+        shapeToggle.setOnClickListener(v->{lineMode=!lineMode;captureRequested=false;updateMode();});
+        trigger.setOnClickListener(v->{captureRequested=true;status.setText("Читам само во означената зона…");});
+        updateMode();
         LinearLayout actions=new LinearLayout(this);
         bottom.addView(actions);
         Button back=button("Назад",0xFF173B60),manual=button("Внеси шифра",0xFF258BFF);
@@ -111,16 +134,28 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
                 analysis.setAnalyzer(executor,proxy->{
                     if(finished||!busy.compareAndSet(false,true)){proxy.close();return;}
-                    android.media.Image image=proxy.getImage();
-                    if(image==null){busy.set(false);proxy.close();return;}
-                    InputImage input=InputImage.fromMediaImage(image,proxy.getImageInfo().getRotationDegrees());
+                    if(!automatic&&!captureRequested){busy.set(false);proxy.close();return;}
+                    Bitmap original=proxy.toBitmap();
+                    Matrix rotation=new Matrix();
+                    rotation.postRotate(proxy.getImageInfo().getRotationDegrees());
+                    Bitmap upright=Bitmap.createBitmap(original,0,0,original.getWidth(),original.getHeight(),rotation,true);
+                    // Analyze only the central visible guide, never the entire camera frame.
+                    // The preview uses FILL_CENTER, so the central image region matches the guide.
+                    int w=upright.getWidth(),h=upright.getHeight();
+                    int cropW=Math.max(1,Math.min(w,(int)(w*(lineMode?0.82f:0.56f))));
+                    int cropH=Math.max(1,Math.min(h,(int)(h*(lineMode?0.10f:0.32f))));
+                    int x=(w-cropW)/2,y=(h-cropH)/2;
+                    Bitmap region=Bitmap.createBitmap(upright,x,y,cropW,cropH);
+                    InputImage input=InputImage.fromBitmap(region,0);
                     scanner.process(input).addOnSuccessListener(codes->{
                         if(finished)return;
                         for(Barcode code:codes) {
-                            if(code.getFormat()!=Barcode.FORMAT_DATA_MATRIX)continue;
+                            if(code.getFormat()==Barcode.FORMAT_UNKNOWN)continue;
                             String payload=code.getRawValue();
+                            if(payload!=null)payload=payload.trim();
                             if(payload!=null&&!payload.trim().isEmpty()){
                                 finished=true;
+                                captureRequested=false;
                                 lastPayload=payload;
                                 if(provider!=null)provider.unbindAll();
                                 completeScan(payload);
@@ -128,12 +163,22 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                             }
                         }
                     }).addOnFailureListener(e->status.setText("Неуспешно читање. Приближи го кодот."))
-                    .addOnCompleteListener(t->{busy.set(false);proxy.close();});
+                    .addOnCompleteListener(t->{if(!automatic)captureRequested=false;busy.set(false);proxy.close();});
                 });
                 provider.unbindAll();
                 provider.bindToLifecycle(this,CameraSelector.DEFAULT_BACK_CAMERA,p,analysis);
             }catch(Exception e){status.setText("Камерата не е достапна. Внеси шифра рачно.");}
         },ContextCompat.getMainExecutor(this));
+    }
+    private void updateMode(){
+        autoToggle.setText("Автоматски: "+(automatic?"ON":"OFF"));
+        shapeToggle.setText(lineMode?"Рамка: линија":"Рамка: квадрат");
+        trigger.setVisibility(automatic?android.view.View.GONE:android.view.View.VISIBLE);
+        FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(lineMode?-1:dp(230),dp(lineMode?80:230),Gravity.CENTER);
+        if(lineMode){lp.leftMargin=dp(20);lp.rightMargin=dp(20);}
+        guide.setLayoutParams(lp);
+        hint.setText(lineMode?"ЛИНИЈА · Постави еден баркод на средината": "КВАДРАТ · Постави еден баркод во сината рамка");
+        status.setText(automatic?"Автоматско читање во означената зона":"Насочи го кодот и притисни СКЕНИРАЈ СЕГА");
     }
     private void completeScan(String payload) {
         Intent data=new Intent().putExtra("data_matrix_payload",payload);

@@ -45,10 +45,11 @@ final class OfferExporter {
         final String created = new SimpleDateFormat("dd.MM.yyyy HH:mm", MK).format(new Date());
         final int months;
         final double interestRate;
+        final boolean installmentsEnabled;
         int clubMissing, regularMissing, count;
         double clubTotal, regularTotal;
-        Quote(int months, double interestRate) { this.months=months; this.interestRate=interestRate; }
-        boolean canCalculateInstallments(){return count>0&&clubMissing==0&&clubTotal>0;}
+        Quote(int months, double interestRate, boolean enabled) { this.months=months; this.interestRate=interestRate; this.installmentsEnabled=enabled; }
+        boolean canCalculateInstallments(){return installmentsEnabled&&count>0&&clubMissing==0&&clubTotal>0;}
         double admin(){return clubTotal*ADMIN_RATE;}
         double interest(){return clubTotal*interestRate/100.0;}
         double toPay(){return clubTotal+admin()+interest();}
@@ -61,7 +62,8 @@ final class OfferExporter {
         String installment=data.optString("installment", "12");
         int months;
         double interest;
-        if("48-zero".equals(installment)){months=48;interest=0;}
+        if(installment.isEmpty()){months=0;interest=0;}
+        else if("48-zero".equals(installment)){months=48;interest=0;}
         else{
             try{months=Integer.parseInt(installment);}catch(NumberFormatException e){throw new JSONException("Неважечки број на рати.");}
             switch(months){
@@ -78,9 +80,13 @@ final class OfferExporter {
                 default:throw new JSONException("Неважечки број на рати.");
             }
         }
+        if("promo".equals(data.optString("interestMode")) && months>0){
+            if(months>48)throw new JSONException("Акцијата без камата важи до 48 рати.");
+            interest=0;
+        }
         JSONArray arr=data.optJSONArray("items");
         if(arr==null||arr.length()==0||arr.length()>100)throw new JSONException("Додај 1–100 производи за извоз.");
-        Quote quote=new Quote(months,interest);
+        Quote quote=new Quote(months,interest,!installment.isEmpty());
         for(int i=0;i<arr.length();i++){
             JSONObject x=arr.optJSONObject(i);
             if(x==null)throw new JSONException("Невалиден производ.");
@@ -134,6 +140,7 @@ final class OfferExporter {
                 layout.paragraph("* Дел од производите немаат потврдена цена. Прикажаните збирови се делумни.",10,Color.rgb(157,87,28));
             }
             layout.space(12);
+            if(quote.installmentsEnabled){
             layout.heading("ИНФОРМАТИВНА ПРЕСМЕТКА НА РАТИ");
             layout.row("Број на рати",countText(quote.months));
             layout.row("Административен трошок","3%");
@@ -145,6 +152,7 @@ final class OfferExporter {
                 layout.row("Месечна рата",currency(quote.monthly()));
             }else{
                 layout.paragraph("Не е пресметана рата бидејќи недостасуваат клуб цени за дел од листата.",10,Color.rgb(157,87,28));
+            }
             }
             layout.space(15);
             layout.paragraph("Информативна понуда. Цените и достапноста се според последно вчитаните податоци и мора да се потврдат во SETEC. Конечните услови за плаќање ги утврдува продавачот.",9,Color.rgb(91,108,125));
@@ -175,14 +183,14 @@ final class OfferExporter {
             page=doc.startPage(info);canvas=page.getCanvas();
             p.setStyle(Paint.Style.FILL);
             p.setColor(Color.rgb(12,30,49));canvas.drawRect(0,0,WIDTH,96,p);
-            draw("Setec Tools",MARGIN,48,20,Color.WHITE,true);
-            draw("Неофицијална понуда",MARGIN,73,10,Color.rgb(184,216,244),false);
+            draw("SETEC · ПОНУДА",MARGIN,48,20,Color.WHITE,true);
+            draw("Информативна понуда",MARGIN,73,10,Color.rgb(184,216,244),false);
             y=120;
         }
         void closePage(){
             if(page==null)return;
             p.setColor(Color.rgb(220,229,237));canvas.drawRect(MARGIN,HEIGHT-43,WIDTH-MARGIN,HEIGHT-42,p);
-            draw("Setec Tools · Информативно",MARGIN,HEIGHT-29,9,Color.rgb(111,128,145),false);
+            draw("Информативна понуда",MARGIN,HEIGHT-29,9,Color.rgb(111,128,145),false);
             draw("Стр. "+pageNumber,WIDTH-MARGIN-42,HEIGHT-29,9,Color.rgb(111,128,145),false);
             doc.finishPage(page);
             page=null;
@@ -329,7 +337,7 @@ final class OfferExporter {
             "<col min=\"5\" max=\"8\" width=\"21\" customWidth=\"1\"/></cols>");
         x.append("<sheetData>");
         x.append("<row r=\"1\" ht=\"30\" customHeight=\"1\">");
-        textCell(x,"A1","SETEC TOOLS · ПОНУДА ЗА КУПУВАЧ",1);
+        textCell(x,"A1","SETEC · ПОНУДА ЗА КУПУВАЧ",1);
         x.append("</row><row r=\"2\">");
         textCell(x,"A2","Изработено: "+q.created+"   ·   Информативна понуда",0);
         x.append("</row><row r=\"3\" ht=\"28\" customHeight=\"1\">");
@@ -357,24 +365,28 @@ final class OfferExporter {
         x.append("</row>");
         int note=total+2;
         rowText(x,note,"B","Непотврдена клуб цена: "+q.clubMissing+" ставки; редовна цена: "+q.regularMissing+" ставки.");
-        rowText(x,note+2,"B","ПРЕСМЕТКА НА РАТИ");
-        rowText(x,note+3,"B","Број на рати");
-        rowNumber(x,note+3,"G",q.months,0);
-        rowText(x,note+4,"B","Административен трошок (3%)");
-        if(q.canCalculateInstallments()){
-            rowFormula(x,note+4,"G","G"+total+"*3/100");
-        }
-        rowText(x,note+5,"B","Камата ("+currencyRate(q.interestRate)+")");
-        if(q.canCalculateInstallments()){
-            rowFormula(x,note+5,"G","G"+total+"*"+rateNumber(q.interestRate)+"/100");
-        }
-        rowText(x,note+6,"B","Вкупно за плаќање");
-        if(q.canCalculateInstallments()){
-            rowFormula(x,note+6,"G","SUM(G"+total+",G"+(note+4)+",G"+(note+5)+")");
-        }
-        rowText(x,note+7,"B","Месечна рата");
-        if(q.canCalculateInstallments()){
-            rowFormula(x,note+7,"G","G"+(note+6)+"/G"+(note+3));
+        if(q.installmentsEnabled){
+            rowText(x,note+2,"B","ПРЕСМЕТКА НА РАТИ");
+            x.append("<row r=\"").append(note+3).append("\">");
+            textCell(x,"B"+(note+3),"Број на рати",0);
+            numberCell(x,"G"+(note+3),q.months,0);
+            x.append("</row>");
+            x.append("<row r=\"").append(note+4).append("\">");
+            textCell(x,"B"+(note+4),"Административен трошок (3%)",0);
+            if(q.canCalculateInstallments())formulaCell(x,"G"+(note+4),"G"+total+"*3/100",3);
+            x.append("</row>");
+            x.append("<row r=\"").append(note+5).append("\">");
+            textCell(x,"B"+(note+5),"Камата ("+currencyRate(q.interestRate)+")",0);
+            if(q.canCalculateInstallments())formulaCell(x,"G"+(note+5),"G"+total+"*"+rateNumber(q.interestRate)+"/100",3);
+            x.append("</row>");
+            x.append("<row r=\"").append(note+6).append("\">");
+            textCell(x,"B"+(note+6),"Вкупно за плаќање",0);
+            if(q.canCalculateInstallments())formulaCell(x,"G"+(note+6),"SUM(G"+total+",G"+(note+4)+",G"+(note+5)+")",3);
+            x.append("</row>");
+            x.append("<row r=\"").append(note+7).append("\">");
+            textCell(x,"B"+(note+7),"Месечна рата",0);
+            if(q.canCalculateInstallments())formulaCell(x,"G"+(note+7),"G"+(note+6)+"/G"+(note+3),3);
+            x.append("</row>");
         }
         rowText(x,note+9,"B","Цените и ратите се информативни; потврди ги конечните услови во SETEC.");
         x.append("</sheetData>");

@@ -5,6 +5,9 @@ plugins {
 // Optional independent installer: leaves the existing APK and customer lists intact.
 def parallelCatalog = project.findProperty('parallelCatalog') == 'true'
 
+def resolvedVersionCode = (project.findProperty('updateVersionCode') ?: '65').toString().toInteger()
+def resolvedVersionName = (project.findProperty('updateVersionName') ?: '7.2').toString()
+
 android {
     namespace 'mk.seteczaliha.app'
     compileSdk 35
@@ -14,8 +17,8 @@ android {
         manifestPlaceholders = [appLabel: 'Setec Tools']
         minSdk 26
         targetSdk 35
-        versionCode 65
-        versionName '1.5-scan-compare-safe'
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -32,6 +35,7 @@ dependencies {
     implementation 'androidx.camera:camera-view:1.4.2'
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:barcode-scanning:17.3.0'
+    implementation 'com.google.zxing:core:3.5.3'
     implementation 'org.jsoup:jsoup:1.18.3'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
