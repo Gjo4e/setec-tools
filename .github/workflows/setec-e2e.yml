@@ -1,0 +1,19 @@
+name: Test SETEC categories end to end
+on:
+  push:
+    branches: ['feature/datamatrix-setec-scan-2026-11-06']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser dependencies
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 -m playwright install chromium
+      - name: Run UI and real website category tests
+        run: python3 tests/setec_category_e2e.py

@@ -1,5 +1,7 @@
 package mk.seteczaliha.app;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -19,6 +21,8 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -38,11 +42,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Real-time camera preview with on-device OCR; no shutter, retry or camera app. */
 public final class ScannerActivity extends ComponentActivity {
     public static final String EXTRA_SKU = "setec_sku";
-    private static final int ORANGE = Color.rgb(255,138,28);
+    private static final int ORANGE = Color.rgb(35,177,248);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final AtomicBoolean busy = new AtomicBoolean(false);
     private ProcessCameraProvider provider;
+    private PreviewView preview;
+    private ActivityResultLauncher<String> cameraPermission;
+    private boolean cameraStarted = false;
     private TextView detected;
     private String lastSku = null;
     private int hits = 0;
@@ -51,13 +58,17 @@ public final class ScannerActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        cameraPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (granted) startCamera();
+            else detected.setText("Дозволи пристап до камера во поставките на апликацијата или внеси шифра рачно.");
+        });
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
         setContentView(root);
-        PreviewView preview = new PreviewView(this);
+        preview = new PreviewView(this);
         preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
         root.addView(preview, new FrameLayout.LayoutParams(-1,-1));
 
@@ -77,7 +88,7 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.VERTICAL);
         top.setPadding(dp(20),dp(20),dp(20),dp(18));
-        top.setBackgroundColor(0xCC1D1C20);
+        top.setBackgroundColor(0xF00C1C30);
         FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1,-2, Gravity.TOP);
         root.addView(top, tp);
         TextView title = new TextView(this);
@@ -85,14 +96,14 @@ public final class ScannerActivity extends ComponentActivity {
         title.setTextSize(21);title.setTypeface(null,Typeface.BOLD);title.setTextColor(Color.WHITE);
         top.addView(title);
         TextView hint = new TextView(this);
-        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во портокаловата рамка. Приближи го телефонот за јасни цифри.");
+        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во сината рамка. Приближи го телефонот за јасни цифри.");
         hint.setTextSize(14);hint.setTextColor(0xFFE3E5E9);hint.setPadding(0,dp(8),0,0);
         top.addView(hint);
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setPadding(dp(20),dp(17),dp(20),dp(20));
-        bottom.setBackgroundColor(0xDD1D1C20);
+        bottom.setBackgroundColor(0xF00C1C30);
         root.addView(bottom, new FrameLayout.LayoutParams(-1,-2, Gravity.BOTTOM));
         detected = new TextView(this);
         detected.setText("Барам шифра…");detected.setTextColor(Color.WHITE);
@@ -101,13 +112,24 @@ public final class ScannerActivity extends ComponentActivity {
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.CENTER);actions.setPadding(0,dp(16),0,0);
         bottom.addView(actions);
-        Button cancel = makeButton("Назад", Color.DKGRAY);
-        Button manual = makeButton("Внеси рачно", ORANGE);
+        Button cancel = makeButton("Назад", 0xFF173B60);
+        Button manual = makeButton("Внеси рачно", 0xFF197EC2);
         actions.addView(cancel, new LinearLayout.LayoutParams(0,dp(52),1));
         actions.addView(manual, new LinearLayout.LayoutParams(0,dp(52),1));
         cancel.setOnClickListener(v -> finish());
         manual.setOnClickListener(v -> manualCode());
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera();
+        } else {
+            detected.setText("Потребна е дозвола за камера…");
+            cameraPermission.launch(Manifest.permission.CAMERA);
+        }
+    }
+    private void startCamera() {
+        if (cameraStarted || isFinishing() || isDestroyed()) return;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return;
+        cameraStarted = true;
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
         future.addListener(() -> {
             if (isFinishing() || isDestroyed()) return;
@@ -126,7 +148,8 @@ public final class ScannerActivity extends ComponentActivity {
                 // Modest optical/digital zoom makes the tiny shop-label digits legible.
                 camera.getCameraControl().setZoomRatio(1.8f);
             } catch (Exception e) {
-                detected.setText("Не можам да ја стартувам камерата. Внеси шифра рачно.");
+                cameraStarted = false;
+                detected.setText("Не можам да ја стартувам камерата. Провери дозвола за камера или внеси шифра рачно.");
             }
         }, ContextCompat.getMainExecutor(this));
     }

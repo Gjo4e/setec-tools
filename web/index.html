@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="mk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Setec Tools Web — преглед, пребарување и споредба на производи од SETEC во самостоен веб-интерфејс.">
+<title>Setec Tools</title>
+<style>
+:root{--bg:#080f1b;--panel:#111d2c;--panel2:#142438;--border:#254360;--blue:#52b5ff;--blue2:#2389ee;--text:#f3f8ff;--muted:#a8bed3;--green:#49ceaa;--purple:#b59cff}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;margin:0}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}a{color:var(--blue)}.hidden{display:none!important}
+.shell{display:grid;grid-template-columns:228px minmax(0,1fr);min-height:100vh}.sidebar{background:#0f1a29;border-right:1px solid #213a55;padding:25px 17px;position:sticky;top:0;height:100vh}.brand{display:flex;align-items:center;gap:11px;margin-bottom:9px}.brand svg{width:48px;height:48px;flex:none}.brand b{font-size:22px;font-style:italic;letter-spacing:-.7px}.brand em{font-style:italic;color:var(--blue)}.brandSub{font-size:11px;color:var(--muted);margin-bottom:30px}.navigation{display:flex;flex-direction:column;gap:7px}.navigation button{display:flex;gap:11px;align-items:center;width:100%;border:0;border-radius:12px;padding:14px 13px;text-align:left;background:none;color:var(--muted);font-weight:700}.navigation button.active{background:linear-gradient(130deg,#193952,#102a45);color:var(--blue)}.navigation .navIcon{font-size:21px;line-height:1}.buildInfo{position:absolute;left:18px;bottom:24px;right:18px;font-size:11px;color:#869fb6}
+main{width:100%;max-width:1250px;margin:0 auto;padding:30px clamp(18px,4vw,55px) 70px}.pane{display:none}.pane.active{display:block}.topLine{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.topLine h1{margin:0;font-size:25px;letter-spacing:-.6px}.topLine .label{color:#8cc9ff;font-size:12px}.hero{border:1px solid #28679b;border-radius:24px;padding:36px clamp(25px,3vw,50px);background:radial-gradient(circle at 95% 110%,#0754aa 0,transparent 46%),linear-gradient(130deg,#0b1423,#0e2846);min-height:220px;position:relative;overflow:hidden}.hero .eyebrow{font-weight:900;letter-spacing:1.1px}.hero h2{font-size:clamp(28px,3.6vw,47px);line-height:1.18;max-width:650px;margin:12px 0 14px}.hero h2 span{color:var(--blue)}.hero p{color:#c5d7e9;margin:0;font-size:15px}.searchBar{display:flex;gap:10px;margin:23px 0}.searchBar input{background:#172535;color:#f4f8ff;border:1px solid #344e68;border-radius:15px;padding:17px;flex:1;min-width:0}.searchBar button,.primary{border:0;border-radius:14px;background:#2388ed;color:#fff;padding:14px 21px;font-weight:850}.searchBar button:hover,.primary:hover{background:#167bdc}.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.tile{min-height:148px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:linear-gradient(145deg,#102e45,#101c2c);border:1px solid #2f769a;color:var(--text);padding:24px;border-radius:20px;text-align:left}.tile .square{width:44px;height:44px;display:grid;place-items:center;background:#0e405b;border-radius:13px;color:#4dc8ff;font-size:25px}.tile b{font-size:18px}.tile small{color:var(--muted)}.tile.purple{background:linear-gradient(145deg,#272744,#131b2d);border-color:#4e4776}.tile.purple .square{color:var(--purple);background:#302e58}.tile.green{background:linear-gradient(145deg,#103d3a,#10202e);border-color:#0d7968}.tile.green .square{color:#39e1be;background:#0d4b46}.box{border:1px solid var(--border);background:var(--panel);border-radius:17px;padding:20px;margin:14px 0}.notice{color:#b1c8df;line-height:1.65;font-size:13px;background:#13283b;border:1px solid #28516f;border-radius:13px;padding:13px 16px;margin:15px 0}.subtle{color:var(--muted);font-size:12px}.sectionTitle{margin:26px 0 10px;font-size:17px}.titleLine{display:flex;justify-content:space-between;align-items:center;gap:10px}.titleLine button,.ghost{border:1px solid #2d6893;color:var(--blue);border-radius:10px;background:#122e48;padding:10px 12px;font-weight:700}.categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.cat{display:flex;gap:11px;align-items:center;text-align:left;background:#132437;color:#ecf7ff;border:1px solid #2c506d;border-radius:14px;padding:15px;min-height:72px;width:100%}.cat:hover,.resultCard:hover{border-color:#4db2ff}.cat .emoji{width:37px;height:37px;background:#1b3d59;color:#5bc5ff;border-radius:11px;display:grid;place-items:center;font-size:19px;flex:none}.cat .catText{display:flex;flex-direction:column;flex:1;min-width:0}.cat b{font-size:13px;line-height:1.3}.cat small{color:var(--muted);font-size:11px;margin-top:4px}.chevron{color:var(--blue);font-size:26px}.crumb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:15px 0;color:#9db7cd;font-size:12px}.crumb button{border:0;background:transparent;color:#79c8ff;font-size:12px;padding:6px 0}
+.results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.resultCard{display:flex;align-items:center;gap:13px;padding:14px;border-radius:14px;border:1px solid var(--border);background:#132437;color:var(--text);min-height:106px}.resultCard .pic{background:#eff4f8;border-radius:12px;width:80px;height:76px;flex:none;display:grid;place-items:center;color:#2d5274;font-size:11px;overflow:hidden}.resultCard .pic img{max-width:100%;max-height:100%;object-fit:contain}.resultMain{flex:1;min-width:0}.resultMain b{font-size:13px;line-height:1.35;display:block}.resultMain small{font-size:11px;color:var(--muted)}.price{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:7px;color:#bcd2e5}.price b{color:#68c4ff;display:inline}.price .regular b{color:#c2cfdb}.resultActions{display:flex;flex-direction:column;gap:7px}.resultActions button{border:1px solid #2c6a98;background:#152f47;color:#71c5ff;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:800}.resultActions .buy{background:#1a4c78;color:#fff}
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:17px 0}.controls button{border:1px solid var(--border);padding:10px 13px;border-radius:10px;background:#173550;color:#cae7ff}.controls button:disabled{opacity:.4;cursor:default}.controls span{color:var(--muted);font-size:12px}.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.summary{background:#142b41;border:1px solid #265675;padding:16px;border-radius:14px}.summary small{color:var(--muted);display:block}.summary b{font-size:24px;color:#72c7ff}.listRow{display:flex;align-items:center;gap:13px;border-bottom:1px solid var(--border);padding:12px 0}.listRow:last-child{border:0}.listName{flex:1;min-width:0}.listName b{display:block;font-size:13px}.listName small{color:var(--muted);font-size:11px}.qty{display:flex;align-items:center;gap:8px}.qty button{background:#163b59;color:#8fd1ff;border:1px solid #2f668d;border-radius:8px;width:34px;height:34px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #273e56;padding:10px 0}.row:last-child{border:0}.row strong{color:#6dc3ff}.field{display:block;width:100%;padding:13px;background:#14283c;color:#fff;border:1px solid #38678a;border-radius:11px;margin:9px 0 14px}.rowlabel{display:block;font-weight:800;font-size:12px;margin:11px 0 5px}.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed #30506d;border-radius:13px}.footer{margin-top:30px;font-size:11px;color:#8ca5b9}.status{color:#9fbdd7;font-size:12px}.smallBtn{padding:8px 11px;border-radius:10px;border:1px solid #28648d;background:#14324d;color:#b7e6ff}.warn{color:#ffc3a6}
+@media(max-width:1050px){.categories{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.shell{grid-template-columns:1fr}.sidebar{position:static;height:auto;padding:12px 15px;border-right:0;border-bottom:1px solid #28435e}.brand{margin:0}.brand svg{width:35px;height:35px}.brand b{font-size:19px}.brandSub,.buildInfo{display:none}.navigation{flex-direction:row;overflow-x:auto;white-space:nowrap;margin-top:10px}.navigation button{width:auto;padding:10px}.navigation .navIcon{font-size:17px}main{padding:21px 15px 45px}.hero{padding:25px 20px;min-height:180px}.hero h2{font-size:30px}.tiles,.results,.two,.categories{grid-template-columns:1fr}.topLine h1{font-size:21px}.resultCard{gap:9px}.resultActions button{padding:7px}}
+</style>
+<script src="./catalog.js" defer></script>
+<script src="./products.js" defer></script>
+<script src="./app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand"><svg viewBox="0 0 64 64" role="img" aria-label="Setec Tools"><defs><linearGradient id="a" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#83ddff"/><stop offset=".6" stop-color="#268fff"/><stop offset="1" stop-color="#2a5bdd"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="17" fill="#123456" stroke="#3386c8"/><path d="M47 18c-8-7-23-7-29 0-7 8-3 15 7 17l12 3c9 2 7 9 0 11-9 3-17 1-23-5" fill="none" stroke="url(#a)" stroke-width="8" stroke-linecap="round"/><path d="M45 12l5 4-6 6M19 50l-5-4 6-6" fill="none" stroke="#90daff" stroke-width="2.5"/></svg><b>Setec <em>Tools</em></b></div>
+  <div class="brandSub">Неофицијална алатка за SETEC производи</div>
+  <nav class="navigation" aria-label="Навигација">
+    <button data-target="home" class="active"><span class="navIcon">⌂</span>Почетна</button>
+    <button data-target="search"><span class="navIcon">⌕</span>Барај</button>
+    <button data-target="categories"><span class="navIcon">▦</span>Категории</button>
+    <button data-target="list"><span class="navIcon">▤</span>Листа</button>
+    <button data-target="compare"><span class="navIcon">⚖</span>Спореди</button>
+    <button data-target="pc"><span class="navIcon">▣</span>Состави PC</button>
+  </nav>
+  <div class="buildInfo">Setec Tools Web · Браузерска верзија<br>Без зависност од Android APK</div>
+</aside>
+<main>
+  <section class="pane active" id="pane-home">
+    <div class="topLine"><h1>Добредојде во Setec Tools</h1><span class="label">WEB</span></div>
+    <div class="hero"><div class="eyebrow">ДОБРЕДОЈДЕ!</div><h2>Брзо пребарување и <span>корисни алатки.</span></h2><p>Провери производ, цена или категорија — сè на едно место.</p></div>
+    <form class="searchBar" id="homeForm"><input id="homeQuery" type="search" placeholder="Пребарај производ, модел или SETEC шифра" aria-label="Пребарај производ" autocomplete="off"><button type="submit">⌕ Барај</button></form>
+    <div class="tiles">
+      <button class="tile" data-target="search"><span class="square">▣</span><b>Провери производ</b><small>Барај шифра, цена и назив во каталогот</small></button>
+      <button class="tile purple" data-target="compare"><span class="square">⚖</span><b>Спореди производи</b><small>Цени и спецификации достапни во каталогот</small></button>
+      <button class="tile" data-target="pc"><span class="square">▤</span><b>Состави PC</b><small>Листа на компоненти и пресметка</small></button>
+      <button class="tile green" data-target="list"><span class="square">▦</span><b>Листа на купувач</b><small>Количини, вкупна цена и рати</small></button>
+    </div>
+    <div class="titleLine"><h2 class="sectionTitle">Сите категории</h2><button data-target="categories" class="smallBtn">Отвори каталог ›</button></div>
+    <p id="homeSummary" class="subtle"></p>
+    <div id="rootShortcut" class="categories"></div>
+  </section>
+  <section class="pane" id="pane-search">
+    <div class="topLine"><h1>Барај производи</h1></div>
+    <form class="searchBar" id="searchForm"><input type="search" id="searchQuery" placeholder="Назив, модел или SETEC шифра" aria-label="Пребарување"><button type="submit">⌕ Барај</button></form>
+    <div class="notice" id="searchNotice">Веб-пребарувањето користи зачуван јавен каталог. За цена или залиха во реално време потврди со SETEC.</div>
+    <div id="searchResults" class="results"></div>
+    <p class="status" id="searchCount"></p>
+  </section>
+  <section class="pane" id="pane-categories">
+    <div class="topLine"><h1>Сите категории</h1><button class="smallBtn" id="categoryHomeBtn">⌂ Сите категории</button></div>
+    <div class="crumb" id="crumbs"></div>
+    <div class="notice" id="categoryNotice">Избери главна категорија за подкатегориите и зачуваните производи.</div>
+    <div id="categoryChildren" class="categories"></div>
+    <h2 class="sectionTitle" id="categoryProductsLabel"></h2>
+    <div id="categoryProducts" class="results"></div>
+    <div class="controls" id="pager"></div>
+  </section>
+  <section class="pane" id="pane-list">
+    <div class="topLine"><h1>Листа на купувач</h1><button class="smallBtn" id="copyList">⧉ Копирај понуда</button></div>
+    <div class="two"><div class="summary"><small>Клуб цена вкупно</small><b id="clubTotal">0 ден.</b></div><div class="summary"><small>Редовна цена вкупно</small><b id="regularTotal">0 ден.</b></div></div>
+    <div class="box"><div class="titleLine"><h2 class="sectionTitle">Производи</h2><button class="smallBtn" data-target="search">+ Додај производ</button></div><div id="listRows"></div></div>
+    <div class="box"><h2 class="sectionTitle">Пресметка на рати</h2><p class="subtle">Информативна пресметка врз клуб цена, со еднократни 3% административен трошок.</p>
+      <label class="rowlabel" for="months">Број на рати</label><select class="field" id="months">
+      <option value="3">3 рати · 1,99% камата</option><option value="6">6 рати · 2,49% камата</option><option value="9">9 рати · 2,79% камата</option><option value="12">12 рати · 2,99% камата</option><option value="15">15 рати · 3,99% камата</option><option value="18">18 рати · 4,99% камата</option><option value="24">24 рати · 5,99% камата</option><option value="36">36 рати · 8,99% камата</option><option value="48-zero" selected>48 рати · 0% камата + 3% трошок</option><option value="48">48 рати · 11,99% камата</option><option value="60">60 рати · 14,99% камата</option>
+      </select><div id="installments"></div>
+      <p class="subtle">Крајните услови ги утврдува продавачот и може да се разликуваат од оваа информативна пресметка.</p>
+    </div>
+  </section>
+  <section class="pane" id="pane-compare"><div class="topLine"><h1>Спореди производи</h1><button class="smallBtn" data-target="search">+ Избери производи</button></div><div class="notice">Отвори производ од резултатите и притисни „Спореди“. Може да споредиш два производа.</div><div id="compareContent" class="two"></div></section>
+  <section class="pane" id="pane-pc"><div class="topLine"><h1>Состави PC</h1><button class="smallBtn" data-target="search">+ Побарај компонента</button></div><div class="notice">Веб-верзијата поддржува избор на компоненти и вкупна цена. FPS и автоматска проверка на компатибилност се достапни само во Android верзијата.</div><div id="pcContent"></div></section>
+  <section class="pane" id="pane-product"><div class="topLine"><h1>Детали за производ</h1><button class="smallBtn" id="backProduct">‹ Назад</button></div><div id="productDetail" class="box"></div></section>
+  <footer class="footer">Setec Tools — неофицијална алатка, независна од Setec. Каталошките податоци се информативни и може да застаруваат. <span id="dataAge"></span></footer>
+</main></div>
+</body></html>
