@@ -37,6 +37,7 @@ public final class MainActivity extends ComponentActivity {
     private static final String HOME = "https://www.setec.mk/";
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView ui;
+    private AppUpdater updater;
     private WebView merchant;
     private WebView batchMerchant;
     private WebView categoryMerchant;
@@ -47,6 +48,8 @@ public final class MainActivity extends ComponentActivity {
     private String batchCurrentSku = null;
     private int batchSerial = 0;
     private boolean nextScanBatch = false;
+    private boolean nextScanTrack = false;
+    private boolean nextScanBatchBarcode = false;
     private String activeQuery = "";
     private String queuedQuery = null;
     private String productUrl = null;
@@ -62,31 +65,41 @@ public final class MainActivity extends ComponentActivity {
     private ActivityResultLauncher<String> saveOfferPdfLauncher;
     private ActivityResultLauncher<String> saveOfferExcelLauncher;
     private OfferExporter.Quote pendingOffer;
+    private JSONObject pendingPriceLabel;
+    private ActivityResultLauncher<String> savePriceLabelLauncher;
 
     @Override @SuppressLint({"SetJavaScriptEnabled","JavascriptInterface"})
     public void onCreate(Bundle state) {
         super.onCreate(state);
+        updater=new AppUpdater(this);
+        handler.postDelayed(()->updater.check(false),2500);
         getWindow().setStatusBarColor(Color.rgb(8,13,20));
         getWindow().setNavigationBarColor(Color.BLACK);
         scannerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 String sku = result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
                 if (sku != null && sku.matches("[0-9]{4,8}")) {
-                    js((nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
+                    js((nextScanTrack ? "window.onTrackScanned(" : nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
                     nextScanBatch = false;
                 }
             }
+            nextScanTrack = false;
         });
         dataMatrixLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if(result.getResultCode()==RESULT_OK && result.getData()!=null){
                 String payload=result.getData().getStringExtra("data_matrix_payload");
                 if(payload!=null && !payload.trim().isEmpty()){
                     nextScanBatch=false;
-                    js("window.onDataMatrixScanned("+JSONObject.quote(payload.trim())+");");
+                    js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onDataMatrixScanned(")
+                        + JSONObject.quote(payload.trim()) + ");");
+                    nextScanBatchBarcode=false;
                 } else {
                     String sku=result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
-                    if(sku!=null && sku.matches("[0-9]{4,8}"))
-                        js("window.onScanned("+JSONObject.quote(sku)+");");
+                    if(sku!=null && sku.matches("[0-9]{4,8}")) {
+                        js((nextScanBatchBarcode ? "window.onBatchBarcodeScanned(" : "window.onScanned(")
+                            + JSONObject.quote(sku) + ");");
+                    }
+                    nextScanBatchBarcode=false;
                 }
             }
         });
@@ -95,6 +108,19 @@ public final class MainActivity extends ComponentActivity {
         saveOfferPdfLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/pdf"),
                 uri -> saveOfferFile(uri, true));
+        savePriceLabelLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument("application/pdf"), uri -> {
+            JSONObject label=pendingPriceLabel;pendingPriceLabel=null;
+            if(uri==null||label==null)return;
+            new Thread(() -> {
+                try(OutputStream stream=getContentResolver().openOutputStream(uri,"w")){
+                    if(stream==null)throw new java.io.IOException("Не може да се зачува фајлот.");
+                    PriceLabelExporter.write(stream,label);
+                    runOnUiThread(() -> Toast.makeText(this,"Ценовникот е зачуван како A4 PDF.",Toast.LENGTH_LONG).show());
+                }catch(Exception ex){
+                    runOnUiThread(() -> Toast.makeText(this,"Грешка при извоз: "+ex.getMessage(),Toast.LENGTH_LONG).show());
+                }
+            },"SetecPriceLabelExport").start();
+        });
         saveOfferExcelLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
                 uri -> saveOfferFile(uri, false));
@@ -257,7 +283,11 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
+        @JavascriptInterface public void scanBatchBarcode() {
+            runOnUiThread(() -> { nextScanBatchBarcode=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)); });
+        }
         @JavascriptInterface public void openModelScanner() {
+            nextScanBatchBarcode=false;
             runOnUiThread(() -> dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)));
         }
         @JavascriptInterface public void moreResults() {
@@ -295,13 +325,22 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public void scan() {
             runOnUiThread(() -> {
+                nextScanTrack = false;
                 nextScanBatch = false;
                 startScanner();
             });
         }
         @JavascriptInterface public void scanBatch() {
             runOnUiThread(() -> {
+                nextScanTrack = false;
                 nextScanBatch = true;
+                startScanner();
+            });
+        }
+        @JavascriptInterface public void scanTrack() {
+            runOnUiThread(() -> {
+                nextScanBatch = false;
+                nextScanTrack = true;
                 startScanner();
             });
         }
@@ -312,8 +351,60 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public String loadBatch() {
             return getSharedPreferences("bulk_scans", MODE_PRIVATE).getString("list", "[]");
         }
+        @JavascriptInterface public String getAppVersion() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception e) { return "7.2"; }
+        }
+        @JavascriptInterface public void checkAppUpdate() { runOnUiThread(()->updater.check(true)); }
+        @JavascriptInterface public void printPriceLabel(String json) {
+            runOnUiThread(() -> {
+                try {
+                    JSONObject label=new JSONObject(json);
+                    if(label.optString("name").trim().isEmpty())
+                        throw new IllegalArgumentException("Нема име на производ.");
+                    PriceLabelPrinter.print(MainActivity.this,label);
+                } catch(Exception ex) {
+                    Toast.makeText(MainActivity.this,"Не може да се печати ценовникот: "+ex.getMessage(),Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+        @JavascriptInterface public void exportPriceLabel(String json) {
+            runOnUiThread(() -> {
+                try{
+                    JSONObject label=new JSONObject(json);
+                    if(label.optString("name").trim().isEmpty())throw new IllegalArgumentException("Нема име на производ.");
+                    pendingPriceLabel=label;
+                    String sku=label.optString("sku","proizvod").replaceAll("[^0-9A-Za-z_-]","");
+                    savePriceLabelLauncher.launch("Setec-Cenovnik-"+sku+".pdf");
+                }catch(Exception ex){Toast.makeText(MainActivity.this,"Не може да се направи ценовник.",Toast.LENGTH_LONG).show();}
+            });
+        }
         @JavascriptInterface public void exportOffer(String type, String json) {
             runOnUiThread(() -> exportCustomerOffer(type, json));
+        }
+        @JavascriptInterface public void generateProductQr(String url) {
+            if (!SetecPageData.isOfficialProductUrl(url)) {
+                runOnUiThread(() -> js("window.onProductQrError('Невалиден линк.')"));
+                return;
+            }
+            new Thread(() -> {
+                try {
+                    com.google.zxing.common.BitMatrix matrix =
+                        new com.google.zxing.qrcode.QRCodeWriter().encode(
+                            url, com.google.zxing.BarcodeFormat.QR_CODE, 480, 480);
+                    android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(
+                        480,480,android.graphics.Bitmap.Config.ARGB_8888);
+                    for(int y=0;y<480;y++)for(int x=0;x<480;x++)
+                        bitmap.setPixel(x,y,matrix.get(x,y)?android.graphics.Color.BLACK:android.graphics.Color.WHITE);
+                    java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,bytes);
+                    String data="data:image/png;base64,"+android.util.Base64.encodeToString(
+                        bytes.toByteArray(),android.util.Base64.NO_WRAP);
+                    runOnUiThread(() -> js("window.onProductQrReady("+JSONObject.quote(url)+","+JSONObject.quote(data)+");"));
+                }catch(Exception e){
+                    runOnUiThread(() -> js("window.onProductQrError('QR-кодот не е генериран.')"));
+                }
+            }).start();
         }
         @JavascriptInterface public void copyText(String text) {
             if (text == null || text.length() > 180000) return;
@@ -766,7 +857,10 @@ public final class MainActivity extends ComponentActivity {
             "for(let i=0;node&&i<7;i++,node=node.parentElement){let p=setecPrices(node.innerText||'');if(p.clubPrice||p.regularPrice){price=p;break}}"+
             "let img=document.querySelector('meta[property=\"og:image\"]')?.content||'';"+
             "if(!img)img=[...document.images].find(x=>x.naturalWidth>=170&&x.naturalHeight>=170)?.src||'';"+
-            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice});})()";
+            "let sections=[...document.querySelectorAll('table,dl,[class*=spec],[class*=Spec],[class*=description],[class*=Description]')].map(e=>(e.innerText||'').trim()).filter(t=>t.length>25&&t.length<9000);"+ 
+            "let details=[...new Set(sections)].join('\\n').slice(0,10000);"+
+            "if(details.length<70){let idx=b.search(/(?:Спецификации|Карактеристики|Опис на производ|Specifications|Technical details)/i);if(idx>=0)details=b.slice(idx,idx+6500);}"+
+            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details});})()";
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
@@ -784,8 +878,8 @@ public final class MainActivity extends ComponentActivity {
         String clickScript = "(function(){\n try{\n const elements=[...document.querySelectorAll('button,[role=\"button\"]')];\n const visible=e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';};\n const b=elements.find(e=>visible(e)&&/провери\\s*достапност/i.test((e.innerText||e.textContent||'').trim()));\n if(!b)return 'missing-button';\n const set=new WeakSet();\n for(const e of document.querySelectorAll('body *'))if(visible(e))set.add(e);\n window.__setecStockBaseline=set;\n window.__setecStockOpenedAt=Date.now();\n b.click();\n return 'clicked';\n }catch(e){return 'click-error'}\n})()";
         merchant.evaluateJavascript(clickScript, reply -> {
             if (serial != availabilitySerial || !url.equals(productUrl)) return;
-            for (long wait : new long[]{500, 1300, 2800, 4700, 7000}) {
-                handler.postDelayed(() -> readGodi(serial, url, wait == 7000), wait);
+            for (long wait : new long[]{500, 1300, 2800, 4700, 7000, 10000}) {
+                handler.postDelayed(() -> readGodi(serial, url, wait == 10000), wait);
             }
         });
     }
@@ -802,7 +896,7 @@ public final class MainActivity extends ComponentActivity {
             "for(const e of all){if(baseline.has(e)||!visible(e))continue;"+
             "let t=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();if(t.length<2||t.length>90)continue;"+
             "if([...e.children].filter(visible).some(x=>(x.innerText||x.textContent||'').replace(/\\s+/g,' ').trim()===t))continue;fresh.push(t)}"+
-            "const known=/^(?:(?:сетек|setec)\\s*)?(?:годи|главен\\s*магацин|магацин|чаир|гостивар|охрид|тетово|битола|велес|гтц|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица|кисела\\s*вода)(?:\\s*[-–:]\\s*.+)?$/i;"+
+            "const known=/^(?:(?:сетек|setec)\\s*)?(?:годи|главен\\s*магацин|централен\\s*магацин|г\\.?\\s*магацин|магацин|чаир|гостивар|охрид|тетово|битола|велес|гтц(?:\\s*ит)?|радовиш|куманово|штип|аеродром|драчево|скопје|прилеп|струмица(?:\\s*retail\\s*park)?|кисела\\s*вода|дебар|кичево|струга|кочани|кавадарци|гевгелија|сити\\s*мол|дајмонд\\s*мол|рузвелтова|стадион|ѓорче\\s*петров|свети\\s*николе|неготино|крива\\s*паланка|делчево|ресен|mi\\s*store(?:\\s*скопје)?)(?:\\s+\\d+)?(?:\\s*[-–:]\\s*.+)?$/i;"+
             "const stores=[...new Set(fresh.filter(t=>known.test(t)))];"+
             "return JSON.stringify({stores:stores,complete:stores.length>0})"+
             "}catch(e){return JSON.stringify({stores:[],complete:false})}})()";
@@ -817,7 +911,6 @@ public final class MainActivity extends ComponentActivity {
                 JSONObject parsed = new JSONObject(payload);
                 JSONArray stores = parsed.optJSONArray("stores");
                 if (stores != null && stores.length() > 0) {
-                    availabilitySerial++;
                     js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
                 } else if (finalAttempt) {
                     js("window.showStoreAvailability(" + JSONObject.quote(payload) + ");");
