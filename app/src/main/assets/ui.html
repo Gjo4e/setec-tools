@@ -928,7 +928,7 @@ function renderCategories(){
  }
  browse.classList.toggle('hidden',!kids.length);
  browse.textContent=categoryLoaded?'⟳ Освежи ги производите · '+node.name:'▤ Вчитај ги сите производи · '+node.name;
- const categorySource=[...categoryProductsCache.values()].filter(p=>!q||categoryNormal(p.name||'').includes(q)||String(p.sku||'').includes(q));filterUi('cf',categorySource);const matches=filterApply('cf',categorySource);
+ const categorySource=[...categoryProductsCache.values()].filter(p=>!q||categoryNormal(p.name||'').includes(q)||String(p.sku||'').includes(q));filterUi('cf',categorySource);filterRelevantSpecs('cf',categorySource);const matches=filterApply('cf',categorySource);
  if(matches.length){
   products.appendChild(elem('div','categorySectionTitle','ПРОИЗВОДИ · '+matches.length+' вчитани'));
   for(const p of matches){
@@ -1006,6 +1006,8 @@ const filterBrands=['Apple','Asus','Acer','Lenovo','HP','Dell','Samsung','LG','M
 function filterPrice(p){const raw=String(p.clubPrice||p.regularPrice||'').replace(/[^0-9.,]/g,'');if(!raw)return NaN;return Number(raw.replace(/[.,](?=\d{3}(?:[.,]|$))/g,'').replace(',','.'))}
 function filterBrand(p){const name=String(p.name||'').toLowerCase();return filterBrands.find(b=>new RegExp('(?:^|[^a-z])'+b.toLowerCase()+'(?:[^a-z]|$)','i').test(name))||'Друго'}
 function filterUi(prefix,source){const brand=$(prefix+'Brand');if(!brand)return;const current=brand.value;const values=[...new Set(source.map(filterBrand))].sort((a,b)=>a.localeCompare(b));brand.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='Сите брендови';brand.appendChild(all);for(const b of values){const o=document.createElement('option');o.value=b;o.textContent=b;brand.appendChild(o)}brand.value=values.includes(current)?current:''}
+function filterComputerProduct(p){const n=String(p.name||'').toLowerCase();return /(?:лаптоп|laptop|notebook|ideapad|thinkpad|vivobook|zenbook|macbook|desktop|workstation|gaming pc|компјутер|конфигурација|all.in.one|mini pc|intel nuc)/i.test(n)}
+function filterRelevantSpecs(prefix,source){const computerOnly=source.length>0&&source.every(filterComputerProduct);for(const key of ['Cpu','Ram','Disk','Gpu']){const control=$(prefix+key);if(!control)continue;const label=control.closest('label');if(label)label.classList.toggle('hidden',!computerOnly);if(!computerOnly)control.value=''}}
 function filterApply(prefix,source){const v=id=>$(prefix+id)?.value||'',min=Number(v('Min')),max=Number(v('Max')),brand=v('Brand'),cpu=v('Cpu'),ram=v('Ram'),disk=v('Disk'),gpu=v('Gpu'),sort=v('Sort');let items=source.filter(p=>{const name=String(p.name||'').toLowerCase(),details=(name+' '+String(p.specifications||'')).toLowerCase(),price=filterPrice(p);if((v('Min')&&(!Number.isFinite(price)||price<min))||(v('Max')&&(!Number.isFinite(price)||price>max)))return false;if(brand&&filterBrand(p)!==brand)return false;if(cpu&&!details.includes(cpu.toLowerCase()))return false;if(ram&&!new RegExp('(?:^|[^0-9])'+ram+'\\s*gb','i').test(details))return false;if(disk&&!details.includes(disk))return false;if(gpu&&!details.includes(gpu))return false;return true});if(sort==='name')items.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));if(sort==='priceAsc'||sort==='priceDesc')items.sort((a,b)=>{const x=filterPrice(a),y=filterPrice(b);if(!Number.isFinite(x))return 1;if(!Number.isFinite(y))return -1;return sort==='priceAsc'?x-y:y-x});const count=items.length,active=['Min','Max','Brand','Cpu','Ram','Disk','Gpu'].filter(k=>v(k)).length;$(prefix+'Status').textContent=count+' од '+source.length+' вчитани производи'+(active?' · '+active+' активни филтри':'');return items}
 function filterReset(prefix){for(const k of ['Min','Max','Brand','Cpu','Ram','Disk','Gpu','Sort']){const e=$(prefix+k);if(e)e.value=k==='Sort'?'default':''}}
 function applyProductFilters(){displayResults()}
@@ -1014,7 +1016,7 @@ function applyCategoryProductFilters(){renderCategories()}
 function resetCategoryProductFilters(){filterReset('cf');renderCategories()}
 function displayResults(){
  const wrap=$('list');wrap.replaceChildren();
- filterUi("pf",unfilteredResults);let visible=filterApply("pf",unfilteredResults);
+ filterUi("pf",unfilteredResults);filterRelevantSpecs("pf",unfilteredResults);let visible=filterApply("pf",unfilteredResults);
 
  lastList=visible;
  if(!visible.length){wrap.appendChild(elem('div','empty',lastQuery?'Нема резултати. Пробај со пократок назив или модел.':'Нема резултати.'))}updateBarcodeFallback();
