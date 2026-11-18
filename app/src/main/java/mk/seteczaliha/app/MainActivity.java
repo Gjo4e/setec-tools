@@ -587,7 +587,7 @@ public final class MainActivity extends ComponentActivity {
             "let productName=(t?.innerText||a.title||a.innerText||u.pathname.split('/').pop().replace(/-/g,' ')).replace(/\\s+/g,' ').trim().slice(0,200);"+
             "let txt=(p.innerText||'').replace(/\\s+/g,' '),prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
-            "let img=p.querySelector('img'),src=img?.currentSrc||img?.src||img?.getAttribute('data-src')||'';"+
+            "let imgs=[...p.querySelectorAll('img')];let img=imgs.find(x=>{let info=[x.currentSrc,x.src,x.getAttribute('data-src'),x.alt,x.className,x.parentElement?.className].join(' ').toLowerCase();return !/(?:48[ _-]?(?:rati|рати|install|meseci|months)|0[ _-]?(?:interest|kamata|камата)|installment|rate[-_]?zero|promo[-_]?badge|badge[-_]?promo)/i.test(info)&&!/(?:badge|sticker|overlay)/i.test(String(x.className)+' '+String(x.parentElement?.className))&&(x.naturalWidth===0||x.naturalWidth>=100)&&(x.naturalHeight===0||x.naturalHeight>=100)});let src=img?.currentSrc||img?.getAttribute('data-src')||img?.src||'';"+
             "products.set(u.href,{url:u.href,name:productName,sku:m?m[1]:'',img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});"+
             "}"+
             "let next='';"+
@@ -735,7 +735,7 @@ public final class MainActivity extends ComponentActivity {
             "else if(/^\\d{13}$/.test(q)){/* Keep website EAN search results: their cards show SKU, not EAN. */}"+
             "else if(/[a-z]/i.test(q)&&/\\d/.test(q)&&/^[a-z0-9._\\/-]{5,}$/i.test(q)){/* P/N can be indexed on SETEC even when absent from product card text. */}"+
             "else if(q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
-            "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
+            "let imgs=[...p.querySelectorAll('img')];let image=imgs.find(x=>{let info=[x.currentSrc,x.src,x.getAttribute('data-src'),x.alt,x.className,x.parentElement?.className].join(' ').toLowerCase();return !/(?:48[ _-]?(?:rati|рати|install|meseci|months)|0[ _-]?(?:interest|kamata|камата)|installment|rate[-_]?zero|promo[-_]?badge|badge[-_]?promo)/i.test(info)&&!/(?:badge|sticker|overlay)/i.test(String(x.className)+' '+String(x.parentElement?.className))&&(x.naturalWidth===0||x.naturalWidth>=100)&&(x.naturalHeight===0||x.naturalHeight>=100)});let src=image?.currentSrc||image?.getAttribute('data-src')||image?.src||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
             "return JSON.stringify([...found.values()]);})()";
         merchant.evaluateJavascript(script, encoded -> {
@@ -823,7 +823,7 @@ public final class MainActivity extends ComponentActivity {
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(!/^\\d+$/.test(q)&&!(/[a-z]/i.test(q)&&/\\d/.test(q)&&/^[a-z0-9._\\/-]{5,}$/i.test(q))&&q&&!q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
-            "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
+            "let imgs=[...p.querySelectorAll('img')];let image=imgs.find(x=>{let info=[x.currentSrc,x.src,x.getAttribute('data-src'),x.alt,x.className,x.parentElement?.className].join(' ').toLowerCase();return !/(?:48[ _-]?(?:rati|рати|install|meseci|months)|0[ _-]?(?:interest|kamata|камата)|installment|rate[-_]?zero|promo[-_]?badge|badge[-_]?promo)/i.test(info)&&!/(?:badge|sticker|overlay)/i.test(String(x.className)+' '+String(x.parentElement?.className))&&(x.naturalWidth===0||x.naturalWidth>=100)&&(x.naturalHeight===0||x.naturalHeight>=100)});let src=image?.currentSrc||image?.getAttribute('data-src')||image?.src||'';"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=150)break}"+
             "return JSON.stringify([...found.values()]);})()";
     }
@@ -985,7 +985,7 @@ public final class MainActivity extends ComponentActivity {
             "let txt=(p.innerText||'').replace(/\\s+/g,' ');let prices=setecPrices(txt);"+
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);let sku=m?m[1]:'';"+
             "if(sku!==q && !txt.includes(q))continue;"+
-            "let img=p.querySelector('img');let src=img?.currentSrc||img?.src||'';"+
+            "let imgs=[...p.querySelectorAll('img')];let img=imgs.find(x=>{let info=[x.currentSrc,x.src,x.getAttribute('data-src'),x.alt,x.className,x.parentElement?.className].join(' ').toLowerCase();return !/(?:48[ _-]?(?:rati|рати|install|meseci|months)|0[ _-]?(?:interest|kamata|камата)|installment|rate[-_]?zero|promo[-_]?badge|badge[-_]?promo)/i.test(info)&&!/(?:badge|sticker|overlay)/i.test(String(x.className)+' '+String(x.parentElement?.className))&&(x.naturalWidth===0||x.naturalWidth>=100)&&(x.naturalHeight===0||x.naturalHeight>=100)});let src=img?.currentSrc||img?.getAttribute('data-src')||img?.src||'';"+
             "found.set(u.href,{name:name,sku:sku,img:src,url:u.href,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=30)break}"+
             "return JSON.stringify([...found.values()]);})()";
         return script;
