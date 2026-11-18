@@ -28,10 +28,14 @@ jobs:
           import json, os, re, sys
           with open(sys.argv[1]) as f:
               previous = json.load(f)
-          match = re.fullmatch(r"7\.(\d+)", previous["versionName"])
+          old_version = str(previous["versionName"])
+          match = re.fullmatch(r"7\.(\d+)(?:\.(\d+))?", old_version)
           if not match:
-              raise ValueError("Unexpected published versionName")
-          version = f"7.{int(match.group(1)) + 1}"
+              raise ValueError("Unexpected published versionName: " + old_version)
+          minor = int(match.group(1))
+          # Preserve the minor number on transition, then increment patch per release.
+          patch = int(match.group(2)) + 1 if match.group(2) is not None else 0
+          version = f"7.{minor}.{patch}"
           code = int(previous["versionCode"]) + 1
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"APP_VERSION={version}\nAPP_VERSION_CODE={code}\n")
