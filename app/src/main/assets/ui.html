@@ -748,7 +748,7 @@ function categoryCurrentNode(){return categoryTrail.length?categoryTrail[categor
 function categoryNormal(raw){return String(raw||'').normalize('NFKC').toLocaleLowerCase().replace(/\s+/g,' ').trim()}
 function categoryQuery(){return $('categoryFilter').value.trim().toLocaleLowerCase()}
 function categoryShowMessage(message){$('categoryNotice').textContent=message}
-function showCategories(){$('trackPanel').classList.add('hidden');
+function showCategories(){
  if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}
  if(settingsOpen){settingsOpen=false;$('settingsPanel').classList.add('hidden')}
  categoriesOpen=true;$('categoriesPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');
@@ -957,7 +957,7 @@ function openSetecCategory(url){
  if(categorySafeUrl(url))categoryLoad(url,false);
  else categoryShowMessage('Невалидна категорија.');
 }
-function showSettings(){$('trackPanel').classList.add('hidden');if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsTab').classList.add('active');$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
+function showSettings(){if(offerOpen){offerOpen=false;$('offerPanel').classList.add('hidden')}if(categoriesOpen){categoriesOpen=false;$('categoriesPanel').classList.add('hidden')}settingsOpen=true;previousTab=tab;$('settingsTab').classList.add('active');$('settingsPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');['scanPanel','searchPanel','batchPanel','resultsPanel','detail','status'].forEach(id=>$(id).classList.add('hidden'));$('settingsTheme').value=setting('theme','system');$('settingsHistory').checked=setting('history','1')==='1';$('settingsLocation').value=setting('location','all');$('settingsNotices').checked=setting('notices','1')==='1';window.scrollTo(0,0)}
 function closeSettings(){$('settingsTab').classList.remove('active');settingsOpen=false;$('settingsPanel').classList.add('hidden');switchTab(previousTab);window.scrollTo(0,0)}
 function showSettingsMessage(msg){$('settingsMessage').textContent=msg}
 function setHistoryEnabled(on){saveSetting('history',on?'1':'0');if(!on)clearRecent()}
