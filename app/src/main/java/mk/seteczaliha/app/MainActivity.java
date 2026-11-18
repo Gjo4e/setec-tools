@@ -865,7 +865,7 @@ public final class MainActivity extends ComponentActivity {
             "let sections=[...document.querySelectorAll('table,dl,[class*=spec],[class*=Spec],[class*=description],[class*=Description]')].map(e=>(e.innerText||'').trim()).filter(t=>t.length>25&&t.length<9000);"+ 
             "let details=[...new Set(sections)].join('\\n').slice(0,10000);"+
             "if(details.length<70){let idx=b.search(/(?:Спецификации|Карактеристики|Опис на производ|Specifications|Technical details)/i);if(idx>=0)details=b.slice(idx,idx+6500);}"+
-            "let related=/\\\\b(?:Слични производи|Поврзани производи|Препорачани производи|Related products|Similar products|You may also like)\\\\b/i;"+
+            "let related=/(?:Слични производи|Поврзани производи|Препорачани производи|Related products|Similar products|You may also like)/i;"+
             "let trimRelated=t=>{let m=related.exec(t||'');return m?(t||'').slice(0,m.index).trim():(t||'').trim()};"+
             "details=trimRelated(details);description=trimRelated(description);"+
             "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details,officialDescription:description});})()";
