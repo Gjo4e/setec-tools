@@ -857,7 +857,7 @@ public final class MainActivity extends ComponentActivity {
             "for(let i=0;node&&i<7;i++,node=node.parentElement){let p=setecPrices(node.innerText||'');if(p.clubPrice||p.regularPrice){price=p;break}}"+
             "let img=document.querySelector('meta[property=\"og:image\"]')?.content||'';"+
             "if(!img)img=[...document.images].find(x=>x.naturalWidth>=170&&x.naturalHeight>=170)?.src||'';"+
-            "let clean=v=>String(v||'').replace(/\\\\s+/g,' ').trim().slice(0,6500);"+
+            "let clean=v=>String(v||'').replace(/\\s+/g,' ').trim().slice(0,6500);"+
             "let description='';"+
             "for(const m of document.querySelectorAll('meta[name=\\\"description\\\"],meta[property=\\\"og:description\\\"]')){let v=clean(m.content);if(v.length>35&&!/^(?:setec|најдобри цени)/i.test(v)){description=v;break}}"+
             "for(const el of document.querySelectorAll('[itemprop=\\\"description\\\"],[class*=product-description],[class*=productDescription],[id*=description],[class*=product-details]')){let v=clean(el.innerText);if(v.length>description.length&&v.length>=50&&v.length<6500)description=v}"+
