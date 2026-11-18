@@ -887,6 +887,7 @@ function renderCategories(){
  host.replaceChildren();products.replaceChildren();summary.replaceChildren();crumb.replaceChildren();
  const q=categoryQuery();
  const node=categoryCurrentNode();
+ $('categoryProductFilters').classList.toggle('hidden',!node);
  // Сите категории и производи остануваат во интерфејсот на апликацијата.
  if(!node){
   browse.classList.add('hidden');pager.classList.add('hidden');
@@ -999,7 +1000,7 @@ function updateBarcodeFallback(){const button=$('scanSetecFallback');if(!button)
 
 // Филтрирање на производите што веќе се преземени од SETEC; без измислена достапност.
 const filterBrands=['Apple','Asus','Acer','Lenovo','HP','Dell','Samsung','LG','MSI','Gigabyte','Huawei','Xiaomi','Canon','Epson','Kingston','Logitech','Vention','Setek','ST'];
-function filterPrice(p){const raw=String(p.clubPrice||p.regularPrice||'').replace(/[^0-9.,]/g,'');if(!raw)return NaN;return Number(raw.replace(/[.,](?=\\d{3}(?:[.,]|$))/g,'').replace(',','.'))}
+function filterPrice(p){const raw=String(p.clubPrice||p.regularPrice||'').replace(/[^0-9.,]/g,'');if(!raw)return NaN;return Number(raw.replace(/[.,](?=\d{3}(?:[.,]|$))/g,'').replace(',','.'))}
 function filterBrand(p){const name=String(p.name||'').toLowerCase();return filterBrands.find(b=>new RegExp('(?:^|[^a-z])'+b.toLowerCase()+'(?:[^a-z]|$)','i').test(name))||'Друго'}
 function filterUi(prefix,source){const brand=$(prefix+'Brand');if(!brand)return;const current=brand.value;const values=[...new Set(source.map(filterBrand))].sort((a,b)=>a.localeCompare(b));brand.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='Сите брендови';brand.appendChild(all);for(const b of values){const o=document.createElement('option');o.value=b;o.textContent=b;brand.appendChild(o)}brand.value=values.includes(current)?current:''}
 function filterApply(prefix,source){const v=id=>$(prefix+id)?.value||'',min=Number(v('Min')),max=Number(v('Max')),brand=v('Brand'),cpu=v('Cpu'),ram=v('Ram'),disk=v('Disk'),gpu=v('Gpu'),sort=v('Sort');let items=source.filter(p=>{const name=String(p.name||'').toLowerCase(),details=(name+' '+String(p.specifications||'')).toLowerCase(),price=filterPrice(p);if((v('Min')&&(!Number.isFinite(price)||price<min))||(v('Max')&&(!Number.isFinite(price)||price>max)))return false;if(brand&&filterBrand(p)!==brand)return false;if(cpu&&!details.includes(cpu.toLowerCase()))return false;if(ram&&!new RegExp('(?:^|[^0-9])'+ram+'\\s*gb','i').test(details))return false;if(disk&&!details.includes(disk))return false;if(gpu&&!details.includes(gpu))return false;return true});if(sort==='name')items.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));if(sort==='priceAsc'||sort==='priceDesc')items.sort((a,b)=>{const x=filterPrice(a),y=filterPrice(b);if(!Number.isFinite(x))return 1;if(!Number.isFinite(y))return -1;return sort==='priceAsc'?x-y:y-x});const count=items.length,active=['Min','Max','Brand','Cpu','Ram','Disk','Gpu'].filter(k=>v(k)).length;$(prefix+'Status').textContent=count+' од '+source.length+' вчитани производи'+(active?' · '+active+' активни филтри':'');return items}
