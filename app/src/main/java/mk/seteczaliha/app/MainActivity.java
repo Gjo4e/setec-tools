@@ -857,10 +857,15 @@ public final class MainActivity extends ComponentActivity {
             "for(let i=0;node&&i<7;i++,node=node.parentElement){let p=setecPrices(node.innerText||'');if(p.clubPrice||p.regularPrice){price=p;break}}"+
             "let img=document.querySelector('meta[property=\"og:image\"]')?.content||'';"+
             "if(!img)img=[...document.images].find(x=>x.naturalWidth>=170&&x.naturalHeight>=170)?.src||'';"+
+            "let clean=v=>String(v||'').replace(/\\\\s+/g,' ').trim().slice(0,6500);"+
+            "let description='';"+
+            "for(const m of document.querySelectorAll('meta[name=\\\"description\\\"],meta[property=\\\"og:description\\\"]')){let v=clean(m.content);if(v.length>35&&!/^(?:setec|најдобри цени)/i.test(v)){description=v;break}}"+
+            "for(const el of document.querySelectorAll('[itemprop=\\\"description\\\"],[class*=product-description],[class*=productDescription],[id*=description],[class*=product-details]')){let v=clean(el.innerText);if(v.length>description.length&&v.length>=50&&v.length<6500)description=v}"+
+            "for(const el of document.querySelectorAll('script[type=\\\"application/ld+json\\\"]')){try{let root=JSON.parse(el.textContent);let q=Array.isArray(root)?root:[root];while(q.length){let n=q.shift();if(!n||typeof n!=='object')continue;if(Array.isArray(n)){q.push(...n);continue}let type=n['@type'];if((type==='Product'||Array.isArray(type)&&type.includes('Product'))&&typeof n.description==='string'){let v=clean(n.description);if(v.length>description.length&&v.length<6500)description=v}if(n['@graph'])q.push(n['@graph'])}}catch(e){}}"+
             "let sections=[...document.querySelectorAll('table,dl,[class*=spec],[class*=Spec],[class*=description],[class*=Description]')].map(e=>(e.innerText||'').trim()).filter(t=>t.length>25&&t.length<9000);"+ 
             "let details=[...new Set(sections)].join('\\n').slice(0,10000);"+
             "if(details.length<70){let idx=b.search(/(?:Спецификации|Карактеристики|Опис на производ|Specifications|Technical details)/i);if(idx>=0)details=b.slice(idx,idx+6500);}"+
-            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details});})()";
+            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details,officialDescription:description});})()";
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
