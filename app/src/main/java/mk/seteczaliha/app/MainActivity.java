@@ -868,7 +868,12 @@ public final class MainActivity extends ComponentActivity {
             "let related=/(?:Слични производи|Поврзани производи|Препорачани производи|Related products|Similar products|You may also like)/i;"+
             "let trimRelated=t=>{let m=related.exec(t||'');return m?(t||'').slice(0,m.index).trim():(t||'').trim()};"+
             "details=trimRelated(details);description=trimRelated(description);"+
-            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details,officialDescription:description});})()";
+            "let warrantyMonths=null;"+
+            "let wm=b.match(/(?:Гаранција|Garancija|Warranty)\\s*[:：-]?\\s*([0-9]{1,3})\\s*(?:месеци|месеца|месец|meseci|months?|mos?\\.?)/i);"+
+            "if(!wm)wm=b.match(/(?:Гаранција|Garancija|Warranty)\\s*[:：-]?\\s*([0-9]{1,2})\\s*(?:години|година|godini|years?)/i);"+
+            "if(wm){let n=Number(wm[1]);if(n>0&&n<=120)warrantyMonths=/(?:години|година|godini|years?)/i.test(wm[0])?n*12:n;}"+
+            
+            "return JSON.stringify({name:title.trim(),sku:match?match[1]:'',img:img,url:location.href,clubPrice:price.clubPrice,regularPrice:price.regularPrice,specifications:details,officialDescription:description,warrantyMonths:warrantyMonths});})()";
         merchant.evaluateJavascript(script, encoded -> {
             String json = decodeJsString(encoded);
             if (json != null) js("window.showProduct("+ JSONObject.quote(json) + ");");
