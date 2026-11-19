@@ -1075,7 +1075,13 @@ window.showResults=function(json,reset){
       cancel.onclick=()=>{box.remove();$('batchMessage').textContent='Баркодот не е додаден во Листа.';};
       box.appendChild(cancel);$('batchMessage').insertAdjacentElement('afterend',box);
     }else{
-      $('batchMessage').textContent='Нема потврден SETEC производ за кодот '+barcode+'. Ништо не е додадено. Пробај со SETEC шифра (OCR).';
+      $('batchMessage').textContent='SETEC не врати производ за баркодот '+barcode+'. Ако производот го гледаш на Setec.mk, внеси ја неговата 5-цифрена SETEC шифра:';
+      const box=elem('div','');box.id='batchBarcodeChoices';box.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:10px 0';
+      const input=elem('input','');input.type='text';input.inputMode='numeric';input.maxLength=5;input.placeholder='SETEC шифра (5 цифри)';input.setAttribute('aria-label','SETEC шифра');
+      input.style.cssText='flex:1;min-width:150px;padding:12px;border-radius:8px';
+      const confirm=elem('button','secondary','Провери и додај');
+      confirm.onclick=()=>{const sku=input.value.trim();if(!/^[0-9]{5}$/.test(sku)){$('batchMessage').textContent='Внеси точно 5 цифри од SETEC страницата.';return;}addBatchSku(sku);box.remove();$('batchMessage').textContent='SETEC шифра '+sku+' е додадена за проверка на производот.';};
+      box.append(input,confirm);$('batchMessage').insertAdjacentElement('afterend',box);
     }
   }
   displayResults();
