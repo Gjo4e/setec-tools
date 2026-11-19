@@ -60,6 +60,8 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(Color.BLACK);
+        // In the List tab scanning must start only after the user taps Scan.
+        automatic=!getIntent().getBooleanExtra("batch_manual_default",false);
         permission=registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if(granted) startCamera();
             else status.setText("Потребна е дозвола за камера. Можеш рачно да внесеш шифра.");
@@ -96,7 +98,7 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
         LinearLayout controls=new LinearLayout(this);
         controls.setGravity(Gravity.CENTER);
         bottom.addView(controls);
-        autoToggle=button("Автоматски: ON",0xFF176A9C);
+        autoToggle=button("Автоматски: "+(automatic?"ON":"OFF"),0xFF176A9C);
         shapeToggle=button("Рамка: квадрат",0xFF176A9C);
         controls.addView(autoToggle,new LinearLayout.LayoutParams(0,dp(48),1));
         controls.addView(shapeToggle,new LinearLayout.LayoutParams(0,dp(48),1));
@@ -142,8 +144,8 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                     // Analyze only the central visible guide, never the entire camera frame.
                     // The preview uses FILL_CENTER, so the central image region matches the guide.
                     int w=upright.getWidth(),h=upright.getHeight();
-                    int cropW=Math.max(1,Math.min(w,(int)(w*(lineMode?0.82f:0.56f))));
-                    int cropH=Math.max(1,Math.min(h,(int)(h*(lineMode?0.10f:0.32f))));
+                    int cropW=Math.max(1,Math.min(w,(int)(w*(lineMode?0.88f:0.72f))));
+                    int cropH=Math.max(1,Math.min(h,(int)(h*(lineMode?0.20f:0.43f))));
                     int x=(w-cropW)/2,y=(h-cropH)/2;
                     Bitmap region=Bitmap.createBitmap(upright,x,y,cropW,cropH);
                     InputImage input=InputImage.fromBitmap(region,0);
