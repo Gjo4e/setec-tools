@@ -1054,10 +1054,29 @@ window.showResults=function(json,reset){
   if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched){try{updateRecentProduct(matched)}catch(historyError){console.warn('Recent history:',historyError)}}}
   if(batchBarcodePending && lastQuery===batchBarcodePending){
     const barcode=batchBarcodePending;batchBarcodePending=null;
-    const verified=a.filter(p=>/^[0-9]{4,8}$/.test(String(p.sku||'')));
-    if(verified.length===1){addBatchSku(verified[0].sku);$('batchMessage').textContent='✓ Баркод '+barcode+' → SETEC шифра '+verified[0].sku+' · додадена во Листа.';}
-    else {$('batchMessage').textContent='Не можам сигурно да поврзам единствен SETEC производ со кодот '+barcode+'. Ништо не е додадено. Пробај со SETEC шифра (OCR) од ценовникот.';}
+    const verified=a.filter(p=>/^[0-9]{5}$/.test(String(p.sku||'')));
+    const exact=verified.filter(p=>[p.barcode,p.ean,p.gtin,p.upc].some(v=>String(v||'').trim()===barcode));
+    const candidates=exact.length?exact:verified;
     switchTab('batch');
+    const old=$('batchBarcodeChoices');if(old)old.remove();
+    if(exact.length===1){
+      addBatchSku(exact[0].sku);
+      $('batchMessage').textContent='✓ Баркод '+barcode+' → SETEC шифра '+exact[0].sku+' · додадена во Листа.';
+    }else if(candidates.length){
+      $('batchMessage').textContent='Прочитан код: '+barcode+'. Избери го точниот производ за да се додаде во Листа:';
+      const box=elem('div','', '');box.id='batchBarcodeChoices';box.style.cssText='display:grid;gap:8px;margin:10px 0';
+      for(const p of candidates.slice(0,12)){
+        const btn=elem('button','secondary',(p.name||'Производ')+' · SETEC '+p.sku);
+        btn.style.cssText='width:100%;text-align:left;white-space:normal;padding:12px';
+        btn.onclick=()=>{addBatchSku(p.sku);$('batchMessage').textContent='✓ Избран производ: '+(p.name||p.sku)+' · SETEC '+p.sku;box.remove();};
+        box.appendChild(btn);
+      }
+      const cancel=elem('button','secondary','Откажи — не додавај производ');
+      cancel.onclick=()=>{box.remove();$('batchMessage').textContent='Баркодот не е додаден во Листа.';};
+      box.appendChild(cancel);$('batchMessage').insertAdjacentElement('afterend',box);
+    }else{
+      $('batchMessage').textContent='Нема потврден SETEC производ за кодот '+barcode+'. Ништо не е додадено. Пробај со SETEC шифра (OCR).';
+    }
   }
   displayResults();
  }catch(e){console.error('Results UI:',e);try{setStatus('Грешка во резултатите: '+String(e&&e.message||e).slice(0,120))}catch(ignore){}}
@@ -1161,6 +1180,7 @@ function batchRender(){const codes=batchRecords.map(x=>x.code);const total=batch
 function addBatchSku(code){code=String(code||'').trim();if(!/^[0-9]{4,8}$/.test(code))return;const existing=batchRecords.find(x=>x.code===code);if(existing){existing.qty=Math.min(9999,(existing.qty||1)+1)}else{batchRecords.push({code,qty:1,name:'',img:'',clubPrice:'',regularPrice:'',state:'pending'})}batchPersist();batchRender();$('batchMessage').textContent=code+' - '+(existing?existing.qty:1)+' скенирања';switchTab('batch');if(code!==batchActive&&!batchQueue.includes(code))batchQueue.push(code);batchNext();}
 window.onBatchScanned=addBatchSku;
 window.onBatchBarcodeScanned=function(raw){
+ const previous=$('batchBarcodeChoices');if(previous)previous.remove();
  const payload=String(raw||'').trim();
  if(!payload){$('batchMessage').textContent='Кодот не е прочитан. Пробај повторно.';switchTab('batch');return;}
  // Barcode/Data Matrix payloads retain their complete length. Only an explicitly
