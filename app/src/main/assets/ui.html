@@ -873,7 +873,7 @@ window.onCategoryData=function(raw){
    return;
   }
   let newCount=0;
-  for(const p of incoming){if(!categoryProductsCache.has(p.url))newCount++;categoryProductsCache.set(p.url,p)}
+  for(const p of incoming){observeClubPrice(p);if(!categoryProductsCache.has(p.url))newCount++;categoryProductsCache.set(p.url,p)}
   if(categoryAppend&&newCount===0){
    categoryBusy=false;categoryAppend=false;categoryNextUrl='';
    categoryShowMessage('Нема повеќе различни производи во оваа категорија.');renderCategories();return;
