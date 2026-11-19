@@ -284,7 +284,7 @@ public final class MainActivity extends ComponentActivity {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
         }
         @JavascriptInterface public void scanBatchBarcode() {
-            runOnUiThread(() -> { nextScanBatchBarcode=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class)); });
+            runOnUiThread(() -> { nextScanBatchBarcode=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class).putExtra("batch_manual_default",true)); });
         }
         @JavascriptInterface public void openModelScanner() {
             nextScanBatchBarcode=false;
