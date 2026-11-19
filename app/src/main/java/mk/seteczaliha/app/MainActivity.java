@@ -293,6 +293,36 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void moreResults() {
             runOnUiThread(MainActivity.this::startMoreResults);
         }
+        @JavascriptInterface public void lookupBarcode(String barcode) {
+            if(barcode==null || !barcode.matches("[0-9]{8,14}"))return;
+            new Thread(()->{
+                String model="";
+                try{
+                    java.net.URL endpoint=new java.net.URL("https://api.upcitemdb.com/prod/trial/lookup?upc="+barcode);
+                    java.net.HttpURLConnection connection=(java.net.HttpURLConnection)endpoint.openConnection();
+                    connection.setConnectTimeout(6000);connection.setReadTimeout(7000);
+                    connection.setRequestProperty("Accept","application/json");
+                    try(java.io.InputStream stream=connection.getInputStream()){
+                        java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+                        byte[] buffer=new byte[4096];int n;
+                        while((n=stream.read(buffer))!=-1 && bytes.size()<100000)bytes.write(buffer,0,n);
+                        JSONObject response=new JSONObject(bytes.toString("UTF-8"));
+                        JSONArray items=response.optJSONArray("items");
+                        if(items!=null&&items.length()>0){
+                            JSONObject item=items.optJSONObject(0);
+                            if(item!=null){
+                                String title=item.optString("title","");
+                                String candidate=item.optString("model","");
+                                if(candidate.length()<4)candidate=title;
+                                model=candidate.replaceAll("[\\r\\n]"," ").trim();
+                            }
+                        }
+                    }finally{connection.disconnect();}
+                }catch(Exception ignored){}
+                final String found=model;
+                handler.post(()->js("window.onBatchBarcodeLookup("+JSONObject.quote(barcode)+","+JSONObject.quote(found)+");"));
+            },"setec-barcode-lookup").start();
+        }
         @JavascriptInterface public void search(String query) {
             runOnUiThread(() -> startSearch(query));
         }
