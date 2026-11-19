@@ -19,18 +19,64 @@ main{max-width:680px;margin:auto;padding:16px 14px 42px}.title{font-size:17px;fo
 .bar{height:4px;background:#edeef1;border-radius:6px;overflow:hidden;margin:8px 0}.fill{height:100%;background:var(--orange);width:0%;transition:width .2s}
 .slot{font-size:12px;padding:8px 0;border-bottom:1px solid #eff0f2;display:flex;gap:10px;align-items:center;justify-content:space-between}.slot .sname{flex:1;min-width:0;overflow-wrap:anywhere}.slot button{border:0;background:#f5f5f6;color:#a63c2c;border-radius:7px;padding:7px}
 select{border:1px solid #d9dce1;background:white;border-radius:8px;padding:9px;max-width:100%}
-</style></head><body>
+
+body.dark{--bg:#11141b;--ink:#edf0f5;--muted:#a4afbd;--line:#39404b;background:#11141b;color:#edf0f5}
+body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .ghost,body.dark .slot{background:#1d232d!important;color:#edf0f5!important;border-color:#3a4452!important}
+body.dark input,body.dark select{background:#131923!important;color:#edf0f5!important;border-color:#485465!important}
+body.dark .small{color:#a4afbd}
+
+/* Unified blue SETEC dashboard styling */
+:root{--orange:#258bff;--bg:#eef3fa;--ink:#17263b;--muted:#6e7f96;--line:#dbe5f1}
+body{background:#eef3fa;color:#17263b}
+.header{background:linear-gradient(125deg,#0b1423,#162c49)!important;padding:21px 17px!important;border-bottom:1px solid #284567}
+.header .headrow{gap:13px}
+.header .back{background:#1d3758!important;border:1px solid #37577a!important;border-radius:12px!important}
+.header .headname{font-size:20px!important;color:#f2f7ff}
+.header .headname b{color:#69baff!important;font-style:italic;font-weight:950}
+.header .sub{color:#b8cbe1!important}
+main{padding:19px 15px 45px}
+.card,.summary,.cat,.result,.slot{border-radius:16px!important;border-color:var(--line)!important;box-shadow:0 3px 14px rgba(20,42,73,.035)}
+button{border-radius:11px!important}
+button.primary,.primary,.cta{background:#258bff!important;color:white!important;border-color:#258bff!important}
+.title{font-size:18px!important;font-weight:900!important}
+body.dark{--bg:#0a111c;--ink:#edf5ff;--muted:#acbed4;--line:#2c405a;background:#0a111c!important;color:#edf5ff!important}
+body.dark .card,body.dark .summary,body.dark .cat,body.dark .result,body.dark .ghost,body.dark .slot{background:#152236!important;border-color:#30465e!important;color:#edf5ff!important}
+body.dark .header{background:linear-gradient(125deg,#0b1423,#162c49)!important}
+body.dark .small{color:#aabdd3!important}
+body.dark input,body.dark select{background:#0f1c2d!important;color:#f1f6ff!important;border-color:#3c5572!important}
+
+/* Reference-inspired color pass; PC builder layout and logic unchanged */
+:root{--orange:#279dff}
+.header{background:radial-gradient(ellipse at 95% 0%,rgba(0,120,255,.26),transparent 55%),linear-gradient(135deg,#080d15,#13263e)!important;border-bottom-color:#275782!important}
+.header .back{background:#182b43!important;border-color:#36628c!important;color:#e7f5ff!important}
+.header .headname b{color:#58c0ff!important}
+body.dark{--bg:#080d14;--ink:#f2f7ff;--muted:#a6bad0;--line:#2b415a;background:#080d14!important}
+body.dark .card,body.dark .summary,body.dark .result,body.dark .slot{background:linear-gradient(145deg,#17283a,#101b29)!important;border-color:#2a4e70!important;color:#f3f8ff!important}
+body.dark .cat:nth-child(4n+1){background:linear-gradient(145deg,#10334a,#101b29)!important;border-color:#19658b!important}
+body.dark .cat:nth-child(4n+2){background:linear-gradient(145deg,#262341,#121a2a)!important;border-color:#50427e!important}
+body.dark .cat:nth-child(4n+3){background:linear-gradient(145deg,#103b35,#111c29)!important;border-color:#116e63!important}
+body.dark .cat:nth-child(4n){background:linear-gradient(145deg,#283049,#111b2a)!important;border-color:#3e5582!important}
+body.dark .ghost{background:#172537!important;border-color:#365375!important;color:#b6dfff!important}
+body.dark input,body.dark select{background:#0c1827!important;color:#eff7ff!important;border-color:#365b80!important}
+body.dark .small{color:#aec2d8!important}
+body.dark .primary,body.dark .cta{background:linear-gradient(115deg,#1479e8,#28b3ff)!important;border-color:#299cfa!important;color:white!important}
+</style></head><body><script>try{if(localStorage.getItem('setec_theme')==='dark')document.body.classList.add('dark')}catch(e){}</script>
 <header class="header"><div class="headrow"><button class="back" onclick="PcApp.close()">‹ Назад</button><div><div class="headname"><b>SETEC</b> · Состави PC</div><div class="sub">Конфигуратор на компоненти · каталог од Setec.mk</div></div></div></header>
 <main>
 <section id="home">
   <div class="row wrap"><div class="title">Избери компоненти</div><span id="progress" class="small">0 / 8</span></div>
   <div class="categories" id="categories"></div>
+  <div class="summary"><b>🛠 PC алатки</b><p class="small">Избери алатка:</p><div class="row wrap" style="justify-content:flex-start"><button class="ghost" onclick="document.getElementById('ramSlots').scrollIntoView({behavior:'smooth'})">▤ RAM слотови</button><button class="ghost" onclick="document.getElementById('powerEstimate').scrollIntoView({behavior:'smooth'})">⚡ Напојување</button><button class="ghost" onclick="document.getElementById('gamingIdeas').scrollIntoView({behavior:'smooth'})">🎮 Gaming</button></div></div>
   <div class="summary">
     <div class="row"><b>Твоја конфигурација</b><button class="ghost" style="font-size:11px" onclick="copyBuild()">Копирај</button></div>
     <div id="selected"></div>
     <div class="row wrap" style="margin-top:13px"><div class="total">Клуб: <strong id="clubTotal">0 ден.</strong></div><div class="total">Редовна: <strong id="regularTotal">0 ден.</strong></div></div>
     <p id="priceNote" class="small"></p>
     <div id="compatibility"></div>
+    <div id="smartIdeas" aria-live="polite"></div>
+    <div id="ramSlots" aria-live="polite"></div>
+    <div id="powerEstimate" aria-live="polite"></div>
+    <div id="gamingIdeas" aria-live="polite"></div>
     <div id="sharedStore" class="small"></div>
   </div>
   <div class="foot">Се прикажуваат само производи со потврдена наведена локација во официјалното мени „Провери Достапност“. Ако Setec не дозволи проверка, производот останува скриен, без да се претпоставува дека го нема. Податоците може да се променат.</div>
@@ -63,6 +109,7 @@ const CATS=[
 const slots=['board','cpu','ram','gpu','storage','psu','case','cooler'];
 let chosen={};try{chosen=JSON.parse(localStorage.getItem('setec_pc_build_v1')||'{}')}catch(e){}
 if(!chosen||typeof chosen!=='object')chosen={};
+let ramQuantity=1;try{ramQuantity=Math.max(1,Math.min(8,Math.trunc(Number(localStorage.getItem('setec_pc_ram_quantity')||1))||1))}catch(e){}
 let category='board',currentPage=1,searchPage=1,searching=false,loadingMore=false,noMorePages=false,shown=new Set(),candidateAccepted=false,verifiedCount=0,catalogProducts=[],verifiedMap=new Map(),verificationFinished=false;
 // Catalog pages are fetched one after another without user interaction.
 // All stock verifications run independently in Java as the list grows.
@@ -107,7 +154,8 @@ function productThumb(p,compact=false){
  }
  return box;
 }
-function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen))}
+function persist(){localStorage.setItem('setec_pc_build_v1',JSON.stringify(chosen));localStorage.setItem('setec_pc_ram_quantity',String(ramQuantity))}
+function setRamQuantity(value){ramQuantity=Math.max(1,Math.min(8,Math.trunc(Number(value))||1));persist();rebuild()}
 function labelFor(id){return CATS.find(x=>x.id===id)?.label||id}
 function cash(s){const x=String(s||'').replace(/\s/g,'');if(!/^\d[\d.,]*$/.test(x))return null;const n=Number(x.replace(/[.,]/g,''));return Number.isFinite(n)?n:null}
 function money(n){return n.toLocaleString('de-DE')+' ден.'}
@@ -240,19 +288,206 @@ function compatibility(next,p){
  if(draft.storage&&draft.board)notes.push('Провери M.2/SATA приклучоци на матичната плоча.');
  return {issues,notes:[...new Set(notes)]};
 }
+// Explain practical next steps using the same verified compatibility rules as the builder.
+function smartAdvice(){
+ const out=[],has=id=>!!chosen[id];
+ if(!slots.some(has))return ['Избери прва компонента за да добиеш автоматски предлози за следните делови.'];
+ if(has('cpu')&&!has('board'))out.push('Следно избери матична плоча со ист сокет како процесорот'+(getSocket(chosen.cpu,'cpu')?' ('+getSocket(chosen.cpu,'cpu')+')':' — сокетот засега не е потврден')+'.');
+ if(has('board')&&!has('cpu'))out.push('Избери процесор со сокет '+(getSocket(chosen.board,'board')||'кој е потврден во спецификацијата на матичната плоча')+'.');
+ if(has('board')&&!has('ram'))out.push('Избери desktop DIMM RAM од тип '+(getDdr(chosen.board,'board')||'DDR што го поддржува матичната плоча')+'.');
+ if(has('cpu')&&has('board')&&getSocket(chosen.cpu,'cpu')&&getSocket(chosen.board,'board')&&getSocket(chosen.cpu,'cpu')===getSocket(chosen.board,'board'))out.push('✓ CPU и матичната имаат ист препознаен сокет: '+getSocket(chosen.cpu,'cpu')+'. Провери и BIOS поддршка.');
+ if(has('ram')&&has('board')&&getDdr(chosen.ram,'ram')&&getDdr(chosen.board,'board')&&getDdr(chosen.ram,'ram')===getDdr(chosen.board,'board'))out.push('✓ RAM и матичната имаат ист препознаен DDR тип: '+getDdr(chosen.ram,'ram')+'. Провери брзина и капацитет.');
+ if(has('gpu')&&!has('psu'))out.push('За графичката избери напојување со доволно W и соодветни PCIe конектори според производителот.');
+ if(has('gpu')&&!has('case'))out.push('Избери куќиште со доволно простор за должината на графичката карта.');
+ if(has('cpu')&&!has('cooler'))out.push('Провери дали процесорот има вклучен ладилник; ако нема, избери кулер со соодветен монтажен комплет.');
+ if(!has('storage'))out.push('Разгледај SSD за системскиот диск; провери M.2 или SATA приклучок на матичната.');
+ if(out.length===0)out.push('Основните делови се избрани. Провери физички димензии, конектори, BIOS, потрошувачка и официјални спецификации пред купување.');
+ return out.slice(0,5);
+}
+function renderSmartAdvice(){
+ const area=$('smartIdeas');area.replaceChildren();
+ const card=el('div','summary');card.style.cssText='margin-top:14px;padding:13px;background:#fff7ed;border:1px solid #f5d7b5';
+ card.appendChild(el('div','title','💡 Автоматски идеи за подобра PC конфигурација'));
+ for(const tip of smartAdvice())card.appendChild(el('div','small','• '+tip));
+ card.appendChild(el('div','small','Предлозите се базираат на препознаени спецификации. Не се гаранција за целосна компатибилност.'));
+ area.appendChild(card);
+}
+function candidateReason(p,id,check){
+ if(check.issues.length)return '';
+ const notes=[];
+ if(id==='board'&&chosen.cpu){const a=getSocket(p,'board'),b=getSocket(chosen.cpu,'cpu');if(a&&b&&a===b)notes.push('ист сокет '+a+' со избраниот процесор');}
+ if(id==='cpu'&&chosen.board){const a=getSocket(p,'cpu'),b=getSocket(chosen.board,'board');if(a&&b&&a===b)notes.push('ист сокет '+a+' со матичната');}
+ if(id==='ram'&&chosen.board){const a=getDdr(p,'ram'),b=getDdr(chosen.board,'board');if(a&&b&&a===b&&ramFormFactor(p)!=='SO-DIMM')notes.push('соодветен '+a+' тип');}
+ return notes.length?'✓ Предлог според факти: '+notes.join(', ')+'.':'';
+}
+
+function specValue(p,regex){if(!p)return null;const text=String(p.name||'')+' '+String(p.specs||'');const m=text.match(regex);return m?Number(m[1]):null}
+
+
+function nameCapacity(p){
+ if(!p)return null;const s=String(p.name||'');
+ const kit=s.match(/\b([248])\s*[x×]\s*(\d{1,3})\s*GB\b/i);
+ if(kit)return {gb:Number(kit[1])*Number(kit[2]),modules:Number(kit[1])};
+ const single=s.match(/\b(\d{1,3})\s*GB\b/i);
+ return single?{gb:Number(single[1]),modules:1}:null;
+}
+function findSpec(p,patterns){
+ if(!p)return null;
+ const name=String(p.name||''),specs=String(p.specs||'');
+ for(const text of [name,specs])for(const re of patterns){const m=text.match(re);if(m)return Number(m[1])}
+ return null;
+}
+function ramSlotsInfo(){
+ const out=$('ramSlots');out.replaceChildren();const card=el('div','summary');
+ card.appendChild(el('div','title','▤ RAM — автоматска проверка'));
+ const cap=nameCapacity(chosen.ram);
+ if(!cap){card.appendChild(el('div','small','Избери RAM за автоматска проверка.'));out.appendChild(card);return}
+ const modules=cap.modules*ramQuantity,gb=cap.gb*ramQuantity;
+ card.appendChild(el('div','total',gb+' GB RAM · '+modules+' модули (според називот)'));
+ const board=chosen.board;
+ if(!board){card.appendChild(el('div','small','Избери матична плоча за проверка на слотови.'));out.appendChild(card);return}
+ const count=findSpec(board,[/(?:RAM|MEMORY|DIMM|DDR[345])\s*(?:SLOTS?|СЛОТОВИ|СЛОТА)\s*[:\-]?\s*([248])\b/i,/\b([248])\s*[x×]\s*(?:DDR[345]\s*)?(?:DIMM|RAM\s*SLOTS?|MEMORY\s*SLOTS?)\b/i,/(?:MEMORY|DIMM)\s*(?:SLOTS?|СЛОТА)\s*[:\-]?\s*([248])\b/i]);
+ const max=findSpec(board,[/(?:MAX(?:IMUM)?\s*(?:MEMORY|RAM)|МАКС(?:ИМАЛНА)?\s*(?:RAM|МЕМОРИЈА))\s*[:\-]?\s*(\d{1,3})\s*GB\b/i]);
+ if(count)card.appendChild(el('div',modules>count?'error':'checked',(modules>count?'✕':'✓')+' RAM слотови: '+modules+' потребни / '+count+' на матичната.'));
+ else card.appendChild(el('div','small','Бројот на RAM слотови не е наведен во достапните податоци за оваа матична. Не може сигурно да се потврди.'));
+ if(max)card.appendChild(el('div',gb>max?'error':'checked',(gb>max?'✕':'✓')+' Капацитет: '+gb+' / '+max+' GB.'));
+ card.appendChild(el('div','small','Автоматски податоци од производот. За непознати спецификации не се претпоставува вредност.'));
+ out.appendChild(card);
+}
+function powerInfo(){
+ const out=$('powerEstimate');out.replaceChildren();const card=el('div','summary');card.appendChild(el('div','title','⚡ Напојување — автоматска проценка'));
+ const cpu=chosen.cpu,gpu=chosen.gpu,psu=chosen.psu;
+ const cpuW=findSpec(cpu,[/\b(?:TDP|PROCESSOR\s*BASE\s*POWER)\s*[:\-]?\s*(\d{2,3})\s*W\b/i,/(?:^|[\s/|])(\d{2,3})\s*W\b/i]);
+ const gpuW=findSpec(gpu,[/\b(?:TGP|TBP|TOTAL\s*BOARD\s*POWER|BOARD\s*POWER)\s*[:\-]?\s*(\d{2,4})\s*W\b/i]);
+ const psuW=psu?findSpec(psu,[/\b(\d{3,4})\s*W(?:ATT)?\b/i]):null;
+ if(!cpu||!gpu){card.appendChild(el('div','small','Избери CPU и GPU за пресметка.'));out.appendChild(card);return}
+ // Manufacturer reference envelopes for identifiable desktop GPU series. These are estimates, not measured board power.
+ const gn=String(gpu.name||'').toUpperCase().replace(/\s/g,'');
+ let gpuEstimate=null;
+ if(!gpuW){
+  if(/RX9060XT/.test(gn))gpuEstimate=160;
+  else if(/RTX5060TI/.test(gn))gpuEstimate=180;
+  else if(/RTX5060(?!TI)/.test(gn))gpuEstimate=145;
+  else if(/RTX5070TI/.test(gn))gpuEstimate=300;
+  else if(/RTX5070/.test(gn))gpuEstimate=250;
+  else if(/RX9070XT/.test(gn))gpuEstimate=304;
+  else if(/RX9070/.test(gn))gpuEstimate=220;
+ }
+ const usedGpu=gpuW||gpuEstimate;
+ if(cpuW&&usedGpu){
+  const rec=Math.ceil(((cpuW+usedGpu+75)*1.3)/50)*50;
+  card.appendChild(el('div','total','Ориентациски PSU: '+rec+' W или повеќе'));
+  card.appendChild(el('div','small','CPU '+cpuW+' W · GPU ~'+usedGpu+' W · други ~75 W · 30% резерва.'));
+  if(psuW)card.appendChild(el('div',psuW>=rec?'checked':'error',(psuW>=rec?'✓':'✕')+' Избрано '+psuW+' W'+(psuW>=rec?' — над проценката.':' — под проценката.')));
+  if(gpuEstimate)card.appendChild(el('div','small','GPU ватите се ориентациска вредност за препознаената серија, не потврдена спецификација за конкретниот модел.'));
+ }else{
+  card.appendChild(el('div','small','За овие модели нема доволно сигурни податоци за автоматска пресметка на вати.'));
+  if(psuW)card.appendChild(el('div','small','Избрано PSU: '+psuW+' W.'));
+ }
+ card.appendChild(el('div','small','Провери ги PCIe конекторите, пиковите на потрошувачка и препораките на производителот.'));
+ out.appendChild(card);
+}
+
+let gamingResolution='1080',gamingPreset='balanced';
+try{gamingResolution=localStorage.getItem('setec_pc_fps_resolution')||'1080';gamingPreset=localStorage.getItem('setec_pc_fps_preset')||'balanced'}catch(e){}
+function fpsSelect(card,label,values,selected,change){
+ const row=el('div','row wrap');row.style.margin='10px 0';
+ row.appendChild(el('span','small',label));
+ const select=el('select');select.setAttribute('aria-label',label);
+ for(const [v,t] of values){const o=document.createElement('option');o.value=v;o.textContent=t;select.appendChild(o)}
+ select.value=selected;select.onchange=()=>change(select.value);row.appendChild(select);card.appendChild(row);
+}
+function gamingCpuScore(p){
+ if(!p)return null;const t=String(p.name||'').toUpperCase().replace(/\s+/g,'');
+ const ryzen=t.match(/RYZEN(?:[3579])?(\d{4,5})(X3D|X|G)?/);
+ if(ryzen){
+  const model=Number(ryzen[1]),gen=Math.floor(model/1000),series=Math.floor((model%1000)/100);
+  let score=gen>=9?1.17:gen>=7?1.08:gen>=5?0.94:gen>=3?0.78:0.68;
+  score*=series>=9?1.09:series>=7?1.05:series>=5?1:0.89;
+  if(ryzen[2]==='X3D')score*=1.18;
+  return Math.max(.55,Math.min(1.45,score));
+ }
+ const intel=t.match(/(?:CORE(?:I)?[3579]|I[3579])[- ]?(\d{4,5})(KF|KS|K|F)?/);
+ if(intel){
+  const model=intel[1],gen=model.length===5?Number(model.slice(0,2)):Number(model.slice(0,1)),tier=Number(model.length===5?model[2]:model[1]);
+  let score=gen>=14?1.14:gen>=13?1.09:gen>=12?1.03:gen>=10?.90:gen>=8?.77:.63;
+  score*=tier>=9?1.10:tier>=7?1.06:tier>=5?1:0.89;
+  return Math.max(.55,Math.min(1.4,score));
+ }
+ return null;
+}
+function gamingGpuTier(p){
+ if(!p)return null;const t=String(p.name||'').toUpperCase().replace(/\s+/g,'');
+ const groups=[
+  [5,/(RTX5080|RTX5070TI|RX9070XT|RTX4080)/],
+  [4,/(RTX5070(?!TI)|RX9070(?!XT)|RTX4070SUPER|RX7800XT)/],
+  [3,/(RX9060XT|RTX5060TI|RTX4070(?!SUPER)|RX7700XT)/],
+  [2,/(RTX5060(?!TI)|RTX4060TI|RX7600XT|RX7600)/],
+  [1,/(RTX4060(?!TI)|RTX3060|RX6600|RX6650)/]
+ ];
+ for(const [tier,re] of groups)if(re.test(t))return tier;
+ return null;
+}
+function renderGaming(){
+ const out=$('gamingIdeas');out.replaceChildren();
+ const card=el('div','summary');card.appendChild(el('div','title','🎮 FPS проценка — цела конфигурација'));
+ fpsSelect(card,'Резолуција',[['1080','1920×1080'],['1440','2560×1440'],['2160','3840×2160']],gamingResolution,v=>{gamingResolution=v;localStorage.setItem('setec_pc_fps_resolution',v);renderGaming()});
+ fpsSelect(card,'Графика',[['competitive','Competitive / Low'],['balanced','High'],['ultra','Ultra / Very High']],gamingPreset,v=>{gamingPreset=v;localStorage.setItem('setec_pc_fps_preset',v);renderGaming()});
+ const cpu=chosen.cpu,gpu=chosen.gpu,ram=chosen.ram,board=chosen.board,storage=chosen.storage,psu=chosen.psu;
+ if(!cpu||!gpu){card.appendChild(el('div','warning','Избери процесор и графичка карта за FPS проценка.'));out.appendChild(card);return}
+ const tier=gamingGpuTier(gpu),cpuScore=gamingCpuScore(cpu);
+ if(tier===null||cpuScore===null){
+  card.appendChild(el('div','warning','Не можам сигурно да ја класифицирам '+(tier===null?'графичката':'')+(tier===null&&cpuScore===null?' и ':'')+(cpuScore===null?'процесорот':'')+'. Без споредливи тестови нема да измислувам FPS.'));
+  out.appendChild(card);return;
+ }
+ const cap=nameCapacity(ram),gb=cap?cap.gb*ramQuantity:null,modules=cap?cap.modules*ramQuantity:0;
+ const ddr=ram?getDdr(ram,'ram'):null;
+ const ramFactor=gb===null?.84:gb<8?.58:gb<16?.78:gb<32?.96:1;
+ const channelFactor=modules>=2?1:.91;
+ const memoryFactor=ddr==='DDR5'?1.03:ddr==='DDR4'?1:.96;
+ const storageName=String(storage?.name||'').toUpperCase();
+ const isSSD=/SSD|NVME|M\.2/.test(storageName);
+ const storageNote=!storage?'Диск не е избран.':isSSD?'SSD: подобро вчитување и помалку застои, но не значително повисок просечен FPS.':'HDD: можни подолги вчитувања и повремени застои.';
+ const gpuReference={1:[115,155,95],2:[150,195,120],3:[190,235,155],4:[235,275,185],5:[280,315,220]}[tier];
+ const cpuCaps=[240,310,230];
+ const resFactor=gamingResolution==='2160'?.46:gamingResolution==='1440'?.72:1;
+ const presetFactor=gamingPreset==='competitive'?1.30:gamingPreset==='ultra'?.79:1;
+ const names=['Fortnite','Counter-Strike 2','GTA V (оригинална)'];
+ for(let i=0;i<3;i++){
+  // GPU and CPU limits are combined using a bottleneck model; RAM modifies both.
+  const gpuFps=gpuReference[i]*resFactor*presetFactor;
+  const cpuFps=cpuCaps[i]*cpuScore*(gamingPreset==='competitive'?1.12:1);
+  const combined=Math.min(gpuFps,cpuFps)*ramFactor*channelFactor*memoryFactor;
+  const low=Math.max(20,Math.round(combined*.77/5)*5);
+  const high=Math.max(low+5,Math.round(combined*1.18/5)*5);
+  const row=el('div','result');row.style.margin='8px 0';row.style.padding='12px';
+  row.appendChild(el('div','resultName',names[i]));
+  row.appendChild(el('div','total','~'+low+'–'+high+' FPS'));
+  row.appendChild(el('div','small','GPU + CPU ограничување · RAM капацитет / модули · '+gamingResolution+'p · '+(gamingPreset==='competitive'?'Low':gamingPreset==='ultra'?'Ultra':'High')));
+  card.appendChild(row);
+ }
+ card.appendChild(el('div','checked','Вклучени во проценката: CPU ('+cpu.name+'), GPU ('+gpu.name+'), RAM ('+(gb===null?'непознат капацитет':gb+' GB')+', '+modules+' модули).'));
+ card.appendChild(el('div','small',storageNote));
+ if(board&&getSocket(cpu,'cpu')&&getSocket(board,'board')&&getSocket(cpu,'cpu')!==getSocket(board,'board'))card.appendChild(el('div','error','CPU и матичната имаат различен сокет — конфигурацијата не е функционална; FPS проценката не важи.'));
+ if(!psu)card.appendChild(el('div','small','Нема избрано напојување. PSU не додава FPS, но мора да е доволно за стабилна работа.'));
+ card.appendChild(el('div','warning','ВАЖНО: Ова е математички модел со широки опсези, не вистински benchmark. Не може точно да се предвиди FPS само од список на делови. За точни бројки потребни се реални тестови со ист CPU, GPU, RAM, игра и поставки.'));
+ out.appendChild(card);
+}
+
 function rebuild(){
  const grid=$('categories');grid.replaceChildren();
  for(const c of CATS){const p=chosen[c.id];const b=el('button','cat'+(p?' selected':''));b.appendChild(el('div','sym',c.icon));b.appendChild(el('div','name',c.label));b.appendChild(el('div','picked',p?p.name:'+ Избери компонента'));b.onclick=()=>openCategory(c.id);grid.appendChild(b)}
  const n=slots.filter(x=>!!chosen[x]).length;$('progress').textContent=n+' / '+slots.length;
- const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];persist();rebuild()};row.append(productThumb(p,true),l,x);host.appendChild(row)}
+ const host=$('selected');host.replaceChildren();for(const id of slots){const p=chosen[id];if(!p)continue;const row=el('div','slot');const l=el('span','sname',labelFor(id)+': '+p.name+(p.sku?' · Setec шифра: '+p.sku:''));const x=el('button','','×');x.setAttribute('aria-label','Отстрани '+labelFor(id));x.onclick=()=>{delete chosen[id];if(id==='ram')ramQuantity=1;persist();rebuild()};row.append(productThumb(p,true),l);if(id==='ram'){const quantity=el('select','');quantity.setAttribute('aria-label','Количина RAM модули');for(let k=1;k<=8;k++){const option=document.createElement('option');option.value=String(k);option.textContent=k+'×';quantity.appendChild(option)}quantity.value=String(ramQuantity);quantity.onchange=()=>setRamQuantity(quantity.value);row.appendChild(quantity)}row.appendChild(x);host.appendChild(row)}
  let c=0,r=0,haveClub=0,haveRegular=0;
- for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice);if(v!==null){c+=v;haveClub++}if(w!==null){r+=w;haveRegular++}}
+ for(const id of slots){const p=chosen[id];if(!p)continue;const v=cash(p.clubPrice),w=cash(p.regularPrice),qty=id==='ram'?ramQuantity:1;if(v!==null){c+=v*qty;haveClub++}if(w!==null){r+=w*qty;haveRegular++}}
  $('clubTotal').textContent=money(c);$('regularTotal').textContent=money(r);
  $('priceNote').textContent=(n&& (haveClub<n||haveRegular<n))?'Внимание: ова е нецелосен збир. Недостасуваат проверени цени за некои избрани делови.':(!n?'Избери компоненти за да ја видиш вкупната цена.':'Збир на '+n+' избрани производи; цените може да се променат.');
  const check=compatibility('',null),area=$('compatibility');area.replaceChildren();
  if(check.issues.length)area.appendChild(el('div','error','НЕСООДВЕТНО: '+check.issues.join(' ')));
  else if(n>0)area.appendChild(el('div','warning','Нема потврдена основна некомпатибилност. Ова не значи целосно проверена конфигурација.'));
  for(const msg of check.notes)area.appendChild(el('div','small','• '+msg));
+ renderSmartAdvice();ramSlotsInfo();powerInfo();renderGaming();
  const stocked=slots.filter(x=>chosen[x]), common=stocked.length?stocked.map(x=>new Set(uniqueStores(chosen[x]))).reduce((a,b)=>new Set([...a].filter(y=>b.has(y)))):new Set();
  $('sharedStore').textContent=stocked.length>1?'Заеднички потврдени локации: '+(common.size?[...common].join(' · '):'не е пронајдена иста локација за сите избрани делови'):'';
 }
@@ -418,6 +653,6 @@ window.pcVerificationDone=()=>{
   $('stockStatus').textContent='Залихата не може да се потврди автоматски. Користи „Провери на Setec.mk“.';
  }
 };
-function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
+function copyBuild(){const a=['Setec Шифри · Состави PC'];for(const id of slots){const p=chosen[id];if(p)a.push(labelFor(id)+(id==='ram'?' ('+ramQuantity+'×)':'')+': '+p.name+' | Шифра: '+(p.sku||'?')+' | Клуб: '+(p.clubPrice||'?')+' ден. | Редовна: '+(p.regularPrice||'?')+' ден.')}a.push('Цените и залихите се според последната проверка на Setec.mk.');const text=a.join('\n');const temp=document.createElement('textarea');temp.value=text;document.body.appendChild(temp);temp.select();document.execCommand('copy');temp.remove();alert('Конфигурацијата е копирана.')}
 rebuild();
 </script></body></html>

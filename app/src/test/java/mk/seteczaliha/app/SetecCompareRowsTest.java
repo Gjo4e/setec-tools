@@ -20,10 +20,10 @@ public final class SetecCompareRowsTest {
             "HDMI x2","HDR10");
         List<SetecCompareRows.Row> rows=SetecCompareRows.build("TCL X",
             Collections.emptyMap(),one,"SAMSUNG Y",Collections.emptyMap(),two);
-        assertEquals(5,rows.size());
-        assertTrue(rows.get(0).left.contains("55"));
-        assertTrue(rows.get(0).right.contains("50"));
-        assertFalse(rows.get(0).comparable);
+        assertEquals("Explicit Resolution labels should be compared",1,rows.size());
+        assertEquals("Резолуција",rows.get(0).label);
+        assertEquals("3840x2160",rows.get(0).left);
+        assertEquals("1920x1080",rows.get(0).right);
     }
 
     @Test public void labeledFactsAlignedBeforeOriginalSetecDetails(){
@@ -35,12 +35,11 @@ public final class SetecCompareRowsTest {
         List<String> r=Arrays.asList("1200W","6 степени на печење","Тацна за трошки");
         List<SetecCompareRows.Row> rows=SetecCompareRows.build("Tefal TT",
             left,l,"Bosch TT",right,r);
-        assertEquals(3,rows.size());
+        assertEquals(1,rows.size());
         assertEquals("Моќност",rows.get(0).label);
         assertEquals("900W",rows.get(0).left);
         assertEquals("1200W",rows.get(0).right);
         assertTrue(rows.get(0).comparable);
-        assertFalse(rows.get(1).comparable);
     }
 
     @Test public void rawDetailsSurviveSerializationAndHeadersAreDiscarded(){
@@ -68,8 +67,7 @@ public final class SetecCompareRowsTest {
         List<SetecCompareRows.Row> rows=SetecCompareRows.build(
             "TCL 55",Collections.emptyMap(),Collections.singletonList("144Hz VRR"),
             "MIDEA AC",Collections.emptyMap(),Collections.singletonList("18000 BTU"));
-        assertEquals(1,rows.size());
-        assertFalse(rows.get(0).comparable);
+        assertTrue(rows.isEmpty());
     }
 
     @Test public void valuesComeOnlyFromProvidedFactsAndDetails(){
@@ -82,8 +80,7 @@ public final class SetecCompareRowsTest {
         List<SetecCompareRows.Row> rows=SetecCompareRows.build("Laptop A",
             left,Collections.emptyList(),"Laptop B",
             Collections.emptyMap(),Collections.emptyList());
-        assertEquals(1,rows.size());
-        assertEquals("Непотврдено",rows.get(0).right);
+        assertTrue("A field present on only one side cannot be a shared comparison",rows.isEmpty());
     }
 
     @Test public void preservesFiveMostImportantNamedSpecsForOneSavedTelevision(){
@@ -142,4 +139,53 @@ public final class SetecCompareRowsTest {
             "Редовна цена: 29.999 ден.");
         assertEquals(Collections.singletonList("55\" LED TV"),h);
     }
+    @Test public void washerAndFridgeNeverCompareTheirCapacity(){
+        Map<String,String> washer=new LinkedHashMap<>();
+        washer.put("Капацитет","9 kg");
+        washer.put("Енергетска класа","A");
+        Map<String,String> fridge=new LinkedHashMap<>();
+        fridge.put("Капацитет","330 L");
+        fridge.put("Енергетска класа","E");
+        assertTrue(SetecCompareRows.build("Машина за перење Gorenje",
+            washer,Collections.emptyList(),"Фрижидер Gorenje",
+            fridge,Collections.emptyList()).isEmpty());
+    }
+
+    @Test public void sameCategoryRejectsDifferentUnitsOnSameLabel(){
+        Map<String,String> left=new LinkedHashMap<>();
+        left.put("Капацитет","8 kg");
+        left.put("Центрифуга","1200 rpm");
+        Map<String,String> right=new LinkedHashMap<>();
+        right.put("Капацитет","300 L");
+        right.put("Центрифуга","1400 rpm");
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build(
+            "Машина за перење A",left,Collections.emptyList(),
+            "Машина за перење B",right,Collections.emptyList());
+        assertEquals(1,rows.size());
+        assertEquals("Центрифуга",rows.get(0).label);
+        assertEquals("1200 rpm",rows.get(0).left);
+        assertEquals("1400 rpm",rows.get(0).right);
+    }
+
+    @Test public void sameCategoryComparesMatchingCapacityUnits(){
+        Map<String,String> left=new LinkedHashMap<>();
+        left.put("Капацитет на перење","7 kg");
+        Map<String,String> right=new LinkedHashMap<>();
+        right.put("Капацитет на перење","9 kg");
+        List<SetecCompareRows.Row> rows=SetecCompareRows.build(
+            "Машина за перење A",left,Collections.emptyList(),
+            "Машина за перење B",right,Collections.emptyList());
+        assertEquals(1,rows.size());
+        assertTrue(rows.get(0).comparable);
+    }
+
+    @Test public void categoryDetectorDistinguishesWasherDryerAndTv(){
+        assertFalse(CompareCategoryGuard.canCompare("Машина за перење",
+            "Машина за сушење"));
+        assertFalse(CompareCategoryGuard.canCompare("ТЕЛЕВИЗОР TCL 55",
+            "МОНИТОР Samsung 27"));
+        assertTrue(CompareCategoryGuard.canCompare("Машина за перење Bosch",
+            "Машина за перење Gorenje"));
+    }
+
 }

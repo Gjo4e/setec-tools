@@ -10,6 +10,11 @@ import android.net.Uri;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextWatcher;
+import android.text.Editable;
+import android.view.inputmethod.EditorInfo;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +22,10 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebSettings;
+import android.annotation.SuppressLint;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResultLauncher;
@@ -33,17 +42,27 @@ import java.util.Map;
 /**
  * Compare precisely two real models. The existing opt-in camera scanner
  * finds and verifies each Setec product and extracts its listed specs.
- * Only up to five key specs appear side by side, with unknown values marked.
+ * All available verified specifications are presented in organized sections, with unknown values marked.
  */
 public final class CompareModelsActivity extends ComponentActivity {
-    private static final int INK=0xFF202531, ORANGE=0xFFF58220;
+    private static final int ORANGE=0xFF279DFF;
+    private int INK=0xFF202531;
+    private boolean darkMode=false;
+    private int theme(int light,int dark){return darkMode?dark:light;}
     private final Product[] products=new Product[2];
     private final Button[] scanButtons=new Button[2];
     private final Button[] manualButtons=new Button[2];
+    private final EditText[] skuInputs=new EditText[2];
+    private final Handler inputHandler=new Handler(Looper.getMainLooper());
+    private final Runnable[] pendingLookup=new Runnable[2];
     private ActivityResultLauncher<Intent> picker, skuScanner;
-    private LinearLayout content,table;
+    private LinearLayout content,table,screenRoot;
     private TextView overview;
     private int editingSlot=0;
+    private final WebView[] lookupBrowsers=new WebView[2];
+    private final int[] lookupSerial=new int[2];
+    private final String[] lookupSku=new String[2];
+    private final boolean[] lookupProduct=new boolean[2];
 
     private static final class Product {
         String name,club,regular,sku,description="",source="";
@@ -64,11 +83,11 @@ public final class CompareModelsActivity extends ComponentActivity {
                 if(safeSource(source)){
                     p.source=source;
                     p.description=obj.optString("description").trim();
-                    if(p.description.length()>800)
-                        p.description=p.description.substring(0,800);
+                    if(p.description.length()>16000)
+                        p.description=p.description.substring(0,16000);
                     JSONArray detailArray=obj.optJSONArray("details");
                     if(detailArray!=null)
-                        for(int i=0;i<detailArray.length()&&p.details.size()<5;i++){
+                        for(int i=0;i<detailArray.length()&&p.details.size()<220;i++){
                             String line=detailArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -78,7 +97,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                         p.details=SetecCompareRows.parseLines(p.description);
                     JSONArray highlightArray=obj.optJSONArray("highlights");
                     if(highlightArray!=null)
-                        for(int i=0;i<highlightArray.length()&&p.highlights.size()<5;i++){
+                        for(int i=0;i<highlightArray.length()&&p.highlights.size()<20;i++){
                             String line=highlightArray.optString(i).trim();
                             if(line.length()>=3&&line.length()<=230&&
                                !SetecCompareRows.isUiOrSalesText(line)&&
@@ -100,7 +119,7 @@ public final class CompareModelsActivity extends ComponentActivity {
                     List<String> fromSetec=SetecCompareRows.highlights(
                         p.name,p.facts,p.details,p.description);
                     for(String line:fromSetec){
-                        if(p.highlights.size()>=5)break;
+                        if(p.highlights.size()>=20)break;
                         if(!p.highlights.contains(line))p.highlights.add(line);
                     }
                 }
@@ -118,7 +137,9 @@ public final class CompareModelsActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
-        getWindow().setStatusBarColor(0xFF1B1C21);
+        darkMode=true;
+        INK=0xFFEAF5FF;
+        getWindow().setStatusBarColor(0xFF0B1423);
         getWindow().setNavigationBarColor(Color.BLACK);
         skuScanner=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result->{
             if(result.getResultCode()!=RESULT_OK||result.getData()==null)return;
@@ -142,82 +163,215 @@ public final class CompareModelsActivity extends ComponentActivity {
 
         LinearLayout screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
-        screen.setBackgroundColor(0xFFF6F7FA);
+        screen.setBackgroundColor(0xFF080D14);
         setContentView(screen);
+        screenRoot=screen;
 
         LinearLayout header=new LinearLayout(this);
-        header.setBackgroundColor(0xFF1C1C21);
-        header.setPadding(dp(9),dp(10),dp(9),dp(11));
+        header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        screen.addView(header);
-        Button back=button("‹ Назад",0xFF3C3C43);
-        header.addView(back,new LinearLayout.LayoutParams(dp(90),dp(45)));
+        header.setPadding(dp(14),dp(20),dp(14),dp(19));
+        header.setBackground(gradient(0xFF101F35,0xFF0A121F,0xFF2B5B86,18));
+        screen.addView(header,new LinearLayout.LayoutParams(-1,-2));
+        Button back=button("‹",0xFF1A3550);
+        back.setTextSize(25);
+        header.addView(back,new LinearLayout.LayoutParams(dp(52),dp(50)));
         back.setOnClickListener(v->finish());
-        TextView title=text("⚖ Спореди модели",19,true,Color.WHITE);
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
-        lp.leftMargin=dp(12);
-        header.addView(title,lp);
+        LinearLayout titles=new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams tl=new LinearLayout.LayoutParams(0,-2,1);
+        tl.leftMargin=dp(14);
+        header.addView(titles,tl);
+        titles.addView(text("Setec Tools",11,true,0xFF55BFFF));
+        TextView title=text("Спореди производи",23,true,Color.WHITE);
+        titles.addView(title);
+        titles.addView(text("Два производи · една јасна споредба",12,false,0xFFAAC0D7));
 
         ScrollView scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         screen.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         content=new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(13),dp(16),dp(13),dp(32));
+        content.setPadding(dp(14),dp(18),dp(14),dp(45));
         scroll.addView(content);
 
-        overview=text("Скенирај или рачно внеси две SETEC шифри. "+
-            "Моделите, цените и техничките описи се проверуваат на Setec.mk.",13,false,0xFF626B78);
+        TextView intro=text("Скенирај или внеси SETEC шифра. Производот автоматски се проверува на Setec.mk и се додава во споредбата.",13,false,0xFFB6C8DC);
+        intro.setLineSpacing(dp(3),1f);
+        content.addView(intro);
+
+        for(int i=0;i<2;i++){
+            final int slot=i;
+            LinearLayout panel=new LinearLayout(this);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setPadding(dp(15),dp(16),dp(15),dp(16));
+            panel.setBackground(gradient(i==0?0xFF12374E:0xFF252443,0xFF111D2B,i==0?0xFF1D7298:0xFF514C88,16));
+            LinearLayout.LayoutParams panelParams=new LinearLayout.LayoutParams(-1,-2);
+            panelParams.topMargin=dp(i==0?16:12);
+            content.addView(panel,panelParams);
+            TextView slotTitle=text(i==0?"01  ПРВ ПРОИЗВОД":"02  ВТОР ПРОИЗВОД",12,true,i==0?0xFF36C5FF:0xFFAA9AFF);
+            panel.addView(slotTitle);
+            TextView sub=text("Скенирај или напиши шифра од 4–8 цифри",12,false,0xFFACBED2);
+            LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(7);
+            panel.addView(sub,sp);
+            LinearLayout entry=new LinearLayout(this);
+            entry.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-1,-2);ep.topMargin=dp(12);
+            panel.addView(entry,ep);
+            EditText input=new EditText(this);
+            skuInputs[i]=input;
+            input.setSingleLine(true);
+            input.setTextSize(16);
+            input.setTypeface(null,Typeface.BOLD);
+            input.setTextColor(Color.WHITE);
+            input.setHintTextColor(0xFF7792AA);
+            input.setHint("SETEC шифра");
+            input.setInputType(InputType.TYPE_CLASS_NUMBER);
+            input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(8)});
+            input.setPadding(dp(13),0,dp(8),0);
+            input.setBackground(gradient(0xFF0B1827,0xFF0B1827,0xFF365979,11));
+            entry.addView(input,new LinearLayout.LayoutParams(0,dp(52),1));
+            input.setOnEditorActionListener((v,action,event)->{
+                if(action==EditorInfo.IME_ACTION_DONE){lookupTypedSku(slot);return true;}return false;
+            });
+            input.addTextChangedListener(new TextWatcher(){
+                @Override public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+                @Override public void onTextChanged(CharSequence s,int start,int before,int count){
+                    if(pendingLookup[slot]!=null)inputHandler.removeCallbacks(pendingLookup[slot]);
+                    String code=s.toString().trim();
+                    if(!code.matches("[0-9]{4,8}"))return;
+                    pendingLookup[slot]=()->{if(code.equals(input.getText().toString().trim()))lookupTypedSku(slot);};
+                    inputHandler.postDelayed(pendingLookup[slot],1000);
+                }
+                @Override public void afterTextChanged(Editable e){}
+            });
+            Button scan=button("▣  Скенирај",i==0?0xFF167CB7:0xFF6153A9);
+            scanButtons[i]=scan;
+            LinearLayout.LayoutParams sb=new LinearLayout.LayoutParams(dp(125),dp(52));
+            sb.leftMargin=dp(8);entry.addView(scan,sb);
+            scan.setOnClickListener(v->openScanner(slot));
+            manualButtons[i]=scan;
+        }
+
+        overview=text("Внеси ја првата шифра за да започне проверката.",13,false,0xFFACBED2);
+        overview.setPadding(dp(2),dp(20),dp(2),dp(8));
         content.addView(overview);
 
-        LinearLayout buttons=new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-        bp.topMargin=dp(16);
-        content.addView(buttons,bp);
-        for(int i=0;i<2;i++){
-            final int slot=i;
-            Button b=button("▣ Скенирај шифра "+(i+1),ORANGE);
-            scanButtons[i]=b;
-            LinearLayout.LayoutParams bParams=new LinearLayout.LayoutParams(0,dp(58),1);
-            if(i>0)bParams.leftMargin=dp(8);
-            buttons.addView(b,bParams);
-            b.setOnClickListener(v->openScanner(slot));
-        }
-
-        LinearLayout manualRow=new LinearLayout(this);
-        manualRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);
-        mp.topMargin=dp(7);
-        content.addView(manualRow,mp);
-        for(int i=0;i<2;i++){
-            final int slot=i;
-            Button b=button("⌨ Рачно внеси шифра "+(i+1),0xFF36475B);
-            manualButtons[i]=b;
-            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(52),1);
-            if(i>0)params.leftMargin=dp(8);
-            manualRow.addView(b,params);
-            b.setOnClickListener(v->enterSkuManually(slot));
-        }
-
-        TextView heading=text("СПОРЕДБА ЛЕВО / ДЕСНО",15,true,INK);
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
-        hp.topMargin=dp(22);
-        content.addView(heading,hp);
+        LinearLayout compareHeader=new LinearLayout(this);
+        compareHeader.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams ch=new LinearLayout.LayoutParams(-1,-2);ch.topMargin=dp(12);
+        content.addView(compareHeader,ch);
+        compareHeader.addView(text("РЕЗУЛТАТИ ОД СПОРЕДБАТА",14,true,0xFF51B9FF));
+        compareHeader.addView(text("Клуб цена, редовна цена и потврдени спецификации",12,false,0xFF93A8BE));
 
         table=new LinearLayout(this);
         table.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);
-        tp.topMargin=dp(8);
+        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.topMargin=dp(14);
         content.addView(table,tp);
 
-        TextView note=text("Моделите, шифрите, цените и прикажаните спецификации се исклучиво од Setec.mk. "+
-            "Непотврдено значи дека не е најдена сигурна вредност, не дека производот ја нема функцијата.",
-            12,false,0xFF687180);
-        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);
-        np.topMargin=dp(16);
+        TextView note=text("Податоците се од Setec.mk. Ако некоја спецификација не е потврдена, нема да се измислува вредност.",12,false,0xFF91A8C0);
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.topMargin=dp(20);
         content.addView(note,np);
         render();
+        for(int i=0;i<2;i++)initLookupBrowser(i);
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void initLookupBrowser(int slot){
+        WebView web=new WebView(this);
+        web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setDomStorageEnabled(true);
+        web.getSettings().setLoadsImagesAutomatically(false);
+        web.setAlpha(0.01f);
+        web.setClickable(false);
+        screenRoot.addView(web,new LinearLayout.LayoutParams(dp(1),dp(1)));
+        lookupBrowsers[slot]=web;
+        web.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView v,String url){
+                final int serial=lookupSerial[slot];
+                for(long delay:new long[]{900,2200,4200})
+                    inputHandler.postDelayed(()->inspectLookup(slot,serial,url),delay);
+            }
+        });
+    }
+    private void inspectLookup(int slot,int serial,String url){
+        if(serial!=lookupSerial[slot]||lookupBrowsers[slot]==null||
+            !url.equals(lookupBrowsers[slot].getUrl()))return;
+        String sku=lookupSku[slot];
+        if(sku==null)return;
+        if(lookupProduct[slot]){
+            String script="(function(){let body=document.body?.innerText||'';"+
+                "let m=body.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
+                "if(!m||m[1]!=="+JSONObject.quote(sku)+")return '';"+
+                "let title=(document.querySelector('h1')?.innerText||document.title||'').trim();"+
+                "let club=body.match(/Клуб\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
+                "let regular=body.match(/Редовна\\s*цена\\s*:?\\s*([0-9.,\\s]+)\\s*ден/i);"+
+                "let details=[],seen=new Set();"+
+                "function add(label,value){let x=(label?label+': ':'')+value;x=x.replace(/\\s+/g,' ').trim();if(x.length<3||x.length>230||seen.has(x.toLowerCase()))return;seen.add(x.toLowerCase());details.push(x)}"+
+                "document.querySelectorAll('table tr').forEach(tr=>{let cells=[...tr.querySelectorAll('th,td')].map(x=>x.innerText.trim()).filter(Boolean);if(cells.length>=2)add(cells[0],cells.slice(1).join(' · '));else if(cells.length===1)add('',cells[0])});"+
+                "document.querySelectorAll('dl').forEach(dl=>{let key='';[...dl.children].forEach(el=>{if(el.tagName==='DT')key=el.innerText.trim();else if(el.tagName==='DD')add(key,el.innerText.trim())})});"+
+                "document.querySelectorAll('[class*=specification] li,[class*=Specification] li,[class*=description] li,[class*=Description] li,[id*=description] li,[id*=spec] li').forEach(el=>add('',el.innerText));"+
+                "document.querySelectorAll('li').forEach(el=>{if(details.length<180)add('',el.innerText)});"+
+                "return JSON.stringify({name:title,sku:m[1],club:club?club[1].trim():'',regular:regular?regular[1].trim():'',source:location.href,details:details.slice(0,220),description:details.slice(0,120).join('\\n')});})()";
+            lookupBrowsers[slot].evaluateJavascript(script,result->{
+                if(serial!=lookupSerial[slot])return;
+                String json=decodeWebString(result);
+                if(json==null||json.isEmpty())return;
+                Product p=Product.parse(json);
+                if(p==null||!sku.equals(p.sku))return;
+                // Convert exact SETEC product text into NAMED technical facts.
+                // Raw bullets still appear in each product's separate description.
+                if(safeSource(p.source)){
+                    List<GoogleModelResearch.Fact> extracted=SetecKeySpecs.extract(
+                        p.name,p.source,p.description,p.description,p.name);
+                    for(GoogleModelResearch.Fact fact:extracted){
+                        p.facts.putIfAbsent(fact.label,fact.value);
+                        p.sourceByLabel.putIfAbsent(fact.label,p.source);
+                    }
+                    p.highlights=SetecCompareRows.highlights(
+                        p.name,p.facts,p.details,p.description);
+                }
+                products[slot]=p;
+                lookupSerial[slot]++;
+                overview.setText("✓ Пронајден "+p.name+". "+(products[1-slot]==null?"Внеси го и другиот производ.":"Споредбата е подготвена."));
+                render();
+            });
+        }else{
+            String script="(function(){let sku="+JSONObject.quote(sku)+";"+
+                "for(let a of document.querySelectorAll('a[href*=\\\"/products/\\\"]')){"+
+                "let node=a.closest('article,li,[class*=product],[class*=Product],[class*=card],[class*=Card]')||a.parentElement;"+
+                "let txt=node?.innerText||'';"+
+                "if(new RegExp('(?:Шифра|SKU)\\\\s*:?\\\\s*'+sku+'(?![0-9])','i').test(txt)){try{let u=new URL(a.href,location.href);if(['setec.mk','www.setec.mk'].includes(u.hostname))return u.href}catch(e){}}}return '';})()";
+            lookupBrowsers[slot].evaluateJavascript(script,result->{
+                if(serial!=lookupSerial[slot]||lookupProduct[slot])return;
+                String found=decodeWebString(result);
+                if(found!=null&&SetecPageData.isOfficialProductUrl(found)){
+                    lookupProduct[slot]=true;lookupBrowsers[slot].loadUrl(found);
+                }
+            });
+        }
+    }
+    private static String decodeWebString(String encoded){
+        if(encoded==null||"null".equals(encoded))return null;
+        try{return new JSONArray("["+encoded+"]").getString(0);}catch(Exception e){return null;}
+    }
+    @Override protected void onDestroy(){
+        for(WebView w:lookupBrowsers)if(w!=null)w.destroy();
+        super.onDestroy();
+    }
+
+    private GradientDrawable gradient(int top,int bottom,int stroke,int radius){
+        GradientDrawable bg=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{top,bottom});
+        bg.setCornerRadius(dp(radius));bg.setStroke(dp(1),stroke);return bg;
+    }
+
+    private void lookupTypedSku(int slot){
+        String code=skuInputs[slot].getText().toString().trim();
+        if(!code.matches("[0-9]{4,8}")){skuInputs[slot].setError("Шифра од 4–8 цифри");return;}
+        if(pendingLookup[slot]!=null)inputHandler.removeCallbacks(pendingLookup[slot]);
+        editingSlot=slot;
+        overview.setText("🔎 Се проверува шифрата "+code+" на Setec.mk…");
+        startSkuLookup(code);
     }
 
     private void openScanner(int slot){
@@ -232,11 +386,17 @@ public final class CompareModelsActivity extends ComponentActivity {
             overview.setText("Внеси SETEC шифра од 4 до 8 цифри.");
             return;
         }
-        Intent intent=new Intent(this,ModelScannerActivity.class);
-        intent.putExtra("compare_pick",true);
-        intent.putExtra("compare_slot",editingSlot+1);
-        intent.putExtra("compare_sku",code);
-        picker.launch(intent);
+        int slot=editingSlot;
+        lookupSku[slot]=code;
+        lookupProduct[slot]=false;
+        int serial=++lookupSerial[slot];
+        overview.setText("🔎 Го барам производот со шифра "+code+" на Setec.mk…");
+        String url="https://www.setec.mk/search-result?q="+Uri.encode(code);
+        lookupBrowsers[slot].loadUrl(url);
+        inputHandler.postDelayed(()->{
+            if(serial==lookupSerial[slot]&&!lookupProduct[slot])
+                overview.setText("Сѐ уште ја проверувам шифрата "+code+". Ако нема резултат, провери ја шифрата.");
+        },10000);
     }
 
     private void enterSkuManually(int slot){
@@ -276,7 +436,7 @@ public final class CompareModelsActivity extends ComponentActivity {
         }
         Product left=products[0],right=products[1];
         if(left==null&&right==null){
-            table.addView(text("Прво скенирај ја SETEC шифрата за левиот производ, па за десниот.",13,false,0xFF657081));
+            table.addView(text("Прво скенирај ја SETEC шифрата за левиот производ, па за десниот.",13,false,theme(0xFF657081,0xFFB6C3D3)));
             return;
         }
         overview.setText(left!=null&&right!=null
@@ -294,19 +454,36 @@ public final class CompareModelsActivity extends ComponentActivity {
         row("Клуб цена", left==null?"—":price(left.club),right==null?"—":price(right.club),false);
         row("Редовна цена",left==null?"—":price(left.regular),right==null?"—":price(right.regular),false);
 
-        TextView keyTitle=text("5 НАЈВАЖНИ ПОДАТОЦИ ЗА СЕКОЈ ПРОИЗВОД",15,true,INK);
+        TextView keyTitle=text("СИТЕ ДОСТАПНИ СПЕЦИФИКАЦИИ ПО ПРОИЗВОД",15,true,INK);
         LinearLayout.LayoutParams kh=new LinearLayout.LayoutParams(-1,-2);
         kh.topMargin=dp(20);
         table.addView(keyTitle,kh);
         LinearLayout keyColumns=new LinearLayout(this);
-        keyColumns.setOrientation(LinearLayout.HORIZONTAL);
+        keyColumns.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams kp=new LinearLayout.LayoutParams(-1,-2);
         kp.topMargin=dp(9);
         table.addView(keyColumns,kp);
-        keyColumns.addView(highlightCard(left,1),columnParams(false));
-        keyColumns.addView(highlightCard(right,2),columnParams(true));
+        LinearLayout.LayoutParams model1=new LinearLayout.LayoutParams(-1,-2);
+        keyColumns.addView(fullSpecsCard(left,1),model1);
+        LinearLayout.LayoutParams model2=new LinearLayout.LayoutParams(-1,-2);
+        model2.topMargin=dp(10);
+        keyColumns.addView(fullSpecsCard(right,2),model2);
 
         if(left==null||right==null)return;
+        String categoryWarning=CompareCategoryGuard.incompatibility(left.name,right.name);
+        if(!categoryWarning.isEmpty()){
+            TextView notice=text(categoryWarning+"\nМожеш да ги видиш поединечните описи и цените, но нема да прикажам лажна техничка споредба.",13,false,0xFFFFC99F);
+            notice.setPadding(dp(13),dp(15),dp(13),dp(15));
+            LinearLayout.LayoutParams w=new LinearLayout.LayoutParams(-1,-2);
+            w.topMargin=dp(15);
+            GradientDrawable background=new GradientDrawable();
+            background.setColor(0xFF352B29);
+            background.setCornerRadius(dp(13));
+            background.setStroke(dp(1),0xFF9B5B34);
+            notice.setBackground(background);
+            table.addView(notice,w);
+            return;
+        }
         TextView compareHeading=text("СПОРЕДБА ПО ЗАЕДНИЧКИ КАРАКТЕРИСТИКИ",14,true,INK);
         LinearLayout.LayoutParams chp=new LinearLayout.LayoutParams(-1,-2);
         chp.topMargin=dp(23);
@@ -314,25 +491,22 @@ public final class CompareModelsActivity extends ComponentActivity {
         List<SetecCompareRows.Row> rows=SetecCompareRows.build(
             left.name,left.facts,left.details,right.name,right.facts,right.details);
         if(rows.isEmpty()){
-            TextView empty=text("Setec.mk не достави технички опис за овие два производи. "+
-                "Отвори ги и зачувај ги повторно за проверка.",13,false,0xFF835A2D);
+            TextView empty=text("Не се потврдени исти технички полиња за двата производи. "+
+                "Оригиналните описи се прикажани погоре одделно, без мешање на различни карактеристики.",13,false,theme(0xFF835A2D,0xFFFFC28A));
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
             p.topMargin=dp(13);
             table.addView(empty,p);
             return;
         }
+        addEvidenceVerdict(left,right,rows);
         boolean hasOriginal=false;
         for(SetecCompareRows.Row spec:rows){
             row(spec.label,spec.left,spec.right,spec.comparable);
             if(!spec.comparable)hasOriginal=true;
         }
-        TextView count=text("Прикажани "+rows.size()+" технички редови (најмногу 5). "+
-            (hasOriginal
-                ?"„Опис од Setec“ е оригинална ставка: бројот не означува иста "+
-                 "карактеристика кај двата модела. "
-                :"Се означуваат разлики само за иста техничка карактеристика. ")+
-            "Податоците се само од потврдените Setec производи.",
-            12,false,0xFF707887);
+        TextView count=text("Прикажани "+rows.size()+" заеднички карактеристики. "+
+            "Описите погоре се одвоени за секој модел; овде се порамнуваат исти технички полиња или дословно исти карактеристики од описите.",
+            12,false,theme(0xFF707887,0xFFB6C3D3));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.topMargin=dp(12);
         table.addView(count,cp);
@@ -346,6 +520,75 @@ public final class CompareModelsActivity extends ComponentActivity {
         addSource(references,right,true);
     }
 
+
+    /** Evidence-only recommendation: no blanket winner from unrelated specifications. */
+    private void addEvidenceVerdict(Product left,Product right,List<SetecCompareRows.Row> rows){
+        StringBuilder report=new StringBuilder();
+        double lp=priceNumber(left.club),rp=priceNumber(right.club);
+        if(!Double.isNaN(lp)&&!Double.isNaN(rp)&&lp!=rp){
+            Product cheaper=lp<rp?left:right;
+            report.append("• Подобра клуб цена: ").append(cheaper.name)
+                .append(" — ").append((long)Math.abs(lp-rp))
+                .append(" ден. поевтин.\\n");
+        }
+        int count=0;
+        for(SetecCompareRows.Row r:rows){
+            if(!r.comparable||r.left==null||r.right==null)continue;
+            String label=r.label.toLowerCase(java.util.Locale.ROOT);
+            boolean largerBetter=label.matches(".*(ram|мемори|капацитет|батери|ssd|складира|refresh|освежува|hz|резолуц).*");
+            if(!largerBetter)continue;
+            double a=unitNumber(r.left),b=unitNumber(r.right);
+            if(Double.isNaN(a)||Double.isNaN(b)||a==b)continue;
+            String unitA=unitOf(r.left),unitB=unitOf(r.right);
+            if(!unitA.equals(unitB)||unitA.isEmpty())continue;
+            Product winner=a>b?left:right;
+            report.append("• ").append(r.label).append(": ").append(winner.name)
+                .append(" има ").append(a>b?r.left:r.right).append(" наспроти ")
+                .append(a>b?r.right:r.left).append(".\\n");
+            if(++count>=3)break;
+        }
+        String message=report.length()==0
+            ?"Нема доволно директно споредливи потврдени податоци за да се утврди предност."
+            :report.toString().trim();
+        message+="\\n\\nОва се проверливи разлики, не универзален победник. Изборот зависи од намената; спецификациите се од Setec.mk.";
+        TextView heading=text("АВТОМАТСКА АНАЛИЗА · СО ФАКТИ",15,true,INK);
+        LinearLayout.LayoutParams h=new LinearLayout.LayoutParams(-1,-2);
+        h.topMargin=dp(19);table.addView(heading,h);
+        TextView body=text(message,13,false,0xFFEAF5FF);
+        body.setPadding(dp(12),dp(12),dp(12),dp(12));
+        GradientDrawable bg=new GradientDrawable();bg.setColor(theme(0xFFFFF4E8,0xFF2B2B30));
+        bg.setCornerRadius(dp(12));body.setBackground(bg);
+        table.addView(body);
+    }
+    private static double priceNumber(String raw){
+        if(raw==null)return Double.NaN;
+        String cleaned=raw.replaceAll("[^0-9]","");
+        if(cleaned.isEmpty())return Double.NaN;
+        try{return Double.parseDouble(cleaned);}catch(Exception e){return Double.NaN;}
+    }
+    private static double unitNumber(String raw){
+        if(raw==null)return Double.NaN;
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)([0-9]+(?:[.,][0-9]+)?)\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\b").matcher(raw);
+        if(!m.find())return Double.NaN;
+        try{
+            double v=Double.parseDouble(m.group(1).replace(',','.'));
+            String u=m.group(2).toUpperCase(java.util.Locale.ROOT);
+            if(u.equals("TB"))v*=1024;
+            if(u.equals("MB"))v/=1024;
+            if(u.equals("GHZ"))v*=1000;
+            return v;
+        }catch(Exception e){return Double.NaN;}
+    }
+    private static String unitOf(String raw){
+        if(raw==null)return "";
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)[0-9]+(?:[.,][0-9]+)?\\s*(TB|GB|MB|MHZ|GHZ|HZ|MAH|WH)\\b").matcher(raw);
+        if(!m.find())return "";
+        String u=m.group(1).toUpperCase(java.util.Locale.ROOT);
+        if(u.equals("TB")||u.equals("GB")||u.equals("MB"))return "STORAGE";
+        if(u.equals("GHZ")||u.equals("MHZ"))return "FREQUENCY";
+        return u;
+    }
+
     private TextView highlightCard(Product product,int slot){
         StringBuilder t=new StringBuilder("МОДЕЛ "+slot+"\n");
         if(product==null){
@@ -353,18 +596,80 @@ public final class CompareModelsActivity extends ComponentActivity {
         }else if(product.highlights.isEmpty()){
             t.append("Нема потврдени технички детали на Setec.");
         }else{
-            for(int i=0;i<product.highlights.size()&&i<5;i++)
+            for(int i=0;i<product.highlights.size();i++)
                 t.append("\n• ").append(product.highlights.get(i));
         }
-        TextView v=text(t.toString(),13,false,INK);
+        TextView v=text(t.toString(),13,false,0xFFE9F4FF);
         v.setPadding(dp(10),dp(12),dp(10),dp(12));
         v.setMinHeight(dp(135));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        bg.setColor(0xFF15283B);
         bg.setCornerRadius(dp(12));
-        bg.setStroke(dp(1),0xFFE1E6EE);
+        bg.setStroke(dp(1),0xFF2C5575);
         v.setBackground(bg);
         return v;
+    }
+
+    /** Complete, de-duplicated Setec specifications, grouped for quick reading. */
+    private LinearLayout fullSpecsCard(Product product,int slot){
+        LinearLayout card=new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(13),dp(13),dp(13),dp(13));
+        card.setBackground(gradient(0xFF15283B,0xFF101D2C,0xFF2C5575,12));
+        card.addView(text("МОДЕЛ "+slot+(product==null?"":" · "+product.name),14,true,0xFF58C5FF));
+        if(product==null){card.addView(text("Скенирај или внеси шифра.",12,false,0xFFE9F4FF));return card;}
+        java.util.LinkedHashMap<String,java.util.LinkedHashMap<String,String>> groups=new java.util.LinkedHashMap<>();
+        java.util.LinkedHashSet<String> seen=new java.util.LinkedHashSet<>();
+        for(Map.Entry<String,String> entry:product.facts.entrySet()){
+            String label=entry.getKey()==null?"":entry.getKey().trim();
+            String value=entry.getValue()==null?"":entry.getValue().trim();
+            if(label.isEmpty()||value.isEmpty()||SetecCompareRows.isUiOrSalesText(label+" "+value))continue;
+            String key=(label+":"+value).toLowerCase(java.util.Locale.ROOT);
+            if(!seen.add(key))continue;
+            String group=specGroup(label);
+            groups.computeIfAbsent(group,k->new java.util.LinkedHashMap<>()).put(label,value);
+        }
+        java.util.ArrayList<String> other=new java.util.ArrayList<>();
+        for(String raw:product.details){
+            String line=raw==null?"":raw.trim();
+            if(line.length()<3||SetecCompareRows.isUiOrSalesText(line))continue;
+            java.util.regex.Matcher match=java.util.regex.Pattern.compile("^([^:：]{2,48})\\s*[:：]\\s*(.{2,180})$").matcher(line);
+            if(match.matches()){
+                String label=match.group(1).trim(),value=match.group(2).trim();
+                String key=(label+":"+value).toLowerCase(java.util.Locale.ROOT);
+                if(seen.add(key))groups.computeIfAbsent(specGroup(label),k->new java.util.LinkedHashMap<>()).putIfAbsent(label,value);
+            }else if(seen.add(line.toLowerCase(java.util.Locale.ROOT)))other.add(line);
+        }
+        for(String group:new String[]{"Процесор и перформанси","Меморија и складирање","Екран и графика","Поврзување и порти","Батерија и напојување","Димензии и дизајн","Камера и звук","Оперативен систем и софтвер","Гаранција и сертификати","Други карактеристики"}){
+            Map<String,String> values=groups.get(group);
+            if(values==null||values.isEmpty())continue;
+            TextView heading=text(group,13,true,0xFF77C9FF);
+            LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(12);card.addView(heading,hp);
+            for(Map.Entry<String,String> e:values.entrySet()){
+                TextView line=text(e.getKey()+"  ·  "+e.getValue(),12,false,0xFFE5F0FF);
+                line.setPadding(dp(4),dp(6),dp(4),dp(6));card.addView(line);
+            }
+        }
+        if(!other.isEmpty()){
+            TextView heading=text("Дополнителни детали",13,true,0xFF77C9FF);
+            LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.topMargin=dp(12);card.addView(heading,hp);
+            for(String line:other){TextView item=text("• "+line,12,false,0xFFE5F0FF);item.setPadding(dp(4),dp(5),dp(4),dp(5));card.addView(item);}
+        }
+        if(groups.isEmpty()&&other.isEmpty())card.addView(text("Нема објавени потврдени спецификации.",12,false,0xFFE5F0FF));
+        return card;
+    }
+    private static String specGroup(String label){
+        String s=label.toLowerCase(java.util.Locale.ROOT);
+        if(s.matches(".*(процесор|processor|cpu|чипсет|chipset|јадра|cores|clock).*"))return "Процесор и перформанси";
+        if(s.matches(".*(ram|мемори|ssd|storage|диск|disk|hdd|капацитет на диск).*"))return "Меморија и складирање";
+        if(s.matches(".*(екран|display|screen|резолуц|resolution|графич|graphics|gpu|refresh|освежува).*"))return "Екран и графика";
+        if(s.matches(".*(wifi|wi-fi|bluetooth|usb|hdmi|порт|port|lan|ethernet|поврзува).*"))return "Поврзување и порти";
+        if(s.matches(".*(батери|battery|power|напојува|полнач|adapter).*"))return "Батерија и напојување";
+        if(s.matches(".*(тежина|weight|дименз|dimension|боја|color|материјал|size).*"))return "Димензии и дизајн";
+        if(s.matches(".*(оперативен|operating system|windows|linux|software|софтвер).*"))return "Оперативен систем и софтвер";
+        if(s.matches(".*(камера|camera|webcam|микрофон|microphone|звучник|speaker|audio|звук).*"))return "Камера и звук";
+        if(s.matches(".*(гаранци|warranty|сертифик|certificat).*"))return "Гаранција и сертификати";
+        return "Други карактеристики";
     }
 
     private String subtitle(Product p){
@@ -380,7 +685,7 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
 
     private void row(String label,String a,String b,boolean spec){
-        TextView heading=text((spec?"• ":"")+label,12,true,0xFF4E5764);
+        TextView heading=text((spec?"• ":"")+label,12,true,theme(0xFF4E5764,0xFFB6C3D3));
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
         hp.topMargin=dp(13);
         table.addView(heading,hp);
@@ -395,27 +700,27 @@ public final class CompareModelsActivity extends ComponentActivity {
     }
 
     private TextView valueBox(String value,boolean different){
-        TextView tv=text(value,14,true,INK);
+        TextView tv=text(value,14,true,0xFFEAF5FF);
         tv.setGravity(Gravity.CENTER);
         tv.setMinHeight(dp(57));
         tv.setPadding(dp(8),dp(10),dp(8),dp(10));
         GradientDrawable background=new GradientDrawable();
-        background.setColor(different?0xFFFFF0DF:Color.WHITE);
+        background.setColor(different?0xFF163B4B:0xFF142335);
         background.setCornerRadius(dp(10));
-        background.setStroke(dp(1),different?0xFFF9C78B:0xFFE4E7ED);
+        background.setStroke(dp(1),different?0xFF16B8B1:0xFF2C4A65);
         tv.setBackground(background);
         return tv;
     }
 
     private TextView columnCard(String name,String subtitle){
-        TextView v=text(name+"\n"+subtitle,13,true,INK);
+        TextView v=text(name+"\n"+subtitle,13,true,0xFFEAF5FF);
         v.setMinHeight(dp(102));
         v.setGravity(Gravity.CENTER);
         v.setPadding(dp(7),dp(12),dp(7),dp(12));
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        bg.setColor(0xFF15283B);
         bg.setCornerRadius(dp(11));
-        bg.setStroke(dp(1),0xFFE2E6ED);
+        bg.setStroke(dp(1),0xFF2C5575);
         v.setBackground(bg);
         return v;
     }
@@ -432,7 +737,7 @@ public final class CompareModelsActivity extends ComponentActivity {
             if(safeSource(url)){source=url;break;}
         }
         TextView link=text(source==null?"Извор: непотврден":"Извор ↗",12,true,
-            source==null?0xFF7B8493:0xFFE17319);
+            source==null?theme(0xFF7B8493,0xFFB6C3D3):0xFFE17319);
         link.setGravity(Gravity.CENTER);
         link.setPadding(dp(6),dp(10),dp(6),dp(10));
         host.addView(link,columnParams(second));

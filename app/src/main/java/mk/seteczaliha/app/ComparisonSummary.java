@@ -84,13 +84,15 @@ final class ComparisonSummary {
         if(available.contains("Проток на воздух")&&
             (available.contains("Брзини")||available.contains("Филтер"))||
             models.contains("АСПИРАТОР"))return HOOD;
+        // Recognize the PRODUCT TYPE before generic wattage/features.
+        // A washer that lists power consumption is still a washer.
+        if(available.contains("Капацитет на перење")||
+            models.contains("WASHING")||models.contains("ПЕРЕЊЕ")||
+            models.matches(".*\\b(?:TWM|MF110W|WN[A-Z]{2}\\d)\\b.*"))return WASHER;
         if(available.contains("Моќност")||
             available.contains("Број на вртежи")||
             available.contains("Автоматско исклучување"))
             return SMALL_APPLIANCE;
-        if(available.contains("Капацитет на перење")||
-            models.contains("WASHING")||models.contains("ПЕРЕЊЕ")||
-            models.matches(".*\\b(?:TWM|MF110W|WN[A-Z]{2}\\d)\\b.*"))return WASHER;
         if((available.contains("Дијагонала") &&
             (available.contains("Технологија на екран")||
              available.contains("Smart TV")||
