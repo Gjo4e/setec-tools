@@ -197,7 +197,7 @@ public final class ScannerActivity extends ComponentActivity {
         }
     }
     private void complete(String sku) {
-        if (completed) return;
+        if (completed || sku == null || !sku.matches("[0-9]{5}")) return;
         completed=true;
         if (provider!=null) provider.unbindAll();
         Intent data=new Intent();data.putExtra(EXTRA_SKU,sku);
@@ -215,8 +215,8 @@ public final class ScannerActivity extends ComponentActivity {
             .setNegativeButton("Откажи",(d,w)->{})
             .setPositiveButton("Пребарај",(d,w)->{
                 String code=input.getText().toString().trim();
-                if (code.matches("[0-9]{4,8}")) complete(code);
-                else detected.setText("Шифрата треба да има 4–8 цифри.");
+                if (code.matches("[0-9]{5}")) complete(code);
+                else detected.setText("SETEC шифрата мора да има точно 5 цифри.");
             }).show();
     }
     private int dp(int x){return Math.round(x*getResources().getDisplayMetrics().density);}
