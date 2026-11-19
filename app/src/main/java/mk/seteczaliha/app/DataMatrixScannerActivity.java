@@ -141,13 +141,24 @@ public final class DataMatrixScannerActivity extends ComponentActivity {
                     Matrix rotation=new Matrix();
                     rotation.postRotate(proxy.getImageInfo().getRotationDegrees());
                     Bitmap upright=Bitmap.createBitmap(original,0,0,original.getWidth(),original.getHeight(),rotation,true);
-                    // Analyze only the central visible guide, never the entire camera frame.
-                    // The preview uses FILL_CENTER, so the central image region matches the guide.
+                    // Map the EXACT visible blue guide to the camera bitmap.
+                    // PreviewView FILL_CENTER scales and center-crops the camera image.
+                    // A percentage of the bitmap is NOT the same as the visible guide.
                     int w=upright.getWidth(),h=upright.getHeight();
-                    int cropW=Math.max(1,Math.min(w,(int)(w*(lineMode?0.88f:0.72f))));
-                    int cropH=Math.max(1,Math.min(h,(int)(h*(lineMode?0.20f:0.43f))));
-                    int x=(w-cropW)/2,y=(h-cropH)/2;
-                    Bitmap region=Bitmap.createBitmap(upright,x,y,cropW,cropH);
+                    int viewW=preview.getWidth(),viewH=preview.getHeight();
+                    int guideW=guide.getWidth(),guideH=guide.getHeight();
+                    if(viewW<=0||viewH<=0||guideW<=0||guideH<=0){busy.set(false);proxy.close();return;}
+                    int[] previewXY=new int[2],guideXY=new int[2];
+                    preview.getLocationOnScreen(previewXY);
+                    guide.getLocationOnScreen(guideXY);
+                    float scale=Math.max((float)viewW/w,(float)viewH/h);
+                    float offsetX=(viewW-w*scale)/2f,offsetY=(viewH-h*scale)/2f;
+                    float left=guideXY[0]-previewXY[0],top=guideXY[1]-previewXY[1];
+                    int x=Math.max(0,Math.min(w-1,(int)Math.ceil((left-offsetX)/scale)));
+                    int y=Math.max(0,Math.min(h-1,(int)Math.ceil((top-offsetY)/scale)));
+                    int right=Math.max(x+1,Math.min(w,(int)Math.floor((left+guideW-offsetX)/scale)));
+                    int bottom=Math.max(y+1,Math.min(h,(int)Math.floor((top+guideH-offsetY)/scale)));
+                    Bitmap region=Bitmap.createBitmap(upright,x,y,right-x,bottom-y);
                     InputImage input=InputImage.fromBitmap(region,0);
                     scanner.process(input).addOnSuccessListener(codes->{
                         if(finished)return;
