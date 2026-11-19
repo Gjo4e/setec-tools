@@ -1161,19 +1161,17 @@ function batchRender(){const codes=batchRecords.map(x=>x.code);const total=batch
 function addBatchSku(code){code=String(code||'').trim();if(!/^[0-9]{4,8}$/.test(code))return;const existing=batchRecords.find(x=>x.code===code);if(existing){existing.qty=Math.min(9999,(existing.qty||1)+1)}else{batchRecords.push({code,qty:1,name:'',img:'',clubPrice:'',regularPrice:'',state:'pending'})}batchPersist();batchRender();$('batchMessage').textContent=code+' - '+(existing?existing.qty:1)+' скенирања';switchTab('batch');if(code!==batchActive&&!batchQueue.includes(code))batchQueue.push(code);batchNext();}
 window.onBatchScanned=addBatchSku;
 window.onBatchBarcodeScanned=function(raw){
- const text=String(raw||'').trim();
- const labelled=text.match(/(?:SETEC[ _-]?SKU|Шифра|Sifra|SKU|product[ _-]?code|item[ _-]?code)\s*[:=#-]\s*([0-9]{4,8})(?![0-9])/i);
- // GS1 Data Matrix may contain AI (01) followed by the 14-digit GTIN.
- const gs1=text.match(/(?:^|\D)\(01\)\s*([0-9]{14})(?![0-9])/);
- const compact=text.replace(/[\s-]/g,'');
- const code=labelled?labelled[1]:(gs1?gs1[1]:(/^[0-9]{4,7}$/.test(compact)||/^[0-9]{8,14}$/.test(compact)?compact:''));
- if(!code){$('batchMessage').textContent='Не е прочитан препознатлив SETEC код. Пробај повторно или користи SETEC шифра (OCR).';switchTab('batch');return;}
- // Labelled SETEC SKU or short unlabelled SKU: add to the list and verify via catalog.
- if(labelled||/^[0-9]{4,7}$/.test(code)){addBatchSku(code);return;}
- // EAN/UPC/GTIN and longer unlabelled payloads are NOT automatically SETEC SKUs.
- batchBarcodePending=code;
- switchTab('batch');$('batchMessage').textContent='Проверувам кој SETEC производ одговара на кодот '+code+'…';
- search(code,true);
+ const payload=String(raw||'').trim();
+ if(!payload){$('batchMessage').textContent='Кодот не е прочитан. Пробај повторно.';switchTab('batch');return;}
+ // Barcode/Data Matrix payloads retain their complete length. Only an explicitly
+ // labelled five-digit SETEC SKU (or a plain five-digit SKU) goes directly to List.
+ const labelled=payload.match(/(?:SETEC[ _-]?SKU|Шифра|Sifra|SKU)\s*[:=#-]\s*([0-9]{5})(?![0-9])/i);
+ if(labelled){addBatchSku(labelled[1]);return;}
+ if(/^[0-9]{5}$/.test(payload)){addBatchSku(payload);return;}
+ // Never cut a barcode down to five digits or interpret a GTIN as a SETEC SKU.
+ batchBarcodePending=payload;
+ switchTab('batch');$('batchMessage').textContent='Проверувам производ за прочитаниот баркод / Data Matrix…';
+ search(payload,true);
  $('batchPanel').classList.remove('hidden');$('resultsPanel').classList.add('hidden');$('status').classList.add('hidden');
 };
 function toggleBatchManual(){const box=$('batchManualBox');box.classList.toggle('hidden');if(!box.classList.contains('hidden'))$('batchManualInput').focus();}
