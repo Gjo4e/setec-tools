@@ -42,6 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Real-time camera preview with on-device OCR; no shutter, retry or camera app. */
 public final class ScannerActivity extends ComponentActivity {
     public static final String EXTRA_SKU = "setec_sku";
+    public static final String EXTRA_MODEL = "setec_model";
+    public static final String EXTRA_SCAN_MODEL = "scan_model";
     private static final int ORANGE = Color.rgb(35,177,248);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
@@ -50,6 +52,7 @@ public final class ScannerActivity extends ComponentActivity {
     private PreviewView preview;
     private ActivityResultLauncher<String> cameraPermission;
     private boolean cameraStarted = false;
+    private boolean modelMode = false;
     private TextView detected;
     private String lastSku = null;
     private int hits = 0;
@@ -58,6 +61,7 @@ public final class ScannerActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        modelMode=getIntent().getBooleanExtra(EXTRA_SCAN_MODEL,false);
         cameraPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if (granted) startCamera();
             else detected.setText("Дозволи пристап до камера во поставките на апликацијата или внеси шифра рачно.");
@@ -92,11 +96,11 @@ public final class ScannerActivity extends ComponentActivity {
         FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(-1,-2, Gravity.TOP);
         root.addView(top, tp);
         TextView title = new TextView(this);
-        title.setText("Скенирај шифра");
+        title.setText(modelMode?"Скенирај модел":"Скенирај шифра");
         title.setTextSize(21);title.setTypeface(null,Typeface.BOLD);title.setTextColor(Color.WHITE);
         top.addView(title);
         TextView hint = new TextView(this);
-        hint.setText("Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во сината рамка. Приближи го телефонот за јасни цифри.");
+        hint.setText(modelMode?"Насочи го називот на моделот во сината рамка (на пр. MF205W100BA30/W-BK). Се чита само во рамката.":"Насочи ја СИНАТА ЛЕНТА со „Шифра:“ или „шифра/код:“ во сината рамка. Приближи го телефонот за јасни цифри.");
         hint.setTextSize(14);hint.setTextColor(0xFFE3E5E9);hint.setPadding(0,dp(8),0,0);
         top.addView(hint);
 
@@ -106,7 +110,7 @@ public final class ScannerActivity extends ComponentActivity {
         bottom.setBackgroundColor(0xF00C1C30);
         root.addView(bottom, new FrameLayout.LayoutParams(-1,-2, Gravity.BOTTOM));
         detected = new TextView(this);
-        detected.setText("Барам шифра…");detected.setTextColor(Color.WHITE);
+        detected.setText(modelMode?"Барам модел…":"Барам шифра…");detected.setTextColor(Color.WHITE);
         detected.setTextSize(18);detected.setGravity(Gravity.CENTER);
         bottom.addView(detected);
         LinearLayout actions = new LinearLayout(this);
@@ -178,16 +182,16 @@ public final class ScannerActivity extends ComponentActivity {
             InputImage image = InputImage.fromBitmap(stripe,0);
             recognizer.process(image).addOnSuccessListener(result -> {
                 if (completed) return;
-                String sku = SkuExtractor.extractFramed(result.getText());
+                String sku = modelMode?extractModel(result.getText()):SkuExtractor.extractFramed(result.getText());
                 if (sku != null) {
                     long now = android.os.SystemClock.elapsedRealtime();
                     if (sku.equals(lastSku) && now-previousReadMs<4500) hits++;
                     else { lastSku=sku;hits=1; }
                     previousReadMs=now;
-                    detected.setText("Шифра: " + sku + (hits>=2?" ✓":" · потврдувам…"));
+                    detected.setText((modelMode?"Модел: ":"Шифра: ") + sku + (hits>=2?" ✓":" · потврдувам…"));
                     if (hits>=2) complete(sku);
                 } else {
-                    detected.setText("Насочи ја СИНАТА ЛЕНТА во рамката · шифра/код: #####");
+                    detected.setText(modelMode?"Насочи го моделот во сината рамка.":"Насочи ја СИНАТА ЛЕНТА во рамката · шифра/код: #####");
                 }
             }).addOnCompleteListener(task -> { busy.set(false); proxy.close(); });
         } catch (Exception ex) {
@@ -196,27 +200,39 @@ public final class ScannerActivity extends ComponentActivity {
             runOnUiThread(() -> detected.setText("Приближи ја етикетата или внеси шифра рачно."));
         }
     }
+    private static String extractModel(String text) {
+        if(text==null)return null;
+        java.util.regex.Matcher matcher=java.util.regex.Pattern.compile("(?i)(?<![A-Z0-9])[A-Z0-9]{2,}[A-Z0-9./_-]{3,}(?![A-Z0-9])").matcher(text);
+        String best=null;
+        while(matcher.find()){
+            String candidate=matcher.group().toUpperCase(java.util.Locale.ROOT);
+            if(candidate.length()>60||!candidate.matches(".*[0-9].*")||!candidate.matches(".*[A-Z].*"))continue;
+            if(candidate.matches("(?i)(?:WIFI|INVERTER|QUATTRO|ENERGY|LUNAR|MIDEA|SETEC).*")&&!candidate.matches(".*[0-9].*"))continue;
+            if(best==null||candidate.length()>best.length())best=candidate;
+        }
+        return best;
+    }
     private void complete(String sku) {
-        if (completed || sku == null || !sku.matches("[0-9]{5}")) return;
+        if (completed || sku == null || !(modelMode?sku.matches("(?i)[A-Z0-9][A-Z0-9./_-]{4,59}") && sku.matches(".*[0-9].*") && sku.matches("(?i).*[A-Z].*"):sku.matches("[0-9]{5}"))) return;
         completed=true;
         if (provider!=null) provider.unbindAll();
-        Intent data=new Intent();data.putExtra(EXTRA_SKU,sku);
+        Intent data=new Intent();data.putExtra(modelMode?EXTRA_MODEL:EXTRA_SKU,sku);
         setResult(Activity.RESULT_OK,data);
         finish();
     }
     private void manualCode() {
         final EditText input=new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        input.setHint("Пр. 12959");
+        input.setInputType(modelMode?InputType.TYPE_CLASS_TEXT:InputType.TYPE_CLASS_NUMBER);
+        input.setHint(modelMode?"Пр. MF205W100BA30/W-BK":"Пр. 12959");
         input.setText(lastSku==null?"":lastSku);
-        new AlertDialog.Builder(this).setTitle("Шифра на производот")
-            .setMessage("Внеси го бројот до „Шифра:“ — не цената.")
+        new AlertDialog.Builder(this).setTitle(modelMode?"Модел на производот":"Шифра на производот")
+            .setMessage(modelMode?"Внеси го точниот модел од етикетата.":"Внеси го бројот до „Шифра:“ — не цената.")
             .setView(input)
             .setNegativeButton("Откажи",(d,w)->{})
             .setPositiveButton("Пребарај",(d,w)->{
                 String code=input.getText().toString().trim();
-                if (code.matches("[0-9]{5}")) complete(code);
-                else detected.setText("SETEC шифрата мора да има точно 5 цифри.");
+                if (modelMode?code.matches("(?i)[A-Z0-9][A-Z0-9./_-]{4,59}")&&code.matches(".*[0-9].*")&&code.matches("(?i).*[A-Z].*"):code.matches("[0-9]{5}")) complete(code);
+                else detected.setText(modelMode?"Внеси валиден модел со букви и цифри.":"SETEC шифрата мора да има точно 5 цифри.");
             }).show();
     }
     private int dp(int x){return Math.round(x*getResources().getDisplayMetrics().density);}
