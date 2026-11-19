@@ -48,6 +48,7 @@ public final class MainActivity extends ComponentActivity {
     private String batchCurrentSku = null;
     private int batchSerial = 0;
     private boolean nextScanBatch = false;
+    private boolean nextScanModelBatch = false;
     private boolean nextScanTrack = false;
     private boolean nextScanBatchBarcode = false;
     private String activeQuery = "";
@@ -77,8 +78,15 @@ public final class MainActivity extends ComponentActivity {
         getWindow().setNavigationBarColor(Color.BLACK);
         scannerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                String model = result.getData().getStringExtra(ScannerActivity.EXTRA_MODEL);
+                if(model!=null && !model.trim().isEmpty()){
+                    js((nextScanModelBatch?"window.onBatchModelScanned(":"window.onModelScanned(")+JSONObject.quote(model.trim())+");");
+                    nextScanModelBatch=false;
+                    nextScanBatch=false;
+                    return;
+                }
                 String sku = result.getData().getStringExtra(ScannerActivity.EXTRA_SKU);
-                if (sku != null && sku.matches("[0-9]{4,8}")) {
+                if (sku != null && sku.matches("[0-9]{5}")) {
                     js((nextScanTrack ? "window.onTrackScanned(" : nextScanBatch ? "window.onBatchScanned(" : "window.onScanned(") + JSONObject.quote(sku) + ");");
                     nextScanBatch = false;
                 }
@@ -282,6 +290,14 @@ public final class MainActivity extends ComponentActivity {
         }
         @JavascriptInterface public void openPcConfigurator() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PcConfiguratorActivity.class)));
+        }
+        @JavascriptInterface public void scanModel(boolean batch) {
+            runOnUiThread(()->{
+                nextScanModelBatch=batch;
+                nextScanBatch=false;
+                scannerLauncher.launch(new Intent(MainActivity.this,ScannerActivity.class)
+                    .putExtra(ScannerActivity.EXTRA_SCAN_MODEL,true));
+            });
         }
         @JavascriptInterface public void scanBatchBarcode() {
             runOnUiThread(() -> { nextScanBatchBarcode=true; dataMatrixLauncher.launch(new Intent(MainActivity.this, DataMatrixScannerActivity.class).putExtra("batch_manual_default",true)); });
