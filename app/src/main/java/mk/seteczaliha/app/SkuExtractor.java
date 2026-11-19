@@ -14,15 +14,15 @@ import java.util.regex.Pattern;
 public final class SkuExtractor {
     private SkuExtractor() {}
     private static final Pattern ANCHOR = Pattern.compile(
-            "(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)(?:\\s*/\\s*(?:код|kod|code))?\\s*[:：.]?\\s*([0-9]{4,6})(?![0-9])");
+            "(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)(?:\\s*/\\s*(?:код|kod|code))?\\s*[:：.]?\\s*([0-9]{5})(?![0-9])");
     private static final Pattern LABEL = Pattern.compile("(?iu)(?:шифра|shifra|sifra|шuфра|s[hіi]fra)(?:\\s*/\\s*(?:код|kod|code))?");
-    private static final Pattern NUMBER = Pattern.compile("(?<![0-9])[0-9]{4,6}(?![0-9])");
+    private static final Pattern NUMBER = Pattern.compile("(?<![0-9])[0-9]{5}(?![0-9])");
     private static final Pattern PRICES = Pattern.compile("(?iu)(?:цена|ден\\.?|мкд|price|\\b12x\\b|\\b24x\\b)");
 
     /**
      * Only use this fallback for OCR inside the orange scan guide, NEVER for an
      * entire shop label. Latin OCR can recognize 84558 but miss "шифра/код".
-     * Require an unambiguous 4-6 digit SKU, excluding lines containing prices.
+     * Require an unambiguous 5-digit SKU, excluding lines containing prices.
      */
     public static String extractFramed(String raw) {
         String anchored = extract(raw);
