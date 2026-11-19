@@ -1054,9 +1054,9 @@ window.showResults=function(json,reset){
   if(a.length){const matched=a.find(p=>p.sku&&p.sku===lastQuery)||(a.length===1?a[0]:null);if(matched){try{updateRecentProduct(matched)}catch(historyError){console.warn('Recent history:',historyError)}}}
   if(batchBarcodePending && lastQuery===batchBarcodePending){
     const barcode=batchBarcodePending;batchBarcodePending=null;
-    const verified=a.filter(p=>/^[0-9]{5}$/.test(String(p.sku||'')));
+    const verified=a.filter(p=>/^[0-9]{4,8}$/.test(String(p.sku||'')));
     if(verified.length===1){addBatchSku(verified[0].sku);$('batchMessage').textContent='✓ Баркод '+barcode+' → SETEC шифра '+verified[0].sku+' · додадена во Листа.';}
-    else {$('batchMessage').textContent='Не најдов единствен производ со 5-цифрена SETEC шифра за '+barcode+'. Ништо не е додадено.';}
+    else {$('batchMessage').textContent='Не можам сигурно да поврзам единствен SETEC производ со кодот '+barcode+'. Ништо не е додадено. Пробај со SETEC шифра (OCR) од ценовникот.';}
     switchTab('batch');
   }
   displayResults();
