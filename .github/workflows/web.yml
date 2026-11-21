@@ -1,0 +1,74 @@
+name: Build Setec Tools Web for desktop
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feature/datamatrix-setec-scan-2026-11-06']
+    paths:
+      - 'web/**'
+permissions:
+  contents: write
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install browser
+        run: |
+          pip install --quiet playwright
+          python -m playwright install chromium
+      - name: Create bounded public catalog snapshot
+        run: python web/snapshot.py
+      - name: Verify web application in desktop browser
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          with sync_playwright() as p:
+            browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':1280,'height':900})
+            errors=[]
+            page.on('pageerror',lambda e:errors.append(str(e)))
+            page.goto(Path('web/index.html').resolve().as_uri(),wait_until='load')
+            assert page.title()=='Setec Tools',page.title()
+            assert page.locator('#rootShortcut .cat').count()==12
+            n=page.evaluate("Object.values(window.SETEC_WEB_PRODUCTS.categories).flat().length")
+            assert n>=50,('Insufficient products',n)
+            page.locator('.navigation button[data-target="categories"]').click()
+            assert page.locator('#categoryChildren .cat').count()==12
+            page.locator('#categoryChildren .cat').first.click()
+            assert page.locator('#crumbs').inner_text().strip()
+            page.locator('.navigation button[data-target="search"]').click()
+            assert page.locator('#searchResults .resultCard').count()>0
+            page.locator('#searchResults .resultCard .buy').first.click()
+            page.locator('.navigation button[data-target="list"]').click()
+            assert page.locator('#listRows .listRow').count()>0
+            page.locator('#months').select_option('48-zero')
+            assert not errors,errors
+            print('PASS WEB desktop navigation, 12 categories,',n,'cached products, search, buyer list and 48 zero-interest option',flush=True)
+            browser.close()
+          PY
+      - name: Save snapshot to source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/products.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh offline web catalog snapshot [skip ci]"
+            git push origin HEAD:feature/datamatrix-setec-scan-2026-11-06
+          fi
+      - name: Prepare offline web package
+        run: |
+          mkdir -p dist
+          cd web
+          zip -9 -q ../dist/Setec-Tools-WEB.zip index.html app.js catalog.js products.js
+          cd ..
+          unzip -t dist/Setec-Tools-WEB.zip | tail -2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Setec-Tools-WEB
+          path: dist/Setec-Tools-WEB.zip
+          if-no-files-found: error

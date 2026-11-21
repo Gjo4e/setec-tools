@@ -46,4 +46,17 @@ public final class ComparisonSummaryTest {
         assertEquals(Arrays.asList("RAM","Капацитет","Резолуција","Бучава"),
             ComparisonSummary.topSpecs("ASUS Vivobook",left,"Lenovo Laptop",left));
     }
+    @Test public void washerStillPrioritizesWashLoadWhenPowerIsAlsoListed(){
+        Map<String,String> a=new LinkedHashMap<>();
+        a.put("Моќност","1800W");
+        a.put("Центрифуга","1200 rpm");
+        a.put("Капацитет на перење","9 kg");
+        Map<String,String> b=new LinkedHashMap<>(a);
+        b.put("Капацитет на перење","7 kg");
+        List<String> fields=ComparisonSummary.topSpecs(
+            "Машина за перење Bosch",a,"Машина за перење Gorenje",b);
+        assertEquals("Капацитет на перење",fields.get(0));
+        assertEquals("Центрифуга",fields.get(1));
+    }
+
 }

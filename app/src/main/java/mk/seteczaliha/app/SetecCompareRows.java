@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Produces up to five meaningful side-by-side rows.
+ * Produces all available meaningful side-by-side rows.
  *
  * Named specifications are aligned by label. When a Setec product only has
  * original technical bullets, its original bullet text is still shown in
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * and therefore must not be marked as factual differences.
  */
 final class SetecCompareRows {
-    static final int MAX_ROWS=5;
+    static final int MAX_ROWS=150;
     private SetecCompareRows(){}
 
     static final class Row {
@@ -31,25 +31,126 @@ final class SetecCompareRows {
         }
     }
 
+    /**
+     * Only align the SAME verified, named feature on both products. Original
+     * product bullets are shown separately in the two per-model highlight
+     * cards; matching bullet index never means matching property.
+     */
     static List<Row> build(String leftName,Map<String,String> leftFacts,
                            List<String> leftDetails,String rightName,
                            Map<String,String> rightFacts,List<String> rightDetails){
         List<Row> rows=new ArrayList<>();
-        List<String> keys=ComparisonSummary.topSpecs(
-            leftName,leftFacts,rightName,rightFacts);
+        if(!CompareCategoryGuard.canCompare(leftName,rightName))return rows;
+        Map<String,String> combinedLeft=new java.util.LinkedHashMap<>();
+        Map<String,String> combinedRight=new java.util.LinkedHashMap<>();
+        if(leftFacts!=null)for(Map.Entry<String,String> entry:leftFacts.entrySet()){String key=canonicalLabel(entry.getKey());if(!key.isEmpty())combinedLeft.put(key,entry.getValue());}
+        if(rightFacts!=null)for(Map.Entry<String,String> entry:rightFacts.entrySet()){String key=canonicalLabel(entry.getKey());if(!key.isEmpty())combinedRight.put(key,entry.getValue());}
+        addDescriptionFacts(combinedLeft,leftDetails);
+        addDescriptionFacts(combinedRight,rightDetails);
+        Map<String,String> sharedLeft=new java.util.LinkedHashMap<>();
+        Map<String,String> sharedRight=new java.util.LinkedHashMap<>();
+        for(Map.Entry<String,String> spec:combinedLeft.entrySet()){
+            String label=spec.getKey(),left=spec.getValue(),right=combinedRight.get(label);
+            if(label==null||left==null||right==null)continue;
+            if(left.trim().isEmpty()||right.trim().isEmpty())continue;
+            if(!compatibleUnits(label,left,right))continue;
+            sharedLeft.put(label,left);
+            sharedRight.put(label,right);
+        }
+        // The summary's five-feature limit is for short previews only.
+        // The full comparison aligns EVERY verified shared specification,
+        // including arbitrary product-category fields from Setec.
+        List<String> keys=new ArrayList<>();
+        keys.addAll(ComparisonSummary.topSpecs(leftName,sharedLeft,rightName,sharedRight));
+        for(String key:sharedLeft.keySet())
+            if(!keys.contains(key))keys.add(key);
         for(String key:keys){
             if(rows.size()>=MAX_ROWS)break;
-            rows.add(new Row(key,known(leftFacts,key),known(rightFacts,key),true));
+            rows.add(new Row(key,known(sharedLeft,key),known(sharedRight,key),true));
         }
-        List<String> l=remaining(leftDetails,leftFacts);
-        List<String> r=remaining(rightDetails,rightFacts);
-        int max=Math.max(l.size(),r.size());
-        for(int i=0;i<max&&rows.size()<MAX_ROWS;i++){
-            rows.add(new Row("Опис од Setec · "+(i+1),
-                i<l.size()?l.get(i):"Не е наведено",
-                i<r.size()?r.get(i):"Не е наведено",false));
+        // Compare identical verified description bullets when the catalog does not
+        // expose structured fields. Never infer a difference from bullet position.
+        if(rows.isEmpty()&&leftDetails!=null&&rightDetails!=null){
+            java.util.Map<String,String> rightBullets=new java.util.LinkedHashMap<>();
+            for(String bullet:rightDetails){
+                String clean=normalize(bullet);
+                if(clean.length()>=4&&!isUiOrSalesText(clean))rightBullets.put(clean.toLowerCase(Locale.ROOT),clean);
+            }
+            for(String bullet:leftDetails){
+                String clean=normalize(bullet);
+                if(clean.length()<4||isUiOrSalesText(clean))continue;
+                String other=rightBullets.get(clean.toLowerCase(Locale.ROOT));
+                if(other==null)continue;
+                rows.add(new Row("Заедничка карактеристика "+(rows.size()+1),clean,other,true));
+                if(rows.size()>=MAX_ROWS)break;
+            }
         }
         return rows;
+    }
+
+    /** Normalize comparable labels across Macedonian and English descriptions. */
+    private static String canonicalLabel(String raw){
+        String key=normalize(raw).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N} ]","").trim();
+        if(key.matches("processor|cpu|процесор|тип на процесор"))return "Процесор";
+        if(key.matches("ram|меморија|работна меморија|ram memory"))return "RAM";
+        if(key.matches("ssd|storage|диск|хард диск|простор за складирање|капацитет на диск"))return "Диск";
+        if(key.matches("gpu|graphics|графичка|графичка картичка|video card"))return "Графичка";
+        if(key.matches("display|екран|дисплеј|големина на екран"))return "Екран";
+        if(key.matches("battery|батерија|траење на батерија"))return "Батерија";
+        if(key.matches("bluetooth|блутут"))return "Bluetooth";
+        if(key.matches("ports|порти|приклучоци"))return "Порти";
+        if(key.matches("resolution|резолуција"))return "Резолуција";
+        if(key.matches("refresh rate|освежување|фреквенција на освежување"))return "Освежување";
+        if(key.matches("capacity|капацитет"))return "Капацитет";
+        if(key.matches("energy class|енергетска класа"))return "Енергетска класа";
+        if(key.matches("power|моќност|снага"))return "Моќност";
+        if(key.matches("dimensions|димензии"))return "Димензии";
+        if(key.matches("weight|тежина"))return "Тежина";
+        if(key.matches("noise|бучава"))return "Бучава";
+        if(key.matches("warranty|гаранција"))return "";
+        return key.length()>=3&&key.length()<=45?normalize(raw):"";
+    }
+
+    /** Read generic named specifications, not just laptop-specific fields. */
+    private static void addDescriptionFacts(Map<String,String> facts,List<String> details){
+        if(details==null)return;
+        for(String raw:details){
+            String line=normalize(raw).replaceFirst("^[•\\-]+\\s*","");
+            java.util.regex.Matcher m=Pattern.compile("^([^:：]{3,48})\\s*[:：]\\s*(.{2,180})$").matcher(line);
+            if(!m.matches()){
+                // Setec also writes "- Процесор AMD Ryzen ..." without a colon.
+                m=Pattern.compile("(?iu)^(Процесор|Processor|CPU|RAM|Меморија|Диск|SSD|Storage|Графичка|Graphics|GPU|Екран|Display|Батерија|Battery|Bluetooth|Ports|Порти|Резолуција|Resolution|Капацитет|Capacity)\\s+(.{2,180})$").matcher(line);
+                if(!m.matches())continue;
+            }
+            String label=canonicalLabel(m.group(1)),value=m.group(2).trim();
+            if(label.isEmpty()||isUiOrSalesText(label)||value.length()>180)continue;
+            facts.putIfAbsent(label,value);
+        }
+    }
+
+    /** Disallow matching "8 kg" to "8 L", "1200 rpm" or "512 GB". */
+    static boolean compatibleUnits(String label,String left,String right){
+        String u=unitFamily(left),v=unitFamily(right);
+        if(!u.equals(v))return false;
+        if(label!=null&&label.trim().equalsIgnoreCase("Капацитет"))
+            return !u.isEmpty(); // Plain "капацитет" without units is ambiguous.
+        return true;
+    }
+
+    private static String unitFamily(String source){
+        String s=String.valueOf(source).toLowerCase(Locale.ROOT);
+        if(s.matches(".*\\b(?:кг|kg|килограми?)\\b.*"))return "WEIGHT";
+        if(s.matches(".*\\b(?:литри?|liters?|litres?|l)\\b.*"))return "VOLUME";
+        if(s.matches(".*\\b(?:tb|gb|mb|тб|гб)\\b.*"))return "STORAGE";
+        if(s.matches(".*\\b(?:rpm|вртежи)\\b.*"))return "RPM";
+        if(s.matches(".*\\b(?:ghz|mhz)\\b.*"))return "FREQUENCY";
+        if(s.matches(".*\\b(?:hz)\\b.*"))return "HZ";
+        if(s.matches(".*\\b(?:btu)\\b.*"))return "BTU";
+        if(s.matches(".*\\b(?:db|дб)\\b.*"))return "DECIBEL";
+        if(s.matches(".*\\b(?:w|kw|ват(?:и)?)\\b.*"))return "WATTS";
+        if(s.matches(".*\\b(?:mah|wh)\\b.*"))return "BATTERY";
+        if(s.matches(".*\\b(?:mm|cm|мм|см)\\b.*"))return "LENGTH";
+        return "";
     }
 
     /**
