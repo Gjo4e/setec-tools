@@ -1,7 +1,7 @@
 name: Build Setec Zaliha APK
 on:
   push:
-    branches: [main]
+    branches: [main, 'fix/setec-search-images']
   workflow_dispatch:
 permissions:
   contents: write
