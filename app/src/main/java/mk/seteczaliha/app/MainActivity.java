@@ -249,12 +249,10 @@ public final class MainActivity extends ComponentActivity {
             return;
         }
         js("window.showLoading('Пребарувам на Setec.mk...');");
-        if (!merchantLoaded || !isHome(merchant.getUrl())) {
-            queuedQuery = activeQuery;
-            merchant.loadUrl(HOME);
-            return;
-        }
-        runSearch(activeQuery);
+        queuedQuery = null;
+        merchant.loadUrl(Uri.parse("https://www.setec.mk/search-result").buildUpon()
+                .appendQueryParameter("q", activeQuery).build().toString());
+        scheduleResults(serial);
     }
     private void runSearch(String query) {
         if (merchant == null || productUrl != null) return;
@@ -273,14 +271,14 @@ public final class MainActivity extends ComponentActivity {
         scheduleResults(serial);
     }
     private void scheduleResults(int serial) {
-        for (long delay : new long[]{600, 1500, 3000, 5200}) {
+        for (long delay : new long[]{600, 1500, 3000, 5200, 9000, 13500}) {
             handler.postDelayed(() -> {
                 if (serial == searchSerial && productUrl == null) readResults(serial);
             }, delay);
         }
     }
     private void readResults(int serial) {
-        if (merchant == null || moreSearchPending) return;
+        if (merchant == null || moreSearchPending || !merchantLoaded || merchant.getUrl() == null || !merchant.getUrl().contains("/search-result")) return;
         String query = activeQuery;
         String script = "(function(){"+labelledPricesJs()+"let found=new Map();let q="+ JSONObject.quote(query.toLowerCase(Locale.ROOT)) +";"+
             "for(let a of document.querySelectorAll('a[href*=\"/products/\"]')){"+
@@ -293,7 +291,7 @@ public final class MainActivity extends ComponentActivity {
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
-            "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
+            "let image=a.querySelector('img')||p.querySelector('img');let src='';if(image){for(let v of [image.getAttribute('data-src'),image.getAttribute('data-original'),image.getAttribute('data-lazy-src'),image.currentSrc,image.getAttribute('src')]){if(!v||/^(data:|blob:)|placeholder/i.test(v))continue;try{let z=new URL(v,location.href);if(z.protocol==='https:'){src=z.href;break}}catch(e){}}}"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=50)break}"+
             "return JSON.stringify([...found.values()]);})()";
         merchant.evaluateJavascript(script, encoded -> {
@@ -380,7 +378,7 @@ public final class MainActivity extends ComponentActivity {
             "let m=txt.match(/(?:Шифра|SKU)\\s*:?\\s*([0-9]{4,8})/i);"+
             "let sku=m?m[1]:'';"+
             "if(!/^\\d+$/.test(q) && q && !q.split(/\\s+/).every(w=>(name+' '+txt).toLowerCase().includes(w)))continue;"+
-            "let image=p.querySelector('img');let src=image?.currentSrc||image?.src||image?.getAttribute('data-src')||'';"+
+            "let image=a.querySelector('img')||p.querySelector('img');let src='';if(image){for(let v of [image.getAttribute('data-src'),image.getAttribute('data-original'),image.getAttribute('data-lazy-src'),image.currentSrc,image.getAttribute('src')]){if(!v||/^(data:|blob:)|placeholder/i.test(v))continue;try{let z=new URL(v,location.href);if(z.protocol==='https:'){src=z.href;break}}catch(e){}}}"+
             "found.set(u.href,{url:u.href,name:name,sku:sku,img:src,clubPrice:prices.clubPrice,regularPrice:prices.regularPrice});if(found.size>=150)break}"+
             "return JSON.stringify([...found.values()]);})()";
     }
