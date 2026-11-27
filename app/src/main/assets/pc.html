@@ -274,6 +274,9 @@ function getDdr(p,id){
  }
  return '';
 }
+// Compare explicitly named form factors; unknown size must not be reported as compatible.
+function boardFormFactor(p){const n=String(p?.name||'').toUpperCase();if(/\b(?:E[ -]?ATX|EATX)\b/.test(n))return 4;if(/\b(?:MICRO[ -]?ATX|M[ -]?ATX|MATX|UATX)\b/.test(n))return 2;if(/\b(?:MINI[ -]?ITX|M[ -]?ITX)\b/.test(n))return 1;if(/\bATX\b/.test(n))return 3;return 0}
+function caseMaxFormFactor(p){const n=String(p?.name||'').toUpperCase();if(/\b(?:E[ -]?ATX|EATX)\b/.test(n))return 4;if(/\b(?:ATX|MID[ -]?TOWER|FULL[ -]?TOWER)\b/.test(n))return 3;if(/\b(?:MICRO[ -]?ATX|M[ -]?ATX|MATX)\b/.test(n))return 2;if(/\b(?:MINI[ -]?ITX|M[ -]?ITX)\b/.test(n))return 1;return 0}
 function compatibility(next,p){
  const draft={...chosen,[next]:p},issues=[],notes=[];
  for(const id of slots){if(draft[id]&&!builderPart(draft[id],id))issues.push('Избраниот дел во '+labelFor(id)+' не одговара на категоријата.');}
@@ -281,8 +284,8 @@ function compatibility(next,p){
  if(draft.ram){const fmt=ramFormFactor(draft.ram);if(fmt==='SO-DIMM')issues.push('SO-DIMM е меморија за лаптоп и не одговара во стандардна desktop DIMM матична плоча.');else if(!fmt)notes.push('RAM: форматот DIMM не е потврден; провери ја спецификацијата на производот.');}
  if(draft.board&&draft.cpu){const a=getSocket(draft.board,'board'),b=getSocket(draft.cpu,'cpu');if(a&&b&&a!==b)issues.push('Процесорот има сокет '+b+', а матичната плоча '+a+'.');else if(!a||!b)notes.push('CPU/матична: сокетот не е целосно потврден.')}
  if(draft.board&&draft.ram){const a=getDdr(draft.board,'board'),b=getDdr(draft.ram,'ram');if(a&&b&&a!==b)issues.push('RAM е '+b+', а матичната плоча бара '+a+'.');else if(!a||!b)notes.push('RAM/матична: провери го поддржаниот DDR тип.')}
- if(draft.cpu&&draft.cooler){const a=getSocket(draft.cpu,'cpu'),t=fullText(draft.cooler);const explicit=t.match(/\bAM[45]\b|\bLGA[\s-]?(?:1700|1851|1200)\b/g)||[];if(a&&explicit.length&&!explicit.some(x=>x.replace(/[\s-]/g,'')===a))notes.push('Ладилник: провери дали има монтажен комплет за '+a+'.')}
- if(draft.board&&draft.case){const b=fullText(draft.board),c=fullText(draft.case);if(/\b(?:ATX)\b/.test(b)&&!/(M.ATX|MICRO.ATX)/.test(b)&&/\b(?:ONLY\s*M.ATX|MICRO.ATX\s*ONLY)\b/.test(c))issues.push('ATX матичната не собира во куќиште само за mATX.');else notes.push('Провери големина на матична плоча и куќиште.')}
+ if(draft.cpu&&draft.cooler){const a=getSocket(draft.cpu,'cpu'),t=fullText(draft.cooler);const explicit=t.match(/\bAM[45]\b|\bLGA[\s-]?(?:1700|1851|1200)\b/g)||[];if(a&&explicit.length&&!explicit.some(x=>x.replace(/[\s-]/g,'')===a))issues.push('Ладилникот наведува други сокети, но не и '+a+'. Провери официјална поддршка пред избор.')}
+ if(draft.board&&draft.case){const b=boardFormFactor(draft.board),c=caseMaxFormFactor(draft.case);if(b&&c&&b>c)issues.push('Матичната плоча е поголема од поддржаниот формат на куќиштето.');else if(!b||!c)notes.push('Провери големина на матична плоча и куќиште.')}
  if(draft.gpu&&draft.case)notes.push('Провери должина на графичката и просторот во куќиштето.');
  if(draft.psu&&draft.gpu)notes.push('Провери ги препорачаните W и PCIe конектори за графичката.');
  if(draft.storage&&draft.board)notes.push('Провери M.2/SATA приклучоци на матичната плоча.');
